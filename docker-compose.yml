@@ -1,0 +1,410 @@
+version: '3.8'
+
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - taxi-net
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmqctl status || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  redis:
+    image: redis:7
+    networks:
+      - taxi-net
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Базы данных для каждого сервиса
+  mysql-auth:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: authdb
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    networks:
+      - taxi-net
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-auth-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -p${MYSQL_ROOT_PASSWORD} || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  mysql-admin:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: admindb
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    networks:
+      - taxi-net
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql-admin-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -p${MYSQL_ROOT_PASSWORD} || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  mysql-ride:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: ridedb
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    networks:
+      - taxi-net
+    ports:
+      - "3311:3306"
+    volumes:
+      - mysql-ride-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -p${MYSQL_ROOT_PASSWORD} || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  mysql-payment:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: paymentdb
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    networks:
+      - taxi-net
+    ports:
+      - "3308:3306"
+    volumes:
+      - mysql-payment-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -p${MYSQL_ROOT_PASSWORD} || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  mysql-review:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: reviewdb
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    networks:
+      - taxi-net
+    ports:
+      - "3309:3306"
+    volumes:
+      - mysql-review-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -p${MYSQL_ROOT_PASSWORD} || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Добавляем БД для geo-service
+  mysql-geo:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: geodb
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    networks:
+      - taxi-net
+    ports:
+      - "3310:3306"
+    volumes:
+      - mysql-geo-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -p${MYSQL_ROOT_PASSWORD} || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  auth-service:
+    build: ./auth-service
+    working_dir: /usr/src/app
+    ports:
+      - "3001:3001"
+    environment:
+      PORT: 3001
+      DATABASE_HOST: mysql-auth
+      DATABASE_PORT: 3306
+      DATABASE_USER: ${MYSQL_USER}
+      DATABASE_PASSWORD: ${MYSQL_PASSWORD}
+      DATABASE_NAME: authdb
+      RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672
+      JWT_SECRET: ${JWT_SECRET}
+    depends_on:
+      mysql-auth:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - taxi-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3001/auth/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    volumes:
+      - ./uploads:/usr/src/app/uploads
+
+  ride-service:
+    build: ./ride-service
+    working_dir: /usr/src/app
+    ports:
+      - "3013:3013"
+    environment:
+      PORT: 3013
+      REDIS_URL: redis://redis:6379
+      DB_NAME: ridedb
+      DB_HOST: mysql-ride
+      DB_PORT: 3306
+      DB_USER: ${MYSQL_USER}
+      DB_PASSWORD: ${MYSQL_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672
+      API_GATEWAY_URL: http://api-gateway:8000
+    depends_on:
+      mysql-ride:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - taxi-net
+
+  payment-service:
+    build: ./payment-service
+    working_dir: /usr/src/app
+    ports:
+      - "3003:3003"
+    environment:
+      PORT: 3003
+      DATABASE_HOST: mysql-payment
+      DATABASE_PORT: 3306
+      DATABASE_USER: ${MYSQL_USER}
+      DATABASE_PASSWORD: ${MYSQL_PASSWORD}
+      DATABASE_NAME: paymentdb
+      RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672
+      JWT_SECRET: ${JWT_SECRET}
+    depends_on:
+      mysql-payment:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - taxi-net
+
+  review-service:
+    build: ./review-service
+    working_dir: /usr/src/app
+    ports:
+      - "3004:3004"
+    environment:
+      DB_HOST: mysql-review
+      DB_PORT: 3306
+      DB_USER: ${MYSQL_USER}
+      DB_PASSWORD: ${MYSQL_PASSWORD}
+      DB_NAME: reviewdb
+      RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672
+      JWT_SECRET: ${JWT_SECRET}
+    depends_on:
+      mysql-review:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - taxi-net
+
+  sms-service:
+    build: ./sms-service
+    working_dir: /usr/src/app
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: 3000
+      RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - taxi-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3000/sms/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  auth-service-filebeat:
+    image: docker.elastic.co/beats/filebeat:7.15.0
+    container_name: auth-service-filebeat
+    volumes:
+      - ./auth-service/filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - ./auth-service/logs:/app/logs:ro
+    depends_on:
+      - auth-service
+    networks:
+      - taxi-net
+
+
+  admin-service:
+    build: ./admin-service
+    ports:
+      - "3008:3008"
+    environment:
+      DB_HOST: mysql-admin
+      DB_USER: ${MYSQL_USER}
+      DB_PASSWORD: ${MYSQL_PASSWORD}
+      DB_PORT: 3306
+      DB_NAME: admindb
+      JWT_SECRET: ${JWT_SECRET}
+      RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672
+      API_GATEWAY_URL: http://api-gateway:8000
+    depends_on:
+      mysql-admin:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - taxi-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/auth/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  geo-service:
+    build: ./geo-service
+    working_dir: /usr/src/app
+    ports:
+      - "3010:3010"
+    environment:
+      PORT: 3010
+      DB_HOST: mysql-geo
+      DB_PORT: 3306
+      DB_USER: ${MYSQL_USER}
+      DB_PASSWORD: ${MYSQL_PASSWORD}
+      DB_NAME: geodb
+      REDIS_URL: redis://redis:6379
+      RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672
+      JWT_SECRET: ${JWT_SECRET}
+    depends_on:
+      mysql-geo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - taxi-net
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f http://localhost:3010/health || exit 1" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  api-gateway:
+    build: ./api-gateway
+    ports:
+      - '8000:8000'
+    environment:
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - SMS_SERVICE_URL=http://sms-service:3000
+      - ADMIN_SERVICE_URL=http://admin-service:3008
+      - RIDE_SERVICE_URL=http://ride-service:3013
+      - PAYMENT_SERVICE_URL=http://payment-service:3003
+      - REVIEW_SERVICE_URL=http://review-service:3004
+      - GEO_SERVICE_URL=http://geo-service:3010
+      - PORT=8000
+    depends_on:
+      - auth-service
+      - ride-service
+      - admin-service
+      - payment-service
+      - review-service
+      - geo-service
+    networks:
+      - taxi-net
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.15.0
+    container_name: elasticsearch
+    environment:
+      node.name: elasticsearch
+      discovery.type: single-node
+      bootstrap.memory_lock: "true"
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+    networks:
+      - taxi-net
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.15.0
+    container_name: kibana
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
+    networks:
+      - taxi-net
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:7.15.0
+    container_name: logstash
+    volumes:
+      - ./logstash/pipeline:/usr/share/logstash/pipeline
+    depends_on:
+      - elasticsearch
+    ports:
+      - "5044:5044"
+    networks:
+      - taxi-net
+
+volumes:
+  esdata:
+  mysql-auth-data:
+  mysql-admin-data:
+  mysql-ride-data:
+  mysql-payment-data:
+  mysql-review-data:
+  mysql-geo-data:
+
+networks:
+  taxi-net:
+    driver: bridge

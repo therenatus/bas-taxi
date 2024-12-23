@@ -1,0 +1,71 @@
+# Node.js
+node_modules/
+uploads/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# Logs
+logs/
+*.log
+*.log.*
+
+# Environment Variables
+.env
+.env.*.local
+
+# Build Outputs
+dist/
+build/
+.out/
+.next/
+coverage/
+public/
+
+# Editor Directories and Files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Docker
+docker-compose.override.yml
+*.env
+.dockerignore
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+
+# Temporary Files
+*.tmp
+*.temp
+~$*
+
+# Test Artifacts
+*.test.js
+*.test.ts
+.jest/
+.nyc_output/
+coverage/
+
+# RabbitMQ/Redis Artifacts (if any temp files are created locally)
+mq_logs/
+redis_data/
+
+# PM2 Process Manager Files
+pids/
+logs/
+
+# Prisma (if used)
+prisma/migrations/
+prisma/dev.db
+prisma/.env
+
+# Sequelize
+sequelize-meta.json
+
+# Swagger (if you generate API docs locally)
+swagger-output.json
