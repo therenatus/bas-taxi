@@ -1,6 +1,6 @@
 import { Server } from 'socket.io';
 import logger from '../utils/logger.js';
-import config from '../utils/config.js';
+import config from '../utils/utils.js';
 import redis from 'redis';
 
 const createWebSocketService = (server) => {

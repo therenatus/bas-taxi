@@ -28,6 +28,7 @@ const reverseGeocode = async (latitude, longitude) => {
     const params = {
         latlng: `${latitude},${longitude}`,
         key: googleMapsApiKey,
+        language: 'ru',
     };
 
     const response = await axios.get(url, { params });
@@ -59,22 +60,83 @@ const getCityByCoordinates = async (latitude, longitude) => {
             throw new Error(`Ошибка Geocoding API: ${data.error_message || data.status}`);
         }
 
-        const addressComponents = data.results[0]?.address_components;
-
-        const cityComponent = addressComponents.find((component) =>
-            component.types.includes('locality')
-        );
-
-        if (!cityComponent) {
-            throw new Error('Город не найден в координатах');
+        if (!data.results || data.results.length === 0) {
+            throw new Error('Нет результатов для заданных координат.');
         }
 
-        return cityComponent.long_name;
+        for (const result of data.results) {
+            const addressComponents = result.address_components;
+
+            const regionComponent = addressComponents.find((component) =>
+                component.types.includes('administrative_area_level_1')
+            );
+
+            if (regionComponent) {
+                if (regionComponent.long_name.toLowerCase() !== 'almaty') {
+                    console.log(`Найдена административная область: ${regionComponent.long_name}`);
+                    return regionComponent.long_name;
+                }
+            }
+
+            const cityComponent = addressComponents.find((component) =>
+                component.types.includes('locality')
+            );
+
+            if (cityComponent) {
+                console.log(`Найден город: ${cityComponent.long_name}`);
+                return cityComponent.long_name;
+            }
+        }
+
+        throw new Error('Не удалось определить город или административную область по координатам.');
     } catch (error) {
-        console.error('Ошибка при запросе города по координатам:', error.message);
+        console.error('Ошибка при запросе местоположения по координатам:', error.message);
         throw error;
     }
 };
+
+// const getCityByCoordinates = async (latitude, longitude) => {
+//     const url = 'https://maps.googleapis.com/maps/api/geocode/json';
+//     const params = {
+//         latlng: `${latitude},${longitude}`,
+//         key: googleMapsApiKey,
+//         language: 'ru',
+//     };
+//
+//     try {
+//         const response = await axios.get(url, { params });
+//         const data = response.data;
+//
+//         if (data.status !== 'OK') {
+//             throw new Error(`Ошибка Geocoding API: ${data.error_message || data.status}`);
+//         }
+//
+//         if (!data.results || data.results.length === 0) {
+//             throw new Error('Нет результатов для заданных координат.');
+//         }
+//
+//         const addressComponents = data.results[0]?.address_components;
+//         console.log({ addressComponents });
+//
+//         // const cityComponent = addressComponents.find((component) =>
+//         //     component.types.includes('locality')
+//         // );
+//
+//         const cityComponent = addressComponents.find((component) =>
+//             component.types.includes('administrative_area_level_1')
+//         );
+//         console.log({ cityComponent });
+//         console.log({ cityComponentLong: cityComponent.long_name });
+//         if (!cityComponent) {
+//             throw new Error('Город не найден в координатах');
+//         }
+//
+//         return cityComponent.long_name;
+//     } catch (error) {
+//         console.error('Ошибка при запросе города по координатам:', error.message);
+//         throw error;
+//     }
+// };
 
 const getDistanceAndDuration = async (origin, destination) => {
     const url = `https://maps.googleapis.com/maps/api/distancematrix/json`;
