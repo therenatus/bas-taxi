@@ -3,7 +3,7 @@ import logger from '../../utils/logger.js';
 
 export const getReviewsByDriver = async (driverId) => {
     try {
-        const reviews = await ReviewView.findAll({ where: { driverId } });
+        const reviews = await ReviewView.findByPk(driverId);
         logger.info('Fetched reviews by driver', { driverId });
         return reviews;
     } catch (error) {

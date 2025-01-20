@@ -4,6 +4,6 @@ import authMiddleware from '../../middlewares/auth.middleware.js';
 
 const router = express.Router();
 
-router.get('/driver/:driverId', authMiddleware(['user', 'driver', 'admin']), getReviewsByDriverHandler);
+router.get('/driver/:driverId', getReviewsByDriverHandler);
 
 export default router;

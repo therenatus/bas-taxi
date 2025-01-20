@@ -6,29 +6,15 @@ const ReviewView = sequelize.define('ReviewView', {
         type: DataTypes.INTEGER,
         primaryKey: true,
     },
-    rideId: {
+    averageRating: {
+        type: DataTypes.FLOAT,
+        allowNull: false,
+        defaultValue: 0,
+    },
+    reviewCount: {
         type: DataTypes.INTEGER,
-    },
-    passengerId: {
-        type: DataTypes.INTEGER,
-    },
-    driverId: {
-        type: DataTypes.INTEGER,
-    },
-    rating: {
-        type: DataTypes.INTEGER,
-    },
-    comment: {
-        type: DataTypes.TEXT,
-    },
-    date: {
-        type: DataTypes.DATE,
-    },
-    origin: {
-        type: DataTypes.STRING,
-    },
-    destination: {
-        type: DataTypes.STRING,
+        allowNull: false,
+        defaultValue: 0,
     },
 }, {
     tableName: 'review_view',
