@@ -105,3 +105,27 @@ export const getCityFromCoordinates = async (coordinates, correlationId) => {
     }
 };
 
+export const reverseGeocode = async (coordinates, correlationId) => {
+    const [latitude, longitude] = coordinates.split(',');
+    try {
+        const response = await axios.get(`${API_GATEWAY_URL}/geo/reverse-geocode`, {
+            params: { latitude, longitude },
+            headers: {
+                'X-Correlation-ID': correlationId,
+            },
+        });
+
+        if (response.status !== 200 || !response.data) {
+            logger.error('Некорректный ответ от geo-service', { status: response.status, correlationId });
+            throw new Error('Ошибка при получении данных от geo-service');
+        }
+
+        logger.info('Получены данные расстояния и времени из geo-service', { correlationId });
+        return response.data;
+    } catch (error) {
+        console.log({ error });
+        logger.error('Ошибка при запросе к geo-service', { error: error.message, correlationId });
+        throw new Error('Не удалось получить данные о расстоянии и времени');
+    }
+};
+

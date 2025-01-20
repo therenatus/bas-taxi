@@ -9,12 +9,14 @@ import {
     deactivateLineHandler,
     deactivateParkingModeHandler,
     getNearbyParkedDriversHandler,
-    getRideInfoHandler,
+    getRideInfoHandler, onsiteRideHandler,
     requestRideHandler,
     startRideByQRHandler, startRideHandler,
     updateRideStatusHandler
 } from '../controllers/ride.controller.js';
 import { authMiddleware } from "../middlewares/auth.middleware.js";
+import {getDriverDetails, getRideDetails, onsiteRide} from "../services/ride.service.js";
+import logger from "../utils/logger.js";
 
 const router = express.Router();
 
@@ -38,27 +40,14 @@ const router = express.Router();
  *           schema:
  *             type: object
  *             properties:
- *               passengerId:
- *                 type: string
- *                 example: "passenger123"
  *               origin:
- *                 type: object
- *                 properties:
- *                   lat:
- *                     type: number
- *                     example: 55.753215
- *                   lng:
- *                     type: number
- *                     example: 37.622504
+ *                 type: string
+ *                 description: Координаты отправления в формате "lat,lng"
+ *                 example: "43.2025,76.8921"
  *               destination:
- *                 type: object
- *                 properties:
- *                   lat:
- *                     type: number
- *                     example: 55.751244
- *                   lng:
- *                     type: number
- *                     example: 37.618423
+ *                 type: string
+ *                 description: Координаты назначения в формате "lat,lng"
+ *                 example: "43.20917,76.76028"
  *     responses:
  *       201:
  *         description: Запрос на поездку создан
@@ -184,6 +173,46 @@ router.post('/:rideId/start', authMiddleware(['driver']), startRideHandler);
 
 /**
  * @swagger
+ * /rides/{rideId}/onsite:
+ *   post:
+ *     summary: Водитель на месте
+ *     tags: [Rides]
+ *     parameters:
+ *       - in: path
+ *         name: rideId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Идентификатор поездки
+ *     responses:
+ *       200:
+ *         description: Водитель на месте
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Водитель на месте"
+ *                 ride:
+ *                   type: object
+ *                   properties:
+ *                     rideId:
+ *                       type: integer
+ *                       example: 123
+ *                     status:
+ *                       type: string
+ *                       example: "on_site"
+ *       400:
+ *         description: Ошибка запроса
+ *       500:
+ *         description: Внутренняя ошибка сервера
+ */
+router.post('/:rideId/onsite', authMiddleware(['driver']), onsiteRideHandler);
+
+/**
+ * @swagger
  * /rides/{rideId}/complete:
  *   post:
  *     summary: Завершение поездки водителем
@@ -269,27 +298,14 @@ router.post('/:rideId/cancel', authMiddleware(['passenger']), cancelRideHandler)
  *           schema:
  *             type: object
  *             properties:
- *               driverId:
- *                 type: string
- *                 example: "driver123"
  *               origin:
- *                 type: object
- *                 properties:
- *                   lat:
- *                     type: number
- *                     example: 55.753215
- *                   lng:
- *                     type: number
- *                     example: 37.622504
+ *                 type: string
+ *                 description: Координаты отправления в формате "lat,lng"
+ *                 example: "43.2025,76.8921"
  *               destination:
- *                 type: object
- *                 properties:
- *                   lat:
- *                     type: number
- *                     example: 55.751244
- *                   lng:
- *                     type: number
- *                     example: 37.618423
+ *                 type: string
+ *                 description: Координаты назначения в формате "lat,lng"
+ *                 example: "43.20917,76.76028"
  *     responses:
  *       201:
  *         description: Поездка создана
@@ -320,21 +336,17 @@ router.post('/without-passenger', authMiddleware('driver'), createRideWithoutPas
  *           schema:
  *             type: object
  *             properties:
- *               passengerId:
- *                 type: string
- *                 example: "passenger123"
  *               driverId:
  *                 type: string
  *                 example: "driver123"
+ *               origin:
+ *                 type: string
+ *                 description: Координаты отправления в формате "lat,lng"
+ *                 example: "43.2025,76.8921"
  *               destination:
- *                 type: object
- *                 properties:
- *                   lat:
- *                     type: number
- *                     example: 55.751244
- *                   lng:
- *                     type: number
- *                     example: 37.618423
+ *                 type: string
+ *                 description: Координаты назначения в формате "lat,lng"
+ *                 example: "43.20917,76.76028"
  *     responses:
  *       201:
  *         description: Поездка создана по QR-коду
@@ -671,5 +683,48 @@ router.post('/line/activate', authMiddleware(['driver']), activateLineHandler);
  *         description: Внутренняя ошибка сервера
  */
 router.post('/line/deactivate', authMiddleware(['driver']), deactivateLineHandler);
+
+router.get('/driver/:driverId', async (req, res) => {
+    const { driverId } = req.params;
+
+    if (!driverId) {
+        return res.status(400).json({ error: 'Не указан driverId' });
+    }
+
+    try {
+        const driverData = await getDriverDetails(driverId)
+
+        if (!driverData) {
+            return res.status(404).json({ error: 'Данные о водителе не найдены' });
+        }
+
+        res.status(200).json(driverData);
+    } catch (error) {
+        logger.error('Ошибка при получении данных о водителе через RabbitMQ', { error: error.message });
+        res.status(500).json({ error: 'Не удалось получить данные о водителе' });
+    }
+});
+
+router.get('/rides/:rideId', async (req, res) => {
+    const { rideId } = req.params;
+
+    if (!rideId) {
+        return res.status(400).json({ error: 'Не указан rideId' });
+    }
+
+    try {
+        const rideData = await getRideDetails(rideId)
+
+        if (!rideData) {
+            return res.status(404).json({ error: 'Данные о поездке не найдены' });
+        }
+
+        rideData.price = rideData.price.toString();
+        res.status(200).json(rideData);
+    } catch (error) {
+        logger.error('Ошибка при получении данных о водителе через RabbitMQ', { error: error.message });
+        res.status(500).json({ error: 'Не удалось получить данные о водителе' });
+    }
+});
 
 export default router;

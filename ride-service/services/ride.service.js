@@ -8,6 +8,7 @@ import { v4 as uuidv4 } from 'uuid';
 import {
     getCityFromCoordinates,
     getDistanceAndDurationFromGeoService,
+    reverseGeocode,
     sendRideRequestToGeoService,
     updateDriverLocationInGeoService
 } from './geo.service.js';
@@ -22,6 +23,7 @@ import {
 } from "./location.serrvice.js";
 import {cancelRideNotifications, notifyNearbyDrivers} from "./notification.service.js";
 import Driver from "../models/driver.model.js";
+import axios from "axios";
 
 
 const ensureCitySupportedAndGetPrice = async (city, distance, duration) => {
@@ -53,48 +55,69 @@ const publishRideEvent = async (eventType, data, correlationId) => {
     }
 };
 
-const extractDriverIdFromQRCode = (qrCodeData) => {
-    return qrCodeData.driverId;
-};
 
 export const requestRide = async (passengerId, origin, destination, paymentType, correlationId) => {
-    const transaction = await sequelize.transaction();
-    let ride = null;
+    // if (!passengerId || !origin || !destination || !paymentType || !correlationId) {
+    //     throw new Error('Отсутствуют необходимые параметры для запроса поездки');
+    // }
+
     const [latitude, longitude] = origin.split(',').map(Number);
+    if (isNaN(latitude) || isNaN(longitude)) {
+        throw new Error('Некорректные координаты отправления');
+    }
     try {
-        const { city, distance, duration, price } = await getRideInfo(origin, destination, correlationId);
-        const isSupported = await validateCitySupported(city);
-        if (!isSupported) {
-            throw new Error(`Город "${city}" не поддерживается`);
-        }
-        ride = await Ride.create({
-            passengerId,
-            origin,
-            destination,
-            city: city,
-            paymentType,
-            price: price,
-            distance,
-            status: 'pending',
-        }, { transaction });
-        const nearbyDrivers = await findNearbyDrivers(latitude, longitude, 5, 10);
+        const result = await sequelize.transaction(async (transaction) => {
+            const { city, distance, duration, price } = await getRideInfo(origin, destination, correlationId);
+            const isSupported = await validateCitySupported(city);
+            if (!isSupported) {
+                throw new Error(`Город "${city}" не поддерживается`);
+            }
 
-        if (nearbyDrivers.length === 0) {
-            throw new Error('Нет доступных водителей поблизости');
-        }
+            const [originNameRes, destinationNameRes] = await Promise.all([
+                reverseGeocode(origin),
+                reverseGeocode(destination)
+            ]);
 
-        await sendRideRequestToGeoService(ride.id, origin, destination, city, correlationId);
-        console.log('sendRideRequestToGeoService end')
-        await notifyNearbyDrivers(ride.id, nearbyDrivers, correlationId);
-        console.log('notifyNearbyDrivers end')
-        await transaction.commit();
+            if (!originNameRes || !originNameRes.address) {
+                throw new Error('Не удалось определить название места отправления');
+            }
+            let originName = originNameRes.address.split(',')[0];
 
-        logger.info('Запрос на поездку успешно отправлен', { rideId: ride.id, correlationId });
+            if (!destinationNameRes || !destinationNameRes.address) {
+                throw new Error('Не удалось определить название места назначения');
+            }
+            let destinationName = destinationNameRes.address.split(',')[0];
 
-        return ride;
+            const ride = await Ride.create({
+                passengerId,
+                origin,
+                destination,
+                city,
+                paymentType,
+                price,
+                duration,
+                distance,
+                status: 'pending',
+                originName,
+                destinationName,
+            }, { transaction });
+
+            const nearbyDrivers = await findNearbyDrivers(latitude, longitude, 10, 10);
+
+            if (nearbyDrivers.length === 0) {
+                throw new Error('Нет доступных водителей поблизости');
+            }
+
+            await sendRideRequestToGeoService(ride.id, origin, destination, city, correlationId);
+            await notifyNearbyDrivers(ride.id, nearbyDrivers, correlationId);
+
+            logger.info('Запрос на поездку успешно отправлен', { rideId: ride.id, correlationId });
+            return ride;
+        });
+
+        return result;
     } catch (error) {
-        await transaction.rollback();
-        logger.error('Ошибка при создании поездки 1', { error: error.message, correlationId });
+        logger.error('Ошибка при создании поездки', { error: error.message, correlationId });
         throw error;
     }
 };
@@ -141,70 +164,123 @@ export const processRideGeoData = async (geoData, correlationId) => {
 };
 
 export const createRideWithoutPassenger = async (driverId, origin, destination, correlationId) => {
-    const transaction = await sequelize.transaction();
+    // if (!driverId || !origin || !destination || !correlationId) {
+    //     throw new Error('Отсутствуют необходимые параметры для создания поездки без пассажира');
+    // }
+
+    const [latitude, longitude] = origin.split(',').map(Number);
+    if (isNaN(latitude) || isNaN(longitude)) {
+        throw new Error('Некорректные координаты отправления');
+    }
+
     try {
-        const { city, distance, duration, price } = await getRideInfo(origin, destination, correlationId);
-        const isSupported = await validateCitySupported(city);
-        if (!isSupported) {
-            throw new Error(`Город "${city}" не поддерживается`);
-        }
+        const ride = await sequelize.transaction(async (transaction) => {
+            const { city, distance, duration, price } = await getRideInfo(origin, destination, correlationId);
+            const isSupported = await validateCitySupported(city);
+            if (!isSupported) {
+                throw new Error(`Город "${city}" не поддерживается`);
+            }
 
-        const ride = await Ride.create({
-            driverId,
-            origin,
-            destination,
-            city,
-            distance,
-            duration,
-            price,
-            paymentType: 'cash',
-            status: 'in_progress',
-        }, { transaction });
+            const [originNameRes, destinationNameRes] = await Promise.all([
+                reverseGeocode(origin),
+                reverseGeocode(destination)
+            ]);
 
-        await transaction.commit();
-        logger.info('Поездка успешно создана без пассажира', { rideId: ride.id, correlationId });
+            if (!originNameRes || !originNameRes.address) {
+                throw new Error('Не удалось определить название места отправления');
+            }
+            const originName = originNameRes.address.split(',')[0];
+
+            if (!destinationNameRes || !destinationNameRes.address) {
+                throw new Error('Не удалось определить название места назначения');
+            }
+            const destinationName = destinationNameRes.address.split(',')[0];
+
+            const rideRecord = await Ride.create({
+                driverId,
+                origin,
+                destination,
+                city,
+                distance,
+                duration,
+                price,
+                paymentType: 'cash',
+                status: 'in_progress',
+                originName,
+                destinationName,
+            }, { transaction });
+
+            logger.info('Поездка успешно создана без пассажира', { rideId: rideRecord.id, correlationId });
+            return rideRecord.toJSON();
+        });
+
         return ride;
     } catch (error) {
-        await transaction.rollback();
         logger.error('Ошибка при создании поездки без пассажира', { error: error.message, correlationId });
         throw error;
     }
 };
 
+export const startRideByQR = async (passengerId, driverId, origin, destination, paymentType, correlationId) => {
+    // if (!passengerId || !driverId || !origin || !destination || !paymentType || !correlationId) {
+    //     throw new Error('Отсутствуют необходимые параметры для начала поездки через QR-код');
+    // }
 
-export const startRideByQR = async (passengerId, qrCodeData, destination, paymentType, correlationId) => {
-    const transaction = await sequelize.transaction();
-    let ride = null;
+    const [latitude, longitude] = origin.split(',').map(Number);
+    if (isNaN(latitude) || isNaN(longitude)) {
+        throw new Error('Некорректные координаты отправления');
+    }
+
     try {
-        const driverId = extractDriverIdFromQRCode(qrCodeData);
+        const ride = await sequelize.transaction(async (transaction) => {
+            const { city, distance, duration, price } = await getRideInfo(origin, destination, correlationId);
+            const isSupported = await validateCitySupported(city);
+            if (!isSupported) {
+                throw new Error(`Город "${city}" не поддерживается`);
+            }
 
-        const city = 'Указать город';
-        const supported = await validateCitySupported(city);
-        if (!supported) {
-            throw new Error(`Город ${city} не поддерживается`);
-        }
+            const [originNameRes, destinationNameRes] = await Promise.all([
+                reverseGeocode(origin),
+                reverseGeocode(destination)
+            ]);
 
-        ride = await Ride.create({
-            passengerId,
-            driverId,
-            origin: 'Текущее местоположение пассажира',
-            destination,
-            city,
-            paymentType,
-            status: 'in_progress',
-        }, { transaction });
+            if (!originNameRes || !originNameRes.address) {
+                throw new Error('Не удалось определить название места отправления');
+            }
+            const originName = originNameRes.address.split(',')[0];
 
-        if (paymentType === 'card') {
-            await initiatePayment(ride, correlationId);
-        }
+            if (!destinationNameRes || !destinationNameRes.address) {
+                throw new Error('Не удалось определить название места назначения');
+            }
+            const destinationName = destinationNameRes.address.split(',')[0];
 
-        await transaction.commit();
+            const rideRecord = await Ride.create({
+                passengerId,
+                driverId,
+                origin,
+                destination,
+                city,
+                paymentType,
+                distance,
+                duration,
+                price,
+                status: 'in_progress',
+                originName,
+                destinationName,
+            }, { transaction });
 
-        logger.info('Поездка успешно начата после сканирования QR-кода', { rideId: ride.id, correlationId });
+            if (paymentType === 'card') {
+                await initiatePayment(rideRecord, correlationId);
+            }
+
+            emitToDriver(driverId, { event: 'ride_start', data: { rideId: rideRecord.id, status: 'in_progress', message: 'Поездка началась' }});
+
+            logger.info('Поездка успешно начата по QR-коду', { rideId: rideRecord.id, correlationId });
+            return rideRecord.toJSON();
+        });
 
         return ride;
     } catch (error) {
-        await transaction.rollback();
         logger.error('Ошибка при создании поездки через QR-код', { error: error.message, correlationId });
         throw error;
     }
@@ -283,21 +359,20 @@ export const activateParkingMode = async (driverId, latitude, longitude, correla
             throw new Error('Обязательные параметры не переданы');
         }
 
-        const driver = await Driver.findByPk(driverId);
+        // const driver = await Driver.findByPk(driverId);
+        //
+        // if (!driver) {
+        //     throw new Error('Водитель не найден');
+        // }
 
-        if (!driver) {
-            throw new Error('Водитель не найден');
-        }
-
-        driver.isParkingMode = true;
-        await driver.save();
+        // driver.isParkingMode = true;
+        // await driver.save();
 
         await addParkedDriverLocation(driverId, latitude, longitude);
 
         emitParkingStatus(driverId, { latitude: parseFloat(latitude), longitude: parseFloat(longitude) });
 
         logger.info('Режим парковки активирован', { driverId, correlationId });
-        return driver;
     } catch (error) {
         logger.error('Ошибка активации режима парковки', { error: error.message, correlationId });
         throw error;
@@ -306,17 +381,16 @@ export const activateParkingMode = async (driverId, latitude, longitude, correla
 
 export const deactivateParkingMode = async (driverId, correlationId) => {
     try {
-        const driver = await Driver.findByPk(driverId);
-        if (!driver) throw new Error('Водитель не найден');
-
-        driver.isParking = false;
-        await driver.save();
+        // const driver = await Driver.findByPk(driverId);
+        // if (!driver) throw new Error('Водитель не найден');
+        //
+        // driver.isParking = false;
+        // await driver.save();
 
         await removeParkedDriverLocation(driverId);
         emitParkingStatus(driverId, null);
 
         logger.info('Режим парковки деактивирован', { driverId, correlationId });
-        return driver;
     } catch (error) {
         logger.error('Ошибка деактивации режима парковки', { error: error.message, correlationId });
         throw error;
@@ -358,7 +432,7 @@ export const acceptRide = async (rideId, driverId, correlationId) => {
     }
 };
 
-export const startRide = async (rideId, driverId, correlationId) => {
+export const onsiteRide = async (rideId, driverId, correlationId) => {
     const transaction = await sequelize.transaction();
     try {
         const ride = await Ride.findByPk(rideId, { transaction });
@@ -368,6 +442,43 @@ export const startRide = async (rideId, driverId, correlationId) => {
         }
 
         if (ride.status !== 'driver_assigned') {
+            throw new Error(`Поездка с ID ${rideId} не готова для начала`);
+        }
+
+        if (ride.driverId !== driverId) {
+            throw new Error('Вы не являетесь назначенным водителем для этой поездки');
+        }
+
+        ride.status = 'on_site';
+        await ride.save({ transaction });
+        emitRideUpdate(rideId, {
+            status: 'on_site',
+            message: 'Водитель на месте',
+        });
+
+        await publishRideEvent('on_site', { rideId, status: 'on_site' }, correlationId);
+
+        await transaction.commit();
+
+        logger.info('Водитель на месте', { rideId, driverId, correlationId });
+        return ride;
+    } catch (error) {
+        await transaction.rollback();
+        logger.error('Ошибка при начале поездки', { error: error.message, correlationId });
+        throw error;
+    }
+};
+
+export const startRide = async (rideId, driverId, correlationId) => {
+    const transaction = await sequelize.transaction();
+    try {
+        const ride = await Ride.findByPk(rideId, { transaction });
+
+        if (!ride) {
+            throw new Error(`Поездка с ID ${rideId} не найдена`);
+        }
+
+        if (ride.status !== 'on_site') {
             throw new Error(`Поездка с ID ${rideId} не готова для начала`);
         }
 
@@ -486,7 +597,6 @@ export const cancelRideByPassenger = async (rideId, passengerId, cancellationRea
 export const activateDriverLine = async (driverId, latitude, longitude) => {
     try {
         const data = await updateDriverLocation(driverId, latitude, longitude);
-        console.log({ data})
 
         emitRideUpdate(driverId, { status: 'on_line', latitude, longitude });
 
@@ -507,5 +617,75 @@ export const deactivateDriverLine = async (driverId) => {
     } catch (error) {
         logger.error('Ошибка при деактивации линии', { error: error.message, driverId });
         throw new Error('Не удалось деактивировать линию');
+    }
+};
+
+
+export const getActiveRidesByDriver = async (driverId) => {
+    try {
+        const activeRides = await Ride.findAll({
+            where: {
+                driverId: driverId,
+                status: ['requested', 'accepted', 'in_progress'] // Список статусов, которые считаются активными
+            }
+        });
+        return activeRides;
+    } catch (error) {
+        logger.error('Ошибка при получении активных поездок водителя', { error: error.message, driverId });
+        return [];
+    }
+};
+
+export const getDriverDetails = async (driverId, correlationId) => {
+    try {
+        const authResponse = await axios.get(`${process.env.API_GATEWAY_URL}/auth/driver/data/${driverId}`, {
+            headers: {
+                'X-Correlation-ID': correlationId,
+            },
+        });
+        if (authResponse.status !== 200 || !authResponse.data) {
+            throw new Error('Не удалось получить данные водителя из auth-service');
+        }
+
+        const driverData = authResponse.data;
+
+        const reviewResponse = await axios.get(`${process.env.API_GATEWAY_URL}/review/queries/reviews/driver/${driverId}`, {
+            headers: {
+                'X-Correlation-ID': correlationId,
+            },
+        });
+
+        if (reviewResponse.status !== 200 || reviewResponse.data === undefined) {
+            throw new Error('Не удалось получить рейтинг водителя из review-service');
+        }
+
+        const reviewData = reviewResponse.data;
+
+        const combinedData = {
+            ...driverData,
+            ...reviewData
+        };
+
+        logger.info('Данные водителя и рейтинг успешно получены', { driverId, correlationId });
+
+        return combinedData;
+    } catch (error) {
+        logger.error('Ошибка при получении данных водителя или рейтинга', { error: error.message, driverId, correlationId });
+        throw error;
+    }
+};
+
+export const getRideDetails = async (rideID, correlationId) => {
+    try {
+        const ride = await Ride.findOne({ where: { id: rideID } });
+        if(!ride) {
+            return null;
+        }
+        logger.info('Данные успешно получены', { rideID, correlationId });
+
+        return ride;
+    } catch (error) {
+        logger.error('Ошибка при получении данных водителя или рейтинга', { error: error.message, rideID, correlationId });
+        throw error;
     }
 };

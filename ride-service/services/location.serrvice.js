@@ -16,11 +16,11 @@ const addOrUpdateDriverLocation = async (key, driverId, latitude, longitude) => 
         throw new Error('Координаты должны быть числовыми');
     }
 
-    await redisClient.geoAdd(key, { member: driverId.toString(), latitude: lat, longitude: lon });
+    await redisClient.geoAdd(key, { member: driverId.toString(), longitude: lon, latitude: lat });
     logger.info(`Местоположение водителя ${driverId} обновлено в ${key}: ${lat}, ${lon}`);
 };
 
-const findDriversInRadius = async (key, latitude, longitude, radius = 5, limit = 10) => {
+const findDriversInRadius = async (key, latitude, longitude, radius = 100, limit = 10) => {
     try {
         const drivers = await redisClient.sendCommand([
             'GEOSEARCH',

@@ -8,13 +8,17 @@ import client from 'prom-client';
 import setupSwagger from './swagger.js';
 import {startRideSubscribers, subscribeToDriverApproval} from './services/ride.subscribe.js';
 import { subscribeToTariffUpdates } from './services/tariff.service.js';
-import { createWebSocketService, isWebSocketRunning } from './services/websoket.service.js';
+import {
+    createWebSocketService,
+    emitToDriver,
+    emitToPassenger,
+    isWebSocketRunning
+} from './services/websoket.service.js';
 
 const startServer = async () => {
     const app = express();
     app.use(express.json());
 
-    // Инициализация RabbitMQ
     try {
         await connectRabbitMQ();
         logger.info('RabbitMQ успешно подключен');
@@ -23,7 +27,6 @@ const startServer = async () => {
         process.exit(1); // Завершаем процесс, если RabbitMQ недоступен
     }
 
-    // Настраиваем WebSocket
     const server = http.createServer(app);
     let websocketService;
     try {
@@ -34,10 +37,27 @@ const startServer = async () => {
         process.exit(1);
     }
 
-    // Настраиваем маршруты
+    app.get('/send-test-notification', (req, res) => {
+        const driverId = 1; // Пример ID водителя
+        const passengerId = 1; // Пример ID пассажира
+
+        emitToDriver(driverId, {
+            event: 'tst',
+            data: {
+                message: 'тестовое уведомление водителю!!!'
+            }
+        });
+
+        emitToPassenger(passengerId, {
+            event: 'ride_accepted',
+            data: {
+                message: 'тестовое уведомление пассажиру!!!'
+            }
+        });
+        res.send('Тестовые уведомления отправлены!');
+    });
     app.use('/', rideRoute);
 
-    // Статус WebSocket
     app.get('/ws-status', (req, res) => {
         if (isWebSocketRunning()) {
             res.json({ websocket: 'running' });
@@ -60,15 +80,12 @@ const startServer = async () => {
         }
     });
 
-    // Swagger
     setupSwagger(app);
 
-    // Healthcheck
     app.get('/health', (req, res) => {
         res.json({ status: 'ok' });
     });
 
-    // Настройка подписчиков
     try {
         await startRideSubscribers(websocketService);
         logger.info('Ride-события успешно настроены');
@@ -81,7 +98,6 @@ const startServer = async () => {
         process.exit(1);
     }
 
-    // Запуск сервера
     const PORT = config.port || 3000;
     server.listen(PORT, () => {
         logger.info(`Сервис запущен на порту ${PORT}`);
@@ -90,7 +106,6 @@ const startServer = async () => {
     return server;
 };
 
-// Запускаем сервер
 startServer().catch((error) => {
     logger.error('Фатальная ошибка при запуске сервера', error.message);
     process.exit(1);

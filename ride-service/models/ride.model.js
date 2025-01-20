@@ -23,6 +23,14 @@ const Ride = sequelize.define('Ride', {
         type: DataTypes.STRING,
         allowNull: false,
     },
+    originName: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
+    destinationName: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
     city: {
         type: DataTypes.STRING,
         allowNull: false,
@@ -41,7 +49,7 @@ const Ride = sequelize.define('Ride', {
         defaultValue: 'cash',
     },
     status: {
-        type: DataTypes.ENUM('pending', 'driver_assigned', 'in_progress', 'completed', 'cancelled'),
+        type: DataTypes.ENUM('pending', 'driver_assigned', 'in_progress', 'completed', 'cancelled', "on_site"),
         defaultValue: 'pending',
     },
     cancellationReason: {

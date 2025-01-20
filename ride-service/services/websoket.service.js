@@ -1,7 +1,7 @@
-// services/websocket.service.js
 import { Server } from 'socket.io';
 import logger from '../utils/logger.js';
 import { removeDriverLocation, updateDriverLocation } from './location.serrvice.js';
+import {getActiveRidesByDriver} from "./ride.service.js";
 
 let ioInstance = null;
 
@@ -17,8 +17,7 @@ export const createWebSocketService = (server) => {
         cors: {
             origin: "*",
             methods: ["GET", "POST"],
-        },
-        transports: ["websocket", "polling"]
+        }
     });
 
     ioInstance = io;
@@ -35,6 +34,15 @@ export const createWebSocketService = (server) => {
             try {
                 await updateDriverLocation(driverId, latitude, longitude);
                 logger.info(`WebSocket: Координаты водителя обновлены [Driver ID: ${driverId}]`);
+
+                const activeRides = await getActiveRidesByDriver(driverId);
+                activeRides.forEach(ride => {
+                    emitRideUpdate(ride.id, {
+                        driverId,
+                        latitude,
+                        longitude
+                    });
+                });
             } catch (error) {
                 logger.error('WebSocket: Ошибка при обновлении координат водителя', { error: error.message });
             }
@@ -48,6 +56,7 @@ export const createWebSocketService = (server) => {
             if (callback) callback('join_driver_success');
         });
 
+// Обработчик события 'join_user'
         socket.on('join_user', (userId, callback) => {
             socket.join(`user_${userId}`);
             logger.info(`WebSocket: Сокет ${socket.id} присоединился к user_${userId}`);

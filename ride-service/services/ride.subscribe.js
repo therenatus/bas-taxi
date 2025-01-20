@@ -74,7 +74,7 @@ const subscribeToPaymentEvents = async (webSocketService) => {
                 const messageId = msg.properties.messageId;
                 const correlationId = msg.properties.headers['x-correlation-id'];
 
-                // Проверка на идемпотентность
+
                 const alreadyProcessed = await ProcessedMessage.findOne({ where: { messageId } });
                 if (alreadyProcessed) {
                     logger.info(`Сообщение с ID ${messageId} уже обработано`);

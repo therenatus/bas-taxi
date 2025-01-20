@@ -9,7 +9,7 @@ import {
     cancelRideByPassenger,
     deactivateParkingMode,
     deactivateDriverLine,
-    activateDriverLine, completeRide, startRide,
+    activateDriverLine, completeRide, startRide, onsiteRide,
 } from '../services/ride.service.js';
 import logger from '../utils/logger.js';
 import {findNearbyDrivers, findNearbyParkedDrivers} from "../services/location.serrvice.js";
@@ -25,6 +25,8 @@ export const requestRideHandler = async (req, res) => {
         }
 
         const ride = await requestRide(passengerId, origin, destination, paymentType, correlationId);
+
+        ride.price = ride.price.toString();
 
         res.status(201).json({ message: 'Поездка успешно создана', ride });
     } catch (error) {
@@ -43,6 +45,8 @@ export const cancelRideHandler = async (req, res) => {
 
         const ride = await cancelRideByPassenger(rideId, passengerId, cancellationReason, correlationId);
 
+        ride.price = ride.price.toString();
+
         res.status(200).json({ message: 'Поездка успешно отменена', ride });
     } catch (error) {
         logger.error('Ошибка при отмене поездки', { error: error.message, correlationId: req.correlationId });
@@ -59,7 +63,26 @@ export const acceptRideHandler = async (req, res) => {
 
         const ride = await acceptRide(rideId, driverId, correlationId);
 
+        ride.price = ride.price.toString();
+
         res.status(200).json({ message: 'Поездка успешно принята', ride });
+    } catch (error) {
+        logger.error('Ошибка при принятии поездки водителем', { error: error.message, correlationId: req.correlationId });
+        res.status(400).json({ error: error.message, correlationId: req.correlationId });
+    }
+};
+
+export const onsiteRideHandler = async (req, res) => {
+    try {
+        const { rideId } = req.params;
+        const driverId = req.user.driverId;
+        const correlationId = req.correlationId;
+
+        const ride = await onsiteRide(rideId, driverId, correlationId);
+
+        ride.price = ride.price.toString();
+
+        res.status(200).json({ message: 'Водитель на месте', ride });
     } catch (error) {
         logger.error('Ошибка при принятии поездки водителем', { error: error.message, correlationId: req.correlationId });
         res.status(400).json({ error: error.message, correlationId: req.correlationId });
@@ -73,6 +96,8 @@ export const completeRideHandler = async (req, res) => {
 
     try {
         const ride = await completeRide(rideId, driverId, correlationId);
+
+        ride.price = ride.price.toString();
 
         res.status(200).json({
             message: 'Поездка завершена',
@@ -102,6 +127,8 @@ export const startRideHandler = async (req, res) => {
 
         const ride = await startRide(rideId, driverId, correlationId);
 
+        ride.price = ride.price.toString();
+
         res.status(200).json({ message: 'Поездка успешно началась', ride });
     } catch (error) {
         logger.error('Ошибка при начале поездки', { error: error.message, correlationId: req.correlationId });
@@ -117,6 +144,8 @@ export const createRideWithoutPassengerHandler = async (req, res) => {
 
         const ride = await createRideWithoutPassenger(driverId, origin, destination, correlationId);
 
+        ride.price = ride.price.toString();
+
         res.status(201).json({ message: 'Поездка успешно создана водителем', ride });
     } catch (error) {
         logger.error('Ошибка при создании поездки водителем', { error: error.message, correlationId: req.correlationId });
@@ -126,7 +155,7 @@ export const createRideWithoutPassengerHandler = async (req, res) => {
 
 export const startRideByQRHandler = async (req, res) => {
     try {
-        const { qrCodeData, destination, paymentType = 'card' } = req.body;
+        const { driverId, origin, destination, paymentType = 'cash' } = req.body;
         const passengerId = req.user.userId;
         const correlationId = req.correlationId;
 
@@ -134,7 +163,9 @@ export const startRideByQRHandler = async (req, res) => {
             return res.status(400).json({ error: 'Некорректный тип оплаты', correlationId });
         }
 
-        const ride = await startRideByQR(passengerId, qrCodeData, destination, paymentType, correlationId);
+        const ride = await startRideByQR(passengerId, driverId, origin, destination, paymentType, correlationId);
+
+        ride.price = ride.price.toString();
 
         res.status(201).json({ message: 'Поездка успешно начата после сканирования QR-кода', ride });
     } catch (error) {
@@ -151,6 +182,8 @@ export const updateRideStatusHandler = async (req, res) => {
         const correlationId = req.correlationId;
 
         const ride = await updateRideStatus(rideId, status, userId, userRole, correlationId);
+
+        ride.price = ride.price.toString();
 
         res.status(200).json({ message: 'Статус поездки обновлен', ride });
     } catch (error) {
@@ -226,9 +259,8 @@ export const getNearbyParkedDriversHandler = async (req, res) => {
 export const activateLineHandler = async (req, res) => {
     try {
         const driverId = req.user.driverId;
-        console.log({ driverId})
         const { latitude, longitude } = req.body;
-        console.log({ latitude, longitude });
+
         if (!latitude || !longitude) {
             return res.status(400).json({ error: 'Необходимо указать координаты' });
         }

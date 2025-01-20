@@ -6,13 +6,16 @@ import Tariff from '../models/tarrif.model.js';
 export const getTariffs = async () => {
     try {
         let cachedTariffs = await redis.get('tariffs');
-        if (cachedTariffs) {
+        console.log({ cachedTariffs});
+        if (cachedTariffs || cachedTariffs !== '{}') {
             logger.info('tariff.service: тарифы загружены из Redis');
             return JSON.parse(cachedTariffs);
         }
 
         const tariffsFromDB = await Tariff.findAll();
+        console.log({ tariffsFromDB });
         const tariffs = tariffsFromDB.reduce((acc, tariff) => {
+            console.log({ tariff });
             acc[tariff.city] = {
                 baseFare: tariff.baseFare,
                 costPerKm: tariff.costPerKm,
@@ -31,15 +34,88 @@ export const getTariffs = async () => {
 };
 
 export const getCityTariff = async (city) => {
-    const tariffs = await getTariffs();
-    const tariff = tariffs[city];
+    try {
+        let tariff = await redis.get(`tariff:${city}`);
+        console.log('tarrif from redis:', tariff)
+        if (tariff) {
+            logger.info('tariff.service: тариф загружен из Redis', { city });
+            return JSON.parse(tariff);
+        }
 
-    if (!tariff) {
-        logger.warn('tariff.service: тариф для города не найден или город не поддерживается', { city });
-        throw new Error(`Тариф для города "${city}" не найден или город не поддерживается`);
+        if (!tariff) {
+            tariff = await getTariffFromDB(city);
+            console.log('tarrif from db:', tariff)
+            await redis.set(`tariff:${city}`, JSON.stringify(tariff), {
+                EX: 3600,
+            });
+            logger.info('tariff.service: тариф загружен из БД и кеширован', { city });
+            return tariff;
+        } else {
+            logger.warn('tariff.service: тариф для города не найден или город не поддерживается', { city });
+            throw new Error(`Тариф для города "${city}" не найден или город не поддерживается`);
+        }
+
+    } catch (error) {
+        logger.warn('tariff.service: ошибка при получении тарифа для города', { city, error: error.message });
+        throw error;
     }
+};
 
-    return tariff;
+
+const getTariffFromDB = async (city) => {
+    try {
+        const tariffRecord = await Tariff.findOne({ where: { city } });
+        if (tariffRecord) {
+            return {
+                baseFare: tariffRecord.baseFare,
+                costPerKm: tariffRecord.costPerKm,
+                costPerMinute: tariffRecord.costPerMinute,
+            };
+        }
+        return null;
+    } catch (error) {
+        logger.error('tariff.service: ошибка при обращении к базе данных', { city, error: error.message });
+        throw new Error('Ошибка при обращении к базе данных');
+    }
+};
+
+export const updateTariff = async (city, newTariff) => {
+    const transaction = await Tariff.sequelize.transaction();
+    try {
+        const [updatedRows] = await Tariff.update(newTariff, { where: { city }, transaction });
+        if (updatedRows === 0) {
+            throw new Error(`Тариф для города "${city}" не найден`);
+        }
+
+        await redis.set(`tariff:${city}`, JSON.stringify(newTariff), {
+            EX: 3600,
+        });
+        logger.info('tariff.service: тариф обновлён и кэш обновлён', { city, newTariff });
+
+        await transaction.commit();
+    } catch (error) {
+        await transaction.rollback();
+        logger.error('tariff.service: ошибка при обновлении тарифа', { city, error: error.message });
+        throw new Error('Не удалось обновить тариф');
+    }
+};
+
+export const addTariff = async (city, tariff) => {
+    const transaction = await Tariff.sequelize.transaction();
+    try {
+        await Tariff.create({ city, ...tariff }, { transaction });
+
+        await redis.set(`tariff:${city}`, JSON.stringify(tariff), {
+            EX: 3600,
+        });
+        logger.info('tariff.service: новый тариф добавлен и кеширован', { city, tariff });
+
+        await transaction.commit();
+    } catch (error) {
+        await transaction.rollback();
+        logger.error('tariff.service: ошибка при добавлении тарифа', { city, error: error.message });
+        throw new Error('Не удалось добавить тариф');
+    }
 };
 
 export const updateTariffForCity = async (city, data) => {
