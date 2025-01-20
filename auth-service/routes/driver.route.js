@@ -4,7 +4,8 @@ import {
         registerDriver,
         confirmDriverLogin,
         loginDriver,
-        getDriverById
+        getDriverById,
+        getDriverData
 } from '../controllers/driver.controller.js';
 import path from "path";
 import * as fs from "node:fs";
@@ -45,6 +46,7 @@ const upload = multer({ storage });
  */
 
 router.get('/:id', getDriverById);
+router.get('/data/:id', getDriverData);
 
 
 /**

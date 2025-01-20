@@ -23,7 +23,7 @@ export const registerDriver = [
                 manufactureDate,
                 vinCode,
             } = req.body;
-            console.log(req.files)
+
             if (!req.files || Object.keys(req.files).length === 0) {
                 throw new Error('Все необходимые фотографии должны быть загружены');
             }
@@ -122,6 +122,24 @@ export const getDriverById = async (req, res) => {
     logger.info('DRIVER ID:', id)
     try {
         const driver = await Driver.findByPk(id);
+        logger.info('DRIVER:', driver)
+        if (!driver) {
+            return res.status(404).json({ error: 'Водитель не найден' });
+        }
+
+        res.status(200).json(driver);
+    } catch (error) {
+        res.status(500).json({ error: 'Ошибка при получении данных водителя' });
+    }
+};
+
+export const getDriverData = async (req, res) => {
+    const { id } = req.params;
+    logger.info('DRIVER ID:', id)
+    try {
+        const driver = await Driver.findByPk(id, {
+            attributes: ['id', 'fullName', 'carBrand', 'carModel', 'licensePlate'],
+        });
         logger.info('DRIVER:', driver)
         if (!driver) {
             return res.status(404).json({ error: 'Водитель не найден' });
