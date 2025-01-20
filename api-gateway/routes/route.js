@@ -82,13 +82,13 @@ router.use('/admin', createProxyMiddleware({
 //     },
 // }));
 //
-// router.use('/review', createProxyMiddleware({
-//     target: process.env.REVIEW_SERVICE_URL,
-//     changeOrigin: true,
-//     pathRewrite: {
-//         '^/review': '',
-//     },
-// }));
+router.use('/review', createProxyMiddleware({
+    target: process.env.REVIEW_SERVICE_URL,
+    changeOrigin: true,
+    pathRewrite: {
+        '^/review': '',
+    },
+}));
 //
 // router.use('/sms', createProxyMiddleware({
 //     target: process.env.SMS_SERVICE_URL,
