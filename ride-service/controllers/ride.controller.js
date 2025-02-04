@@ -9,7 +9,14 @@ import {
     cancelRideByPassenger,
     deactivateParkingMode,
     deactivateDriverLine,
-    activateDriverLine, completeRide, startRide, onsiteRide,
+    activateDriverLine,
+    completeRide,
+    startRide,
+    onsiteRide,
+    getDriverDetails,
+    getUserRides,
+    getRideDetails,
+    getDriverRides,
 } from '../services/ride.service.js';
 import logger from '../utils/logger.js';
 import {findNearbyDrivers, findNearbyParkedDrivers} from "../services/location.serrvice.js";
@@ -284,5 +291,90 @@ export const deactivateLineHandler = async (req, res) => {
     } catch (error) {
         logger.error('Ошибка при деактивации линии водителя', { error: error.message, driverId: req.user.driverId });
         res.status(500).json({ error: 'Не удалось выйти с линии' });
+    }
+};
+
+export const getDriverDetailsHandler = async (req, res) => {
+    const { driverId } = req.params;
+
+    if (!driverId) {
+        return res.status(400).json({ error: 'Не указан driverId' });
+    }
+
+    try {
+        const driverData = await getDriverDetails(driverId);
+
+        if (!driverData) {
+            return res.status(404).json({ error: 'Данные о водителе не найдены' });
+        }
+
+        res.status(200).json(driverData);
+    } catch (error) {
+        logger.error('Ошибка при получении данных о водителе через RabbitMQ', { error: error.message });
+        res.status(500).json({ error: 'Не удалось получить данные о водителе' });
+    }
+};
+
+export const getRideDetailsHandler = async (req, res) => {
+    const { rideId } = req.params;
+
+    if (!rideId) {
+        return res.status(400).json({ error: 'Не указан rideId' });
+    }
+
+    try {
+        const rideData = await getRideDetails(rideId);
+
+        if (!rideData) {
+            return res.status(404).json({ error: 'Данные о поездке не найдены' });
+        }
+
+        rideData.price = rideData.price.toString();
+        res.status(200).json(rideData);
+    } catch (error) {
+        logger.error('Ошибка при получении данных о поездке через RabbitMQ', { error: error.message });
+        res.status(500).json({ error: 'Не удалось получить данные о поездке' });
+    }
+};
+
+export const getUserRidesHandler = async (req, res) => {
+    const { userId } = req.params;
+
+    if (!userId) {
+        return res.status(400).json({ error: 'Не указан userId' });
+    }
+
+    try {
+        const userRides = await getUserRides(userId);
+
+        if (!userRides) {
+            return res.status(404).json({ error: `Данные о поездках с userId: ${userId} не найдены` });
+        }
+
+        res.status(200).json(userRides);
+    } catch (error) {
+        logger.error('Ошибка при получении данных о поездках через RabbitMQ', { error: error.message });
+        res.status(500).json({ error: 'Не удалось получить данные о поездках' });
+    }
+};
+
+export const getDriverRidesHandler = async (req, res) => {
+    const { driverId } = req.params;
+
+    if (!driverId) {
+        return res.status(400).json({ error: 'Не указан driverId' });
+    }
+
+    try {
+        const userRides = await getDriverRides(driverId);
+
+        if (!userRides) {
+            return res.status(404).json({ error: `Данные о поездках с driverId: ${driverId} не найдены` });
+        }
+
+        res.status(200).json(userRides);
+    } catch (error) {
+        logger.error('Ошибка при получении данных о поездках через RabbitMQ', { error: error.message });
+        res.status(500).json({ error: 'Не удалось получить данные о поездках' });
     }
 };
