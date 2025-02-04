@@ -67,25 +67,31 @@ const getCityByCoordinates = async (latitude, longitude) => {
         for (const result of data.results) {
             const addressComponents = result.address_components;
 
-            const regionComponent = addressComponents.find((component) =>
-                component.types.includes('administrative_area_level_1')
+            const countryComponents = addressComponents.find((component) =>
+                component.types.includes('country')
             );
 
-            if (regionComponent) {
-                if (regionComponent.long_name.toLowerCase() !== 'almaty') {
-                    console.log(`Найдена административная область: ${regionComponent.long_name}`);
-                    return regionComponent.long_name;
-                }
-            }
+            return countryComponents.long_name;
 
-            const cityComponent = addressComponents.find((component) =>
-                component.types.includes('locality')
-            );
-
-            if (cityComponent) {
-                console.log(`Найден город: ${cityComponent.long_name}`);
-                return cityComponent.long_name;
-            }
+            // const regionComponent = addressComponents.find((component) =>
+            //     component.types.includes('administrative_area_level_1')
+            // );
+            //
+            // if (regionComponent) {
+            //     if (regionComponent.long_name.toLowerCase() !== 'almaty') {
+            //         console.log(`Найдена административная область: ${regionComponent.long_name}`);
+            //         return regionComponent.long_name;
+            //     }
+            // }
+            //
+            // const cityComponent = addressComponents.find((component) =>
+            //     component.types.includes('locality')
+            // );
+            //
+            // if (cityComponent) {
+            //     console.log(`Найден город: ${cityComponent.long_name}`);
+            //     return cityComponent.long_name;
+            // }
         }
 
         throw new Error('Не удалось определить город или административную область по координатам.');

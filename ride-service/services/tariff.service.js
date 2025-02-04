@@ -36,10 +36,11 @@ export const getTariffs = async () => {
 export const getCityTariff = async (city) => {
     try {
         let tariff = await redis.get(`tariff:${city}`);
+        tariff = tariff ? JSON.parse(tariff) : null;
         console.log('tarrif from redis:', tariff)
         if (tariff) {
             logger.info('tariff.service: тариф загружен из Redis', { city });
-            return JSON.parse(tariff);
+            return tariff;
         }
 
         if (!tariff) {
