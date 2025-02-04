@@ -36,8 +36,8 @@ export const registerDriverService = async (driverData) => {
     const driver = await Driver.create({ ...driverData, verificationCode });
     logger.info('registerDriverService: Водитель создан', { driver });
 
-    // await sendVerificationCode(phoneNumber, verificationCode);
-    // logger.info('registerDriverService: Код верификации отправлен', { phoneNumber, verificationCode });
+    await sendVerificationCode(phoneNumber, verificationCode);
+    logger.info('registerDriverService: Код верификации отправлен', { phoneNumber, verificationCode });
 
     return driver;
 };

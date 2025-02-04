@@ -1,22 +1,26 @@
-// src/routes/rideRoutes.js
 import express from 'express';
 import {
     acceptRideHandler,
     activateLineHandler,
     activateParkingModeHandler,
-    cancelRideHandler, completeRideHandler,
+    cancelRideHandler,
+    completeRideHandler,
     createRideWithoutPassengerHandler,
     deactivateLineHandler,
     deactivateParkingModeHandler,
     getNearbyParkedDriversHandler,
-    getRideInfoHandler, onsiteRideHandler,
+    getRideInfoHandler,
+    onsiteRideHandler,
     requestRideHandler,
-    startRideByQRHandler, startRideHandler,
-    updateRideStatusHandler
+    startRideByQRHandler,
+    startRideHandler,
+    updateRideStatusHandler,
+    getDriverDetailsHandler,
+    getDriverRidesHandler,
+    getUserRidesHandler,
+    getRideDetailsHandler,
 } from '../controllers/ride.controller.js';
 import { authMiddleware } from "../middlewares/auth.middleware.js";
-import {getDriverDetails, getRideDetails, onsiteRide} from "../services/ride.service.js";
-import logger from "../utils/logger.js";
 
 const router = express.Router();
 
@@ -147,23 +151,6 @@ router.post('/accept', authMiddleware(['driver']), acceptRideHandler);
  *     responses:
  *       200:
  *         description: Поездка успешно началась
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Поездка началась"
- *                 ride:
- *                   type: object
- *                   properties:
- *                     rideId:
- *                       type: integer
- *                       example: 123
- *                     status:
- *                       type: string
- *                       example: "in_progress"
  *       400:
  *         description: Ошибка запроса
  *       500:
@@ -187,23 +174,6 @@ router.post('/:rideId/start', authMiddleware(['driver']), startRideHandler);
  *     responses:
  *       200:
  *         description: Водитель на месте
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Водитель на месте"
- *                 ride:
- *                   type: object
- *                   properties:
- *                     rideId:
- *                       type: integer
- *                       example: 123
- *                     status:
- *                       type: string
- *                       example: "on_site"
  *       400:
  *         description: Ошибка запроса
  *       500:
@@ -227,23 +197,6 @@ router.post('/:rideId/onsite', authMiddleware(['driver']), onsiteRideHandler);
  *     responses:
  *       200:
  *         description: Поездка успешно завершена
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Поездка завершена"
- *                 ride:
- *                   type: object
- *                   properties:
- *                     rideId:
- *                       type: integer
- *                       example: 123
- *                     status:
- *                       type: string
- *                       example: "completed"
  *       400:
  *         description: Ошибка запроса
  *       500:
@@ -284,7 +237,6 @@ router.post('/:rideId/complete', authMiddleware(['driver']), completeRideHandler
  */
 router.post('/:rideId/cancel', authMiddleware(['passenger']), cancelRideHandler);
 
-
 /**
  * @swagger
  * /rides/without-passenger:
@@ -309,19 +261,12 @@ router.post('/:rideId/cancel', authMiddleware(['passenger']), cancelRideHandler)
  *     responses:
  *       201:
  *         description: Поездка создана
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 ride:
- *                   $ref: '#/components/schemas/Ride'
  *       400:
  *         description: Некорректный запрос
  *       500:
  *         description: Внутренняя ошибка сервера
  */
-router.post('/without-passenger', authMiddleware('driver'), createRideWithoutPassengerHandler);
+router.post('/without-passenger', authMiddleware(['driver']), createRideWithoutPassengerHandler);
 
 /**
  * @swagger
@@ -350,19 +295,12 @@ router.post('/without-passenger', authMiddleware('driver'), createRideWithoutPas
  *     responses:
  *       201:
  *         description: Поездка создана по QR-коду
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 ride:
- *                   $ref: '#/components/schemas/Ride'
  *       400:
  *         description: Некорректный запрос
  *       500:
  *         description: Внутренняя ошибка сервера
  */
-router.post('/start-by-qr', authMiddleware('passenger'), startRideByQRHandler);
+router.post('/start-by-qr', authMiddleware(['passenger']), startRideByQRHandler);
 
 /**
  * @swagger
@@ -386,13 +324,6 @@ router.post('/start-by-qr', authMiddleware('passenger'), startRideByQRHandler);
  *     responses:
  *       200:
  *         description: Статус поездки обновлен
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 ride:
- *                   $ref: '#/components/schemas/Ride'
  *       400:
  *         description: Некорректный запрос
  *       500:
@@ -403,7 +334,7 @@ router.put('/update-status', authMiddleware(['driver', 'passenger']), updateRide
 /**
  * @swagger
  * /rides/price:
- *   get:
+ *   post:
  *     summary: Расчет расстояния и цены поездки
  *     tags: [Rides]
  *     parameters:
@@ -423,51 +354,11 @@ router.put('/update-status', authMiddleware(['driver', 'passenger']), updateRide
  *         description: Координаты назначения в формате JSON
  *     responses:
  *       200:
- *         description: Информация о поездке
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Информация о поездке получена"
- *                 info:
- *                   type: object
- *                   properties:
- *                     city:
- *                       type: string
- *                       example: "Бишкек"
- *                     distance:
- *                       type: number
- *                       format: float
- *                       example: 1.884
- *                     duration:
- *                       type: number
- *                       example: 7
- *                     price:
- *                       type: string
- *                       example: "107.60"
+ *         description: Информация о поездке получена
  *       400:
  *         description: Некорректный запрос
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
- *                   example: "Некорректный запрос. Проверьте параметры."
  *       500:
  *         description: Внутренняя ошибка сервера
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
- *                   example: "Внутренняя ошибка сервера. Попробуйте позже."
  */
 router.post('/price', authMiddleware(['driver', 'passenger']), getRideInfoHandler);
 
@@ -499,32 +390,6 @@ router.post('/price', authMiddleware(['driver', 'passenger']), getRideInfoHandle
  *     responses:
  *       200:
  *         description: Режим парковки активирован
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 parkingInfo:
- *                   type: object
- *                   properties:
- *                     driverId:
- *                       type: string
- *                       example: "driver123"
- *                     origin:
- *                       type: object
- *                       properties:
- *                         lat:
- *                           type: number
- *                           example: 55.753215
- *                         lng:
- *                           type: number
- *                           example: 37.622504
- *                     status:
- *                       type: string
- *                       example: "parking"
- *                     updatedAt:
- *                       type: number
- *                       example: 1633072800000
  *       400:
  *         description: Некорректный запрос
  *       500:
@@ -543,14 +408,6 @@ router.post('/parking/activate', authMiddleware(['driver']), activateParkingMode
  *     responses:
  *       200:
  *         description: Режим парковки деактивирован
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Режим парковки деактивирован"
  *       400:
  *         description: Ошибка в запросе
  *       500:
@@ -589,28 +446,6 @@ router.post('/parking/deactivate', authMiddleware(['driver']), deactivateParking
  *     responses:
  *       200:
  *         description: Список парковочных водителей
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 parkingDrivers:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       driverId:
- *                         type: string
- *                         example: "driver123"
- *                       latitude:
- *                         type: number
- *                         example: 55.753215
- *                       longitude:
- *                         type: number
- *                         example: 37.622504
- *                       distance:
- *                         type: string
- *                         example: 1.0
  *       400:
  *         description: Некорректный запрос
  *       500:
@@ -618,6 +453,12 @@ router.post('/parking/deactivate', authMiddleware(['driver']), deactivateParking
  */
 router.get('/parking', authMiddleware(['passenger']), getNearbyParkedDriversHandler);
 
+/**
+ * @swagger
+ * tags:
+ *   name: Line
+ *   description: Управление водителем
+ */
 
 /**
  * @swagger
@@ -645,14 +486,6 @@ router.get('/parking', authMiddleware(['passenger']), getNearbyParkedDriversHand
  *     responses:
  *       200:
  *         description: Водитель вышел на линию
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Водитель вышел на линию"
  *       400:
  *         description: Ошибка в запросе
  *       500:
@@ -671,60 +504,109 @@ router.post('/line/activate', authMiddleware(['driver']), activateLineHandler);
  *     responses:
  *       200:
  *         description: Водитель вышел с линии
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Водитель вышел с линии"
  *       500:
  *         description: Внутренняя ошибка сервера
  */
 router.post('/line/deactivate', authMiddleware(['driver']), deactivateLineHandler);
 
-router.get('/driver/:driverId', async (req, res) => {
-    const { driverId } = req.params;
+// /**
+//  * @swagger
+//  * /driver/{driverId}/details:
+//  *   get:
+//  *     summary: Получение данных о водителе по driverId
+//  *     tags: [Rides]
+//  *     parameters:
+//  *       - in: path
+//  *         name: driverId
+//  *         required: true
+//  *         schema:
+//  *           type: string
+//  *         description: Идентификатор водителя
+//  *     responses:
+//  *       200:
+//  *         description: Данные о водителе получены
+//  *       400:
+//  *         description: Не указан driverId
+//  *       404:
+//  *         description: Данные о водителе не найдены
+//  *       500:
+//  *         description: Не удалось получить данные о водителе
+//  */
+router.get('/driver/:driverId/details', getDriverDetailsHandler);
 
-    if (!driverId) {
-        return res.status(400).json({ error: 'Не указан driverId' });
-    }
+// /**
+//  * @swagger
+//  * /driver/{driverId}/rides:
+//  *   get:
+//  *     summary: Получение списка поездок водителя
+//  *     tags: [Rides]
+//  *     parameters:
+//  *       - in: path
+//  *         name: driverId
+//  *         required: true
+//  *         schema:
+//  *           type: string
+//  *         description: Идентификатор водителя
+//  *     responses:
+//  *       200:
+//  *         description: Данные о поездках получены
+//  *       400:
+//  *         description: Не указан driverId
+//  *       404:
+//  *         description: Поездки с указанным driverId не найдены
+//  *       500:
+//  *         description: Не удалось получить данные о поездках
+//  */
+router.get('/driver/:driverId/rides', authMiddleware(['driver']), getDriverRidesHandler);
 
-    try {
-        const driverData = await getDriverDetails(driverId)
+// /**
+//  * @swagger
+//  * /user/{userId}/rides:
+//  *   get:
+//  *     summary: Получение списка поездок пользователя
+//  *     tags: [Rides]
+//  *     parameters:
+//  *       - in: path
+//  *         name: userId
+//  *         required: true
+//  *         schema:
+//  *           type: string
+//  *         description: Идентификатор пользователя
+//  *     responses:
+//  *       200:
+//  *         description: Данные о поездках получены
+//  *       400:
+//  *         description: Не указан userId
+//  *       404:
+//  *         description: Поездки с указанным userId не найдены
+//  *       500:
+//  *         description: Не удалось получить данные о поездках
+//  */
+router.get('/user/:userId/rides', authMiddleware(['passenger']), getUserRidesHandler);
 
-        if (!driverData) {
-            return res.status(404).json({ error: 'Данные о водителе не найдены' });
-        }
-
-        res.status(200).json(driverData);
-    } catch (error) {
-        logger.error('Ошибка при получении данных о водителе через RabbitMQ', { error: error.message });
-        res.status(500).json({ error: 'Не удалось получить данные о водителе' });
-    }
-});
-
-router.get('/rides/:rideId', async (req, res) => {
-    const { rideId } = req.params;
-
-    if (!rideId) {
-        return res.status(400).json({ error: 'Не указан rideId' });
-    }
-
-    try {
-        const rideData = await getRideDetails(rideId)
-
-        if (!rideData) {
-            return res.status(404).json({ error: 'Данные о поездке не найдены' });
-        }
-
-        rideData.price = rideData.price.toString();
-        res.status(200).json(rideData);
-    } catch (error) {
-        logger.error('Ошибка при получении данных о водителе через RabbitMQ', { error: error.message });
-        res.status(500).json({ error: 'Не удалось получить данные о водителе' });
-    }
-});
+// /**
+//  * @swagger
+//  * /rides/{rideId}:
+//  *   get:
+//  *     summary: Получение данных о конкретной поездке
+//  *     tags: [Rides]
+//  *     parameters:
+//  *       - in: path
+//  *         name: rideId
+//  *         required: true
+//  *         schema:
+//  *           type: string
+//  *         description: Идентификатор поездки
+//  *     responses:
+//  *       200:
+//  *         description: Данные о поездке получены
+//  *       400:
+//  *         description: Не указан rideId
+//  *       404:
+//  *         description: Данные о поездке не найдены
+//  *       500:
+//  *         description: Не удалось получить данные о поездке
+//  */
+router.get('/rides/:rideId', authMiddleware(['driver', 'passenger', 'admin', ' moderator']), getRideDetailsHandler);
 
 export default router;

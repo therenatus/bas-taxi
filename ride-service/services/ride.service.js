@@ -689,3 +689,39 @@ export const getRideDetails = async (rideID, correlationId) => {
         throw error;
     }
 };
+
+export const getUserRides = async (userId, correlationId) => {
+    try {
+        const rides = await  Ride.findAll({
+            where: {
+                userId: userId,
+                status: ['requested', 'accepted', 'in_progress']
+            }
+        });
+
+        logger.info('Данные успешно получены', { userId, correlationId });
+
+        return rides;
+    } catch (error) {
+        logger.error('Ошибка при получении списка поездок пассажира', { error: error.message, userId });
+        return [];
+    }
+};
+
+export const getDriverRides = async (driverId, correlationId) => {
+    try {
+        const rides = await  Ride.findAll({
+            where: {
+                driverId: driverId,
+                status: ['requested', 'accepted', 'in_progress']
+            }
+        });
+
+        logger.info('Данные успешно получены', { driverId, correlationId });
+
+        return rides;
+    } catch (error) {
+        logger.error('Ошибка при получении списка поездок водителя', { error: error.message, userId });
+        return [];
+    }
+};
