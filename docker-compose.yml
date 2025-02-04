@@ -202,7 +202,7 @@ services:
     build: ./payment-service
     working_dir: /usr/src/app
     ports:
-      - "3003:3003"
+      - "3004:3004"
     environment:
       PORT: 3003
       DATABASE_HOST: mysql-payment
@@ -226,7 +226,7 @@ services:
     build: ./review-service
     working_dir: /usr/src/app
     ports:
-      - "3004:3004"
+      - "3003:3003"
     environment:
       DB_HOST: mysql-review
       DB_PORT: 3306
@@ -339,8 +339,8 @@ services:
       - SMS_SERVICE_URL=http://sms-service:3000
       - ADMIN_SERVICE_URL=http://admin-service:3008
       - RIDE_SERVICE_URL=http://ride-service:3013
-      - PAYMENT_SERVICE_URL=http://payment-service:3003
-      - REVIEW_SERVICE_URL=http://review-service:3004
+      - PAYMENT_SERVICE_URL=http://payment-service:3004
+      - REVIEW_SERVICE_URL=http://review-service:3003
       - GEO_SERVICE_URL=http://geo-service:3010
       - PORT=8000
     depends_on:
