@@ -1,7 +1,12 @@
 import logger from '../utils/logger.js';
 import validateMiddleware from '../middlewares/validate.middleware.js';
 import {passengerRegisterSchema} from "../validators/register-passenger.validator.js";
-import {confirmLoginService, loginPassengerService, registerPassengerService} from "../services/passanger.service.js";
+import {
+    confirmLoginService,
+    loginPassengerService,
+    loginPassengerWebService,
+    registerPassengerService
+} from "../services/passanger.service.js";
 import {confirmLoginSchema, loginSchema} from "../validators/login.validator.js";
 
 export const registerPassenger = [
@@ -39,6 +44,31 @@ export const loginOrRegister = [
             } else {
                 logger.info('loginOrRegisterPassenger: Пользователь найден и код отправлен');
                 res.status(200).json({ message: 'Код верификации отправлен по SMS.' });
+            }
+        } catch (error) {
+            logger.error('Ошибка при логине или регистрации пассажира', { error: error.message });
+            res.status(400).json({ error: error.message });
+        }
+    },
+];
+
+export const loginOrRegisterWeb = [
+    validateMiddleware(loginSchema),
+    async (req, res) => {
+        logger.info('loginOrRegisterPassenger: Начало обработки запроса');
+        try {
+            const { phoneNumber, fullName } = req.body;
+            logger.info('loginOrRegisterPassenger: Получены данные', { phoneNumber, fullName });
+
+            const result = await loginPassengerWebService({ phoneNumber, fullName });
+            const { created, ...data } = result;
+
+            if (created) {
+                logger.info('loginOrRegisterPassengerWeb');
+                res.status(201).json({ message: 'Пользователь создан', ...data });
+            } else {
+                logger.info('loginOrRegisterPassengerWeb');
+                res.status(201).json({ message: 'Вы успешно вошли', ...data });
             }
         } catch (error) {
             logger.error('Ошибка при логине или регистрации пассажира', { error: error.message });

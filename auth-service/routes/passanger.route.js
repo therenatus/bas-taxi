@@ -1,5 +1,5 @@
 import express from 'express';
-import { registerPassenger, loginOrRegister, confirmLogin } from '../controllers/passanger.controller.js';
+import { loginOrRegister, confirmLogin, loginOrRegisterWeb} from '../controllers/passanger.controller.js';
 
 const router = express.Router();
 
@@ -38,6 +38,32 @@ router.post('/login', loginOrRegister);
 
 /**
  * @swagger
+ * /auth/passenger/web-login:
+ *   post:
+ *     summary: Логин или регистрация пассажира web-версия
+ *     tags: [Passenger]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - phoneNumber
+ *             properties:
+ *               phoneNumber:
+ *                 type: string
+ *                 example: "+1234567890"
+ *     responses:
+ *       200:
+ *         description: Успешный вход или регистрация
+ *       400:
+ *         description: Ошибка валидации
+ */
+router.post('/web-login', loginOrRegisterWeb);
+
+/**
+ * @swagger
  * /auth/passenger/confirm:
  *   post:
  *     summary: Подтверждение кода верификации
@@ -67,33 +93,3 @@ router.post('/login', loginOrRegister);
 router.post('/confirm', confirmLogin);
 
 export default router;
-
-// /**
-//  * @swagger
-//  * /auth/passenger/register:
-//  *   post:
-//  *     summary: Регистрация пассажира
-//  *     tags: [Passenger]
-//  *     requestBody:
-//  *       required: true
-//  *       content:
-//  *         application/json:
-//  *           schema:
-//  *             type: object
-//  *             required:
-//  *               - phoneNumber
-//  *               - fullName
-//  *             properties:
-//  *               phoneNumber:
-//  *                 type: string
-//  *                 example: "+1234567890"
-//  *               fullName:
-//  *                 type: string
-//  *                 example: "Иван Иванов"
-//  *     responses:
-//  *       201:
-//  *         description: Успешная регистрация
-//  *       400:
-//  *         description: Ошибка валидации
-//  */
-// router.post('/register', registerPassenger);

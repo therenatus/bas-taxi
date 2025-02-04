@@ -84,6 +84,34 @@ export const loginPassengerService = async ({ phoneNumber }) => {
     return { created };
 };
 
+export const loginPassengerWebService = async ({ phoneNumber }) => {
+    logger.info('loginOrRegisterPassengerService: Начало обработки логина или регистрации', { phoneNumber });
+    let token;
+    let user = await User.findOne({ where: { phoneNumber } });
+    let created = false;
+
+    if (!user) {
+        logger.info('loginOrRegisterPassengerWebService: Пользователь не найден, создаем нового пассажира', { phoneNumber });
+
+        user = await User.create({
+            phoneNumber,
+            role: 'passenger',
+            isApproved: true,
+            isPhoneVerified: true
+        });
+        created = true;
+        logger.info('loginOrRegisterPassengerWebService: Пользователь создан', { user });
+    }
+
+    token = jwt.sign(
+        { userId: user.id, phoneNumber: user.phoneNumber, role: user.role },
+        process.env.JWT_SECRET || 'your_jwt_secret',
+        { expiresIn: '20d' }
+    );
+
+    return { userId: user.id, token, created };
+};
+
 export const confirmLoginService = async ({ phoneNumber, verificationCode }) => {
     logger.info('confirmLoginService: Начало подтверждения логина');
 
