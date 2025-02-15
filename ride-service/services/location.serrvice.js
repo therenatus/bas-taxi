@@ -40,7 +40,7 @@ const findDriversInRadius = async (key, latitude, longitude, radius = 100, limit
         }
 
         return drivers.map(([driverId, distance, coordinates]) => {
-            const [lon, lat] = coordinates; // Извлекаем координаты
+            const [lon, lat] = coordinates;
             return {
                 driverId: parseInt(driverId, 10),
                 distance: parseFloat(distance),

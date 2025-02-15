@@ -6,9 +6,9 @@ import {confirmLoginService, loginDriverService, registerDriverService} from "..
 import {sendDriverToExchange} from "../utils/rabbitmq.js";
 import Driver from "../models/driver.model.js";
 
-export const registerDriver = [
-    validateMiddleware(driverRegisterSchema),
-    async (req, res) => {
+// export const registerDriver = [
+//     validateMiddleware(driverRegisterSchema),
+export const registerDriver = async (req, res) => {
         logger.info('registerDriver: Начало обработки запроса');
         try {
             const {
@@ -77,8 +77,8 @@ export const registerDriver = [
             logger.error('Ошибка при регистрации водителя', { error: error.message });
             res.status(400).json({ error: error.message });
         }
-    },
-];
+    }
+//];
 
 export const loginDriver = [
     validateMiddleware(loginSchema),

@@ -1,5 +1,6 @@
 import Driver from '../models/driver.model.js';
 import logger from '../utils/logger.js';
+import redisClient from "../utils/redis.js";
 
 export const updateDriverParkingMode = async (driverId, isParkingMode, correlationId) => {
     try {
@@ -17,3 +18,14 @@ export const updateDriverParkingMode = async (driverId, isParkingMode, correlati
         throw error;
     }
 };
+
+
+export const getActiveDriver = async ({ correlationId }) => {
+    try {
+        const drivers = redisClient.getDrivers();
+        return drivers;
+    } catch (error) {
+        logger.error('Ошибка при обновлении состояния парковки водителя', { error: error.message, correlationId });
+        throw error;
+    }
+}

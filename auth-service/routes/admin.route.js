@@ -1,7 +1,7 @@
 import express from 'express';
 import {createAdmin, loginAdmin} from "../controllers/admin.controller.js";
-import {superAdminMiddleware} from "../middlewares/role.middleware.js";
 import {authMiddleware} from "../middlewares/auth.middleware.js";
+import {superAdminMiddleware} from "../middlewares/admin.guard.js";
 
 const router = express.Router();
 

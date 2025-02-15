@@ -7,7 +7,7 @@ const SMS_API_URL = process.env.SMS_API_URL;
 const SMS_API_KEY = process.env.SMS_API_KEY;
 
 export const sendVerificationCode = async (phoneNumber, code) => {
-    const message = `Ecomdevs, ваш код подтверждения: ${code}`;
+    const message = `Ecomdevs, Ваш код верификации: ${code}`;
     const url = `https://smsc.kz/sys/send.php?login=nianatoliy87&psw=nmnmnm888Ni@&phones=${phoneNumber}&mes=${message}`;
 
     try {

@@ -184,11 +184,11 @@ export const startRideByQRHandler = async (req, res) => {
 export const updateRideStatusHandler = async (req, res) => {
     try {
         const { rideId, status } = req.body;
-        const userId = req.user.driverId;
+        const driverId = req.user.driverId;
         const userRole = req.user.role;
         const correlationId = req.correlationId;
 
-        const ride = await updateRideStatus(rideId, status, userId, userRole, correlationId);
+        const ride = await updateRideStatus(rideId, status, driverId, userRole, correlationId);
 
         ride.price = ride.price.toString();
 
