@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-const reviewSchema = z.object({
+export const reviewSchema = z.object({
     rideId: z.number().int(),
     passengerId: z.number().int(),
     driverId: z.number().int(),

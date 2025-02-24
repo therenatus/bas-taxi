@@ -1,7 +1,7 @@
 import Review from '../../models/review.model.js';
 import axios from 'axios';
 import logger from '../../utils/logger.js';
-import * as reviewSchema from "dotenv";
+import { reviewSchema } from "../../validators/review.validator.js";
 import sequelize from "../../utils/database.js";
 import ReviewView from "../../models/rewiew-view.model.js";
 
