@@ -3,9 +3,9 @@ import Driver from '../models/driver.model.js';
 import { generateVerificationCode } from '../utils/generate-code.js';
 import { sendVerificationCode } from "../utils/sms.service.js";
 import jwt from "jsonwebtoken";
+import redisClient from "../utils/redis.js";
 
-const SMS_SEND_INTERVAL_MS = 60 * 1000; // 1 минута
-
+const SMS_SEND_INTERVAL_MS = 60 * 1000;
 export const registerDriverService = async (driverData) => {
     logger.info('registerDriverService: Начало регистрации водителя');
     logger.info('driverData:', driverData);
@@ -107,4 +107,42 @@ export const confirmLoginService = async ({ phoneNumber, verificationCode }) => 
     logger.info('confirmLoginService: JWT-токен сгенерирован', { token });
 
     return { driverId: driver.id, token};
+};
+
+const getActiveDriverCount = async ({correlationId}) => {
+    try {
+        const count = await redisClient.zCard('driver_locations');
+        logger.info(`Количество водителей: ${count}, id: ${correlationId}`);
+        return count;
+    } catch (error) {
+        logger.info('Ошибка получения количества водителей, id: ${correlationId} error:', error);
+        return 0;
+    }
+};
+
+const getDeactiveDriverCount = async ({ correlationId }) => {
+    try {
+        const count = await Driver.count({
+            where: {
+                isBlocked: true,
+            },
+        });
+        logger.info(`Количество заблокированных водителей: ${count}, id: ${correlationId}`);
+        return count;
+    } catch (error) {
+        logger.error(`Ошибка получения количества заблокированных водителей, id: ${correlationId} error:`, error);
+        return 0;
+    }
+};
+
+const getAllDriverCount = async ({ correlationId }) => {
+    try {
+        const activeCount = await Driver.count();
+        logger.info(`Количество водителей: всего: ${activeCount}, id: ${correlationId}`);
+
+        return activeCount;
+    } catch (error) {
+        logger.error(`Ошибка получения количества водителей, id: ${correlationId} error:`, error);
+        return { total: 0, blocked: 0, active: 0 };
+    }
 };

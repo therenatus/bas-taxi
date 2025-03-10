@@ -11,3 +11,14 @@ export const getReviewsByDriverHandler = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+
+export const getReviewsByRideHandler = async (req, res) => {
+    try {
+        const { rideId } = req.params;
+        const reviews = await getReviewsByRide(rideId);
+        res.json(reviews);
+    } catch (error) {
+        logger.error('Failed to fetch reviews by driver', { error: error.message });
+        res.status(500).json({ error: error.message });
+    }
+};
