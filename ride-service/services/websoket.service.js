@@ -36,13 +36,23 @@ export const createWebSocketService = (server) => {
                 logger.info(`WebSocket: Координаты водителя обновлены [Driver ID: ${driverId}]`);
 
                 const activeRides = await getActiveRidesByDriver(driverId);
+
                 activeRides.forEach(ride => {
+                    const rideRoom = `ride_${ride.id}`;
+
                     emitRideUpdate(ride.id, {
                         driverId,
                         latitude,
                         longitude
                     });
+
+                    ridesNamespace.to(rideRoom).emit("driver_location_update", {
+                        driverId,
+                        latitude,
+                        longitude
+                    });
                 });
+
             } catch (error) {
                 logger.error('WebSocket: Ошибка при обновлении координат водителя', { error: error.message });
             }
