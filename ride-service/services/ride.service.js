@@ -626,7 +626,7 @@ export const getActiveRidesByDriver = async (driverId) => {
         const activeRides = await Ride.findAll({
             where: {
                 driverId: driverId,
-                status: ['requested', 'accepted', 'in_progress'] // Список статусов, которые считаются активными
+                status: ['requested', 'accepted', 'in_progress', 'on_site', 'driver_assigned'] // Список статусов, которые считаются активными
             }
         });
         return activeRides;

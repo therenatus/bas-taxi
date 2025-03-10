@@ -38,9 +38,9 @@ export const createWebSocketService = (server) => {
                 const activeRides = await getActiveRidesByDriver(driverId);
 
                 activeRides.forEach(ride => {
-                    const rideRoom = `ride_${ride.id}`;
+                    const rideRoom = `ride_${ride.dataValues.id}`;
 
-                    emitRideUpdate(ride.id, {
+                    emitRideUpdate(ride.dataValues.id, {
                         driverId,
                         latitude,
                         longitude
