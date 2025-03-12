@@ -29,7 +29,6 @@ services:
       timeout: 10s
       retries: 5
 
-  # Базы данных для каждого сервиса
   mysql-auth:
     image: mysql:8.0
     environment:
@@ -125,7 +124,6 @@ services:
       timeout: 10s
       retries: 5
 
-  # Добавляем БД для geo-service
   mysql-geo:
     image: mysql:8.0
     environment:
@@ -145,6 +143,25 @@ services:
       timeout: 10s
       retries: 5
 
+  mysql-chat:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: chatdb
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    networks:
+      - taxi-net
+    ports:
+      - "3312:3306"
+    volumes:
+      - mysql-admin-data:/var/lib/mysql
+    healthcheck:
+      test: [ "CMD-SHELL", "mysqladmin ping -h localhost -p${MYSQL_ROOT_PASSWORD} || exit 1" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
   auth-service:
     build: ./auth-service
     working_dir: /usr/src/app
@@ -159,10 +176,13 @@ services:
       DATABASE_NAME: authdb
       RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672
       JWT_SECRET: ${JWT_SECRET}
+      REDIS_URL: redis://redis:6379
     depends_on:
       mysql-auth:
         condition: service_healthy
       rabbitmq:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - taxi-net
@@ -302,6 +322,32 @@ services:
       timeout: 10s
       retries: 5
 
+  chat-service:
+    build: ./chat-service
+    ports:
+      - "3014:3014"
+    environment:
+      DB_HOST: mysql-chat
+      DB_USER: ${MYSQL_USER}
+      DB_PASSWORD: ${MYSQL_PASSWORD}
+      DB_PORT: 3306
+      DB_NAME: chatdb
+      JWT_SECRET: ${JWT_SECRET}
+      RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672
+      API_GATEWAY_URL: http://api-gateway:8000
+    depends_on:
+      mysql-admin:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - taxi-net
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:3014/auth/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
   geo-service:
     build: ./geo-service
     working_dir: /usr/src/app
@@ -344,6 +390,7 @@ services:
       - PAYMENT_SERVICE_URL=http://payment-service:3006
       - REVIEW_SERVICE_URL=http://review-service:3003
       - GEO_SERVICE_URL=http://geo-service:3010
+      - CHAT_SERVICE=http://chat-service:3014
       - PORT=8000
     depends_on:
       - auth-service
@@ -401,6 +448,7 @@ services:
 volumes:
   esdata:
   mysql-auth-data:
+  mysql-chat:
   mysql-admin-data:
   mysql-ride-data:
   mysql-payment-data:
