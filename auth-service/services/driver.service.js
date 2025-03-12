@@ -3,7 +3,8 @@ import Driver from '../models/driver.model.js';
 import { generateVerificationCode } from '../utils/generate-code.js';
 import { sendVerificationCode } from "../utils/sms.service.js";
 import jwt from "jsonwebtoken";
-import redisClient from "../utils/redis.js";
+// import redisClient from "../utils/redis.js";
+import User from "../models/user.model.js";
 
 const SMS_SEND_INTERVAL_MS = 60 * 1000;
 export const registerDriverService = async (driverData) => {
@@ -109,16 +110,36 @@ export const confirmLoginService = async ({ phoneNumber, verificationCode }) => 
     return { driverId: driver.id, token};
 };
 
-const getActiveDriverCount = async ({correlationId}) => {
-    try {
-        const count = await redisClient.zCard('driver_locations');
-        logger.info(`Количество водителей: ${count}, id: ${correlationId}`);
-        return count;
-    } catch (error) {
-        logger.info('Ошибка получения количества водителей, id: ${correlationId} error:', error);
-        return 0;
+export const verifyTokenService = async (token, correlationId) => {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret');
+
+    logger.info('verifyTokenService: Токен расшифрован', { userId: decoded.userId, correlationId });
+
+    const user = await Driver.findByPk(decoded.userId);
+
+    if (!user) {
+        logger.warn('verifyTokenService: Пользователь не найден', { userId: decoded.userId, correlationId });
+        throw new Error('Пользователь не найден');
     }
+
+    return {
+        driverId: user.id,
+        phoneNumber: user.phoneNumber,
+        role: 'driver',
+        isPhoneVerified: user.isPhoneVerified,
+    };
 };
+
+// const getActiveDriverCount = async ({correlationId}) => {
+//     try {
+//         const count = await redisClient.zCard('driver_locations');
+//         logger.info(`Количество водителей: ${count}, id: ${correlationId}`);
+//         return count;
+//     } catch (error) {
+//         logger.info('Ошибка получения количества водителей, id: ${correlationId} error:', error);
+//         return 0;
+//     }
+// };
 
 const getDeactiveDriverCount = async ({ correlationId }) => {
     try {
