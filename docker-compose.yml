@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   rabbitmq:
     image: rabbitmq:3-management
@@ -336,14 +334,14 @@ services:
       RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672
       API_GATEWAY_URL: http://api-gateway:8000
     depends_on:
-      mysql-admin:
+      mysql-chat:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
     networks:
       - taxi-net
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:3014/auth/health" ]
+      test: [ "CMD", "curl", "-f", "http://localhost:3012/auth/health" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -448,7 +446,7 @@ services:
 volumes:
   esdata:
   mysql-auth-data:
-  mysql-chat:
+  mysql-chat-data:
   mysql-admin-data:
   mysql-ride-data:
   mysql-payment-data:

@@ -2,7 +2,7 @@ import { createRestServer } from "./rest/server.js";
 import { createWebSocketServer } from "./websocket/server.js";
 import { createChatRoutes } from "./rest/routes/chat.router.js";
 import { ChatController } from "./rest/controllers/chat.controller.js";
-import {ApplicationError} from "../application/exceptions/application.error";
+import {ApplicationError} from "../application/exceptions/application.error.js";
 
 export class PresentationLayer {
     #restServer;

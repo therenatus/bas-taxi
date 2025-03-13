@@ -1,5 +1,5 @@
-import { User } from "../../domain/value-objects/User.js";
-import { ApplicationError } from "../../application/exceptions/ApplicationError.js";
+import { User } from "../../domain/value-objects/user.js";
+import { ApplicationError } from "../../application/exceptions/application.error.js";
 
 export class AuthServiceUserRepository {
     #authServiceClient;

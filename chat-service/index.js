@@ -1,8 +1,8 @@
 import { PresentationLayer } from "./presentation/index.js";
 import { ChatService } from "./application/services/message.service.js";
 import Database from "./infrastructure/database/sequelize.js";
-import { MessageRepository } from "./infrastructure/repositories/message.repository.js";
 import logger from "./infrastructure/config/logger.js";
+import {MessageRepository} from "./infrastructure/repositories/message.repository.js";
 
 async function bootstrap() {
     try {

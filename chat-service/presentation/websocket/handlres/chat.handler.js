@@ -31,8 +31,8 @@ export class ChatHandler {
     #handleJoinRide = (socket) => async (rideId) => {
         try {
             const messages = await this.#chatService.getRideChat(
-                rideId,
-                socket.user
+              rideId,
+              socket.user
             );
             socket.join(`ride_${rideId}`);
             socket.emit("chat_history", messages);
@@ -58,5 +58,9 @@ export class ChatHandler {
                 message: error.message
             });
         }
+    };
+
+    #handleDisconnect = (socket) => () => {
+        console.log(`User ${socket.user.id} disconnected`);
     };
 }

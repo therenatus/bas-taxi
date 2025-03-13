@@ -1,5 +1,5 @@
 import express from "express";
-import { ChatController } from "../controllers/chat.controller";
+import { ChatController } from "../controllers/chat.controller.js";
 import { authMiddleware } from "../middlewares/auth.middleware.js";
 
 export const createChatRoutes = ({ chatController, authService }) => {
