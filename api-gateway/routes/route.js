@@ -28,6 +28,26 @@ router.use('/auth', createProxyMiddleware({
     }
 }));
 
+router.use('/chats', createProxyMiddleware({
+    target: process.env.CHAT_SERVICE_URL,
+    changeOrigin: true,
+    timeout: 60000,
+    pathRewrite: {
+        '^/chats': '/chats',
+    },
+    proxyTimeout: 60000,
+    onProxyReq: (proxyReq, req, res) => {
+        console.log(`Проксируем запрос: ${req.method} ${req.originalUrl}`);
+    },
+    onProxyRes: (proxyRes, req, res) => {
+        console.log(`Получен ответ от auth-service: ${proxyRes.statusCode}`);
+    },
+    onError: (err, req, res) => {
+        console.error('Ошибка проксирования запроса:', err);
+        res.status(502).json({ error: 'Не удалось проксировать запрос' });
+    }
+}));
+
 router.use('/geo', createProxyMiddleware({
     target: process.env.GEO_SERVICE_URL,
     changeOrigin: true,

@@ -1,5 +1,3 @@
-// file: value-objects/user.js
-
 export class FileAttachment {
     #id;
     #url;

@@ -1,4 +1,3 @@
-// src/infrastructure/repositories/MessageRepository.js
 import { MessageEntity } from '../../domain/entities/message.entity.js';
 import { ApplicationError } from '../../application/exceptions/application.error.js';
 import {Op, Transaction} from 'sequelize';
@@ -67,7 +66,6 @@ export class MessageRepository {
 
             logger.info('Создание нового чата для rideId:', message.rideId);
             const newChat = await this.#createChat(message);
-            console.log('newChat',{ newChat });
             return newChat.id;
         } catch (error) {
             logger.error('Ошибка при получении/создании чата:', error);
@@ -106,7 +104,6 @@ export class MessageRepository {
         return chat;
     }
 
-    // Приватный метод для создания чата
     // async #createChat(message) {
     //     console.log('#createChat:', message);
     //     if (!this.#chatService) {
@@ -232,7 +229,6 @@ export class MessageRepository {
         }
     }
 
-    // Вспомогательные методы
     #isValidMessage(message) {
         return message.text?.trim() || message.attachments?.length > 0;
     }

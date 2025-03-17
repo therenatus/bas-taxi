@@ -15,7 +15,6 @@ export class ApplicationError extends Error {
                 }
             });
         }
-        console.error(error);
         response.status(500).json({
             error: {
                 code: 'INTERNAL_ERROR',

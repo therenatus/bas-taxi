@@ -1,4 +1,3 @@
-// src/infrastructure/repositories/attachment.repository.js
 import { ApplicationError } from "../../application/exceptions/application.error.js";
 import logger from "../config/logger.js";
 

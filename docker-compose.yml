@@ -397,7 +397,7 @@ services:
       - PAYMENT_SERVICE_URL=http://payment-service:3006
       - REVIEW_SERVICE_URL=http://review-service:3003
       - GEO_SERVICE_URL=http://geo-service:3010
-      - CHAT_SERVICE=http://chat-service:3014
+      - CHAT_SERVICE_URL=http://chat-service:3014
       - PORT=8000
     depends_on:
       - auth-service

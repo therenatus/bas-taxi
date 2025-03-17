@@ -1,4 +1,3 @@
-// src/infrastructure/repositories/UserRepository.js
 import { ApplicationError } from '../../application/exceptions/application.error.js';
 import { UserEntity } from '../../domain/entities/user.entity.js';
 import logger from "../config/logger.js";
@@ -42,10 +41,8 @@ export class UserRepository {
                 default:
                     throw new ApplicationError('Invalid user type', 'INVALID_USER_TYPE', 400);
             }
-            // this.#cache.set(compositeId, user);
             return user;
         } catch (error) {
-            console.log({ error })
             if (error instanceof ApplicationError) throw error;
 
             throw new ApplicationError(

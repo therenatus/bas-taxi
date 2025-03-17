@@ -38,11 +38,10 @@ export default (sequelize, DataTypes) => {
         indexes: [
             { fields: ['ride_id'] },
             { fields: ['status'] },
-            { fields: ['admin_id'] } // Добавлен индекс для admin_id
+            { fields: ['admin_id'] }
         ],
         hooks: {
             beforeValidate: (chat) => {
-                // Валидация: для чатов поддержки admin_id обязателен
                 if (chat.type === 'support' && !chat.admin_id) {
                     throw new Error('admin_id required for support chats');
                 }

@@ -1,3 +1,7 @@
+import express from "express";
+import http from "http";
+import swaggerJsdoc from "swagger-jsdoc";
+import swaggerUi from "swagger-ui-express";
 import { PresentationLayer } from "./presentation/index.js";
 import { ChatService } from "./application/services/message.service.js";
 import Database from "./infrastructure/database/sequelize.js";
@@ -11,75 +15,108 @@ import { UserRepository } from "./infrastructure/repositories/user.repository.js
 import { CacheService } from "./infrastructure/services/cache.service.js";
 import { ChatRepository } from "./infrastructure/repositories/chat.repository.js";
 import { AttachmentRepository } from "./infrastructure/repositories/attachment.repository.js";
-import {RideClient} from "./infrastructure/clients/ride.client.js";
-import {ParticipantRepository} from "./infrastructure/repositories/participant.repository.js";
-import {SocketIOAdapter} from "./infrastructure/websocket/socker.adapter.js";
-import {RabbitMQProducer} from "./infrastructure/event-bus/rmg.producer.js";
+import { RideClient } from "./infrastructure/clients/ride.client.js";
+import { ParticipantRepository } from "./infrastructure/repositories/participant.repository.js";
+import { SocketIOAdapter } from "./infrastructure/websocket/socker.adapter.js";
+import { RabbitMQProducer } from "./infrastructure/event-bus/rmg.producer.js";
+import cors from "cors";
 
 const API_GATEWAY_URL = process.env.API_GATEWAY_URL || "http://api-gateway:8000";
+const PORT = process.env.PORT || 3014;
+
+const swaggerOptions = {
+    definition: {
+        openapi: "3.0.0",
+        info: {
+            title: "Chat Service API",
+            version: "1.0.0",
+            description: "API для управления чатами и сообщениями",
+        },
+        servers: [
+            {
+                url: `http://localhost:${PORT}`,
+                description: "Локальный сервер",
+            },
+        ],
+        components: {
+            securitySchemes: {
+                bearerAuth: {
+                    type: "http",
+                    scheme: "bearer",
+                    bearerFormat: "JWT",
+                },
+            },
+        },
+        security: [{ bearerAuth: [] }],
+    },
+    apis: ['./presentation/rest/routes/*.js'],
+};
+
+const swaggerSpec = swaggerJsdoc(swaggerOptions);
 
 async function bootstrap() {
+    const app = express();
+    app.use(express.json());
+    app.use(cors());
+
+    const server = http.createServer(app);
+
+    const socketAdapter = new SocketIOAdapter(server);
+
+    const rabbitPublisher = new RabbitMQProducer({
+        url: process.env.RABBITMQ_URL || "amqp://localhost",
+        exchange: "rides"
+    });
+    await rabbitPublisher.connect();
+
+    const compositeEventPublisher = {
+        rabbit: rabbitPublisher,
+        socket: socketAdapter
+    };
+
+    const models = await Database.connect();
+
     const driverClient = new DriverClient({ baseURL: API_GATEWAY_URL });
     const passengerClient = new PassengerClient({ baseURL: API_GATEWAY_URL });
     const adminClient = new AdminClient({ baseURL: API_GATEWAY_URL });
     const rideClient = new RideClient({ baseURL: API_GATEWAY_URL });
-    const rabbitConfig = {
-        url: process.env.RABBITMQ_URL || "amqp://localhost",
-        exchange: "rides"
-    };
 
-    try {
-        // 1. Подключаем базу
-        const models = await Database.connect();
+    const cacheService = new CacheService();
+    const participantRepository = new ParticipantRepository(models.ChatParticipant);
+    const userRepository = new UserRepository({ driverClient, passengerClient, adminClient });
 
-        // 2. Инициализируем сервисы
-        const eventPublisher = new RabbitMQProducer(rabbitConfig);
-        await eventPublisher.connect();
-        const cacheService = new CacheService();
-        const participantRepository = new ParticipantRepository(models.ChatParticipant);
-        const userRepository = new UserRepository({ driverClient, passengerClient, adminClient });
+    const attachmentRepository = new AttachmentRepository(models.Attachment);
+    const chatRepository = new ChatRepository(models.Chat, participantRepository, rideClient);
+    const messageRepository = new MessageRepository({
+        sequelizeModel: models.Message,
+        attachmentRepository,
+        userRepository,
+        cacheService,
+        rideClient
+    });
 
-        // 3. Инициализируем репозитории
-        const attachmentRepository = new AttachmentRepository(models.Attachment);
-        const chatRepository = new ChatRepository(models.Chat, participantRepository, rideClient);
-        const messageRepository = new MessageRepository({
-            sequelizeModel: models.Message,
-            attachmentRepository,
-            userRepository,
-            cacheService,
-            rideClient
-        });
+    const chatService = new ChatService({
+        messageRepository,
+        userRepository,
+        rideClient,
+        chatRepository,
+        fileStorage: undefined,
+        eventPublisher: compositeEventPublisher
+    });
 
-        const chatService = new ChatService({
-            messageRepository,
-            userRepository,
-            rideClient,
-            chatRepository,
-            fileStorage: undefined,
-            eventPublisher
-        });
+    messageRepository.setChatService(chatService);
 
-        // Обновляем зависимость chatService в messageRepository
-        messageRepository.setChatService(chatService);
+    const authService = new AuthService({ userRepository });
 
-        // 4. Создаем application слой
-        const authService = new AuthService({ userRepository });
+    const presentation = new PresentationLayer({
+        authService,
+        chatService,
+        port: PORT
+    });
 
-        // 5. Инициализируем presentation слой
-        const presentation = new PresentationLayer({
-            authService,
-            chatService,
-            port: 3014
-        });
-
-        // 6. Запускаем сервер
-        presentation.start();
-        logger.info(`Сервер запущен на порту ${3014}`);
-
-    } catch (err) {
-        logger.error("Ошибка при инициализации приложения:", err);
-        process.exit(1);
-    }
+    presentation.start();
+    logger.info(`Сервер запущен на порту ${PORT}`);
+    logger.info(`Swagger docs доступны по адресу http://localhost:${PORT}/api-docs`);
 }
 
 bootstrap();

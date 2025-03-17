@@ -1,4 +1,3 @@
-// infrastructure/services/cache.service.js
 import Redis from 'ioredis';
 
 export class CacheService {

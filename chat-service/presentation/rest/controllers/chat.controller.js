@@ -25,6 +25,20 @@ export class ChatController {
         }
     };
 
+    getMyChat = async (req, res) => {
+        try {
+            const userId = req.user.id;
+            const chat = await this.#chatService.getMyChat(userId);
+            res.status(200).json(chat);
+        } catch (error) {
+            res.status(500).json({
+                error: {
+                    code: error.code || 'SERVICE_ERROR',
+                    message: error.message
+                }
+            });
+        }
+    };
     sendMessage = async (req, res) => {
         try {
             const { receiverType, receiverId, text } = req.body;

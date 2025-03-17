@@ -1,4 +1,3 @@
-// src/infrastructure/repositories/RideRepository.js
 import { ApplicationError } from '../../application/exceptions/application.error.js';
 import { RideEntity } from '../../domain/entities/ride.entity.js';
 

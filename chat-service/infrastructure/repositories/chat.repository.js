@@ -1,5 +1,3 @@
-// файл: infrastructure/repositories/chat.repository.js
-
 import { ChatEntity } from '../../domain/entities/chat.entity.js';
 import { ApplicationError } from '../../application/exceptions/application.error.js';
 
@@ -14,14 +12,11 @@ export class ChatRepository {
         this.#rideClient = rideClient;
     }
 
-    // Метод преобразования данных из БД в доменную сущность
-    // Если ассоциация participants не загружена, используем originalChat.participantIds для формирования «заглушек»
     async #toDomainEntity(chatModel) {
         if (!chatModel) {
             return null;
         }
 
-        // Проверка, чтобы participantRepository был определен
         if (!this.#participantRepository || !this.#participantRepository.findByChatId) {
             throw new Error("ParticipantRepository или метод findByChatId не определен");
         }
@@ -42,8 +37,6 @@ export class ChatRepository {
     }
 
 
-
-    // Преобразование объекта чата в формат, подходящий для сохранения в БД
     #toDatabaseFormat(chat) {
         return {
             id: chat.id,
@@ -59,7 +52,6 @@ export class ChatRepository {
         try {
             let dbChat;
 
-            // Проверяем, существует ли rideId через внешний RideClient
             const rideExists = await this.#checkRideExists(chat.rideId);
             if (!rideExists) {
                 throw new ApplicationError(
@@ -103,7 +95,6 @@ export class ChatRepository {
         }
     }
 
-// Проверка существования ride через rideClient
     async #checkRideExists(rideId) {
         try {
             const ride = await this.#rideClient.get(`/rides/${rideId}`);
@@ -127,6 +118,26 @@ export class ChatRepository {
             throw new ApplicationError(
                 error.message || "Ошибка поиска чата",
                 'DATABASE_ERROR',
+                500
+            );
+        }
+    }
+
+    async findByUser(userId) {
+        try {
+            const chatModel = await this.#sequelizeModel.findOne({
+                include: [{
+                    model: this.#participantRepository.participantModel,
+                    as: 'participants',
+                    where: { user_id: userId }
+                }]
+            });
+            return chatModel ? this.#toDomainEntity(chatModel) : null;
+        } catch (error) {
+            console.error('Ошибка поиска чата по пользователю:', error);
+            throw new ApplicationError(
+                `Ошибка поиска чата для пользователя ${userId}: ${error.message}`,
+                "DATABASE_ERROR",
                 500
             );
         }

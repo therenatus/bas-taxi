@@ -1,4 +1,3 @@
-// infrastructure/clients/RideClient.js
 import { ApiClient } from "./api.client.js";
 
 export class RideClient extends ApiClient {

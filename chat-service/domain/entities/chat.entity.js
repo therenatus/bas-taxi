@@ -20,7 +20,6 @@ export class ChatEntity {
                 }) {
         this.#validateParticipants(participants);
 
-        // Дополнительные проверки данных участников
         if (!Array.isArray(participants) || participants.some(p => !p.id)) {
             throw new DomainException("Each participant must have an 'id'");
         }

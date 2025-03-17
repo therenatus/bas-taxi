@@ -6,7 +6,7 @@ export class ChatService {
     #messageRepository;
     #userRepository;
     #rideClient;
-    #chatRepository
+    #chatRepository;
     #fileStorage;
     #eventPublisher;
 
@@ -20,13 +20,11 @@ export class ChatService {
     }
 
     async createChat(rideId, driverId, passengerId) {
-        console.log('create chat',{ rideId, driverId, passengerId });
         const [driver, passenger] = await Promise.all([
             this.#userRepository.findById(`driver:${driverId}`),
             this.#userRepository.findById(`passenger:${passengerId}`),
         ]);
 
-        // Создаем чат
         const chat = await this.#messageRepository.save({
             rideId,
             driverId: driver.id,
@@ -36,21 +34,6 @@ export class ChatService {
         return chat;
     }
 
-    // async createSupportChat(userCompositeId, adminId) {
-    //     const [user, admin] = await Promise.all([
-    //         this.#userRepository.findById(userCompositeId),
-    //         this.#userRepository.findById(`admin:${adminId}`)
-    //     ]);
-    //
-    //     const chat = await this.#messageRepository.save({
-    //         type: 'support',
-    //         admin_id: admin.id,
-    //         participants: [user, admin]
-    //     });
-    //
-    //     return chat;
-    // }
-
     sendMessage = async (data) => {
         try {
             const dto = new CreateMessageDTO(data);
@@ -59,17 +42,12 @@ export class ChatService {
                 this.#userRepository.findById(dto.senderId),
                 this.#userRepository.findById(dto.receiverId),
             ]);
-            console.log({sender});
-            console.log({receiver});
             if (!sender || !receiver) {
                 throw new ApplicationError('Invalid participants', 'INVALID_PARTICIPANTS', 404);
             }
 
-            // Проверяем наличие чата по rideId
             let chat = await this.#chatRepository.findByRide(dto.rideId);
-            console.log({chat})
 
-            // Если чата нет — создаем новый
             if (!chat) {
                 chat = await this.createRideChat({
                     rideId: dto.rideId,
@@ -100,9 +78,7 @@ export class ChatService {
 
     async createRideChat({ rideId, driverId, passengerId, participantIds }) {
         try {
-            // Проверяем, существует ли ride в сервисе
             const { data } = await this.#rideClient.get(`/${rideId}`);
-            console.log({data});
 
             if (!data || !data.id) {
                 throw new Error(`Ride with id ${rideId} does not exist.`);
@@ -135,13 +111,24 @@ export class ChatService {
             });
 
             if (Array.isArray(messages.data)) {
-                console.log(messages.data);
                 return messages.data.map(this.#formatMessageResponse);
             } else {
                 throw new Error('Неверный формат данных в ответе');
             }
         } catch (error) {
             throw this.#handleServiceError(error, 'Ошибка получения истории');
+        }
+    }
+
+    async getMyChat(userId) {
+        try {
+            const chat = await this.#chatRepository.findByUser(userId);
+            if (!chat) {
+                throw new ApplicationError("Чат не найден", "NOT_FOUND", 404);
+            }
+            return chat;
+        } catch (error) {
+            throw this.#handleServiceError(error, 'Ошибка получения моего чата');
         }
     }
 
@@ -176,14 +163,12 @@ export class ChatService {
 
     #handleError(error, context) {
         if (error instanceof ApplicationError) return error;
-
         return new ApplicationError(
             `${context}: ${error.message}`,
             'CHAT_SERVICE_ERROR',
             500
         );
     }
-
 
     #uploadFile = async (file) => {
         try {
@@ -197,14 +182,23 @@ export class ChatService {
     };
 
     #publishNewMessageEvent = async (message) => {
-        await this.#eventPublisher.publish('message_created', {
+        const payload = {
             id: message.id,
-            senderId: message.senderId,
-            receiverId: message.receiverId,
+            senderId: message.sender_id,
+            receiverId: message.receiver_id,
+            chatId: message.chat_id,
+            content: message.content,
             preview: message.text?.substring(0, 50) || '[File attachment]'
-        });
-    };
+        };
 
+        if (this.#eventPublisher.rabbit && typeof this.#eventPublisher.rabbit.publish === 'function') {
+            await this.#eventPublisher.rabbit.publish('message_created', payload);
+        }
+
+        if (this.#eventPublisher.socket && typeof this.#eventPublisher.socket.publish === 'function') {
+            await this.#eventPublisher.socket.publish('message_created', payload);
+        }
+    };
 
     #formatMessageResponse = (message) => ({
         id: message.id,

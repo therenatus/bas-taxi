@@ -1,4 +1,3 @@
-// infrastructure/clients/ApiClient.js (базовый класс)
 import axios from "axios";
 
 export class ApiClient {
@@ -7,8 +6,6 @@ export class ApiClient {
             baseURL: `${baseURL}/${serviceName}`,
             headers: {
                 "Content-Type": "application/json",
-                // Добавьте токен, если требуется аутентификация
-                // Authorization: `Bearer ${process.env.API_GATEWAY_TOKEN}`
             },
         });
     }

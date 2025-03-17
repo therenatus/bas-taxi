@@ -21,7 +21,6 @@ export const authMiddleware = (roles = []) => {
             req.user = user;
             next();
         } catch (error) {
-            console.log('error', error.message);
             res.status(401).json({
                 error: {
                     code: "UNAUTHORIZED",

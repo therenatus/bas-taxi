@@ -1,11 +1,11 @@
 import { DomainException } from "../exceptions/domain.exception.js";
 
 export class UserEntity {
-    #id; // Составной идентификатор (userType:userId)
-    #userType; // Тип пользователя (driver, passenger, admin)
-    #role; // Роль пользователя (driver, passenger, admin, superadmin)
-    #profile; // Профиль пользователя
-    #metadata; // Метаданные
+    #id;
+    #userType;
+    #role;
+    #profile;
+    #metadata;
 
     constructor({
                     id,
@@ -16,11 +16,11 @@ export class UserEntity {
                 }) {
         this.#validate(role, userType, id);
 
-        this.#id = id; // Составной идентификатор
-        this.#userType = userType; // Тип пользователя
-        this.#role = role; // Роль
-        this.#profile = profile; // Профиль
-        this.#metadata = metadata; // Метаданные
+        this.#id = id;
+        this.#userType = userType;
+        this.#role = role;
+        this.#profile = profile;
+        this.#metadata = metadata;
     }
 
     get id() { return this.#id; }
@@ -29,13 +29,12 @@ export class UserEntity {
     get profile() { return { ...this.#profile }; }
     get metadata() { return { ...this.#metadata }; }
 
-    // Проверка, может ли пользователь общаться с другим пользователем
     canChatWith(targetUser) {
         const allowedPairs = {
             driver: ['passenger', 'admin'],
             passenger: ['driver', 'admin'],
             admin: ['driver', 'passenger', 'admin'],
-            superadmin: ['*'] // Разрешить все типы
+            superadmin: ['*']
         };
 
         return allowedPairs[this.#role]?.includes(targetUser.role) ||
@@ -43,14 +42,12 @@ export class UserEntity {
     }
 
 
-    // Проверка доступа к поездке
     canAccessRide(ride) {
         if (this.#role === 'superadmin') return true;
         if (this.#role === 'admin') return ride.isAssignedToAdmin(this.#id);
         return ride.hasParticipant(this.#id);
     }
 
-    // Валидация данных
     #validate(role, userType, id) {
         const validRoles = ['driver', 'passenger', 'admin', 'superadmin'];
         const validUserTypes = ['driver', 'passenger', 'admin'];
@@ -81,7 +78,6 @@ export class UserEntity {
         });
     }
 
-    // Преобразование в JSON
     toJSON() {
         return {
             id: this.#id,

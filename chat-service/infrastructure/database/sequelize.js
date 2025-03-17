@@ -73,13 +73,10 @@ class Database {
 
             this.models = initModels(this.sequelize, Sequelize.DataTypes);
 
-            // Логируем загруженные модели
-            console.log('Loaded models:', Object.keys(this.models));
 
             initAssociations(this.models);
 
-            // Создание таблиц (если они не существуют)
-            await this.sequelize.sync({ force: false }); // force: false - таблицы не будут удалены
+            await this.sequelize.sync({ force: false });
 
             logger.info('✅ Tables are synced with the database');
 
