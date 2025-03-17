@@ -1,4 +1,3 @@
-// sms-service/src/services/smsc.service.js
 import axios from 'axios';
 import FormData from 'form-data';
 import fs from 'fs';

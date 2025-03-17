@@ -33,7 +33,7 @@ PaymentDetails.init({
         type: DataTypes.STRING,
         allowNull: false,
         validate: {
-            is: /^\d{2}\/\d{2}$/i, // Формат MM/YY
+            is: /^\d{2}\/\d{2}$/i,
         },
     },
     cvc: {

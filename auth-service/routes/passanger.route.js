@@ -4,7 +4,14 @@ import {
     confirmLogin,
     loginOrRegisterWeb,
     confirmPhone,
-    changePhone, findUserByPhone, findUserByName, findUserById, changeUserName, deleteUser, blockUser
+    changePhone,
+    findUserByPhone,
+    findUserByName,
+    findUserById,
+    changeUserName,
+    deleteUser,
+    blockUser,
+    verifyTokenController
 } from '../controllers/passanger.controller.js';
 import {roleMiddleware} from "../middlewares/role.middleware.js";
 
@@ -94,10 +101,55 @@ router.post('/web-login', loginOrRegisterWeb);
  *     responses:
  *       200:
  *         description: Код успешно подтвержден
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 userId:
+ *                   type: integer
+ *                   example: 1
+ *                 token:
+ *                   type: string
+ *                   example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
  *       400:
- *         description: Ошибка валидации
+ *         description: Ошибка валидации или неверный код
  */
 router.post('/confirm', confirmLogin);
+
+/**
+ * @swagger
+ * /auth/verify-token:
+ *   get:
+ *     summary: Проверка JWT токена
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Токен валиден, возвращены данные пользователя
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 userId:
+ *                   type: integer
+ *                   example: 1
+ *                 phoneNumber:
+ *                   type: string
+ *                   example: "+1234567890"
+ *                 role:
+ *                   type: string
+ *                   example: "passenger"
+ *                 isPhoneVerified:
+ *                   type: boolean
+ *                   example: true
+ *       401:
+ *         description: Токен недействителен или отсутствует
+ */
+router.get('/verify-token', verifyTokenController);
+
 
 /**
  * @swagger

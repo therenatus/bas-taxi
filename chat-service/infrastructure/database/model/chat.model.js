@@ -1,4 +1,3 @@
-
 export default (sequelize, DataTypes) => {
     const Chat = sequelize.define('Chat', {
         id: {
@@ -8,23 +7,47 @@ export default (sequelize, DataTypes) => {
         },
         status: {
             type: DataTypes.ENUM('active', 'archived', 'deleted'),
-            defaultValue: 'active'
+            defaultValue: 'active',
+            validate: {
+                isIn: [['active', 'archived', 'deleted']]
+            }
         },
-        lastActivity: {
+        last_activity: {
             type: DataTypes.DATE,
-            defaultValue: DataTypes.NOW
+            defaultValue: DataTypes.NOW,
+            field: 'last_activity'
+        },
+        ride_id: {
+            type: DataTypes.UUID,
+            allowNull: true
+        },
+        type: {
+            type: DataTypes.ENUM('ride', 'support'),
+            defaultValue: 'ride',
+            validate: {
+                isIn: [['ride', 'support']]
+            }
+        },
+        admin_id: {
+            type: DataTypes.UUID,
+            allowNull: true
         }
     }, {
         tableName: 'chats',
         timestamps: true,
         indexes: [
-            {
-                fields: ['rideId']
-            },
-            {
-                fields: ['status']
+            { fields: ['ride_id'] },
+            { fields: ['status'] },
+            { fields: ['admin_id'] } // Добавлен индекс для admin_id
+        ],
+        hooks: {
+            beforeValidate: (chat) => {
+                // Валидация: для чатов поддержки admin_id обязателен
+                if (chat.type === 'support' && !chat.admin_id) {
+                    throw new Error('admin_id required for support chats');
+                }
             }
-        ]
+        }
     });
 
     return Chat;

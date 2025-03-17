@@ -1,5 +1,5 @@
 import express from 'express';
-import {createAdmin, loginAdmin} from "../controllers/admin.controller.js";
+import {createAdmin, getAdminById, loginAdmin} from "../controllers/admin.controller.js";
 import {authMiddleware} from "../middlewares/auth.middleware.js";
 import {superAdminMiddleware} from "../middlewares/admin.guard.js";
 
@@ -84,6 +84,29 @@ router.post('/login', loginAdmin);
  *         description: Доступ запрещен
  */
 router.post('/create', authMiddleware, superAdminMiddleware, createAdmin);
+
+/**
+ * @swagger
+ * /auth/admin/{id}:
+ *   get:
+ *     summary: Получить информацию об администраторе по ID
+ *     tags: [Admin]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: ID администратора
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Успешный ответ
+ *       404:
+ *         description: Администратор не найден
+ *       403:
+ *         description: Доступ запрещен
+ */
+router.get('/:id', getAdminById);
 
 
 

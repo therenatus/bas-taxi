@@ -86,6 +86,17 @@ export class MessageEntity {
     }
 
     #validateInput(id, content, senderId, receiverId) {
+        const senderType = senderId.split(':')[0];
+        const receiverType = receiverId.split(':')[0];
+        const validPairs = {
+            'driver': ['passenger', 'admin'],
+            'passenger': ['driver', 'admin'],
+            'admin': ['driver', 'passenger', 'admin']
+        };
+
+        if (!validPairs[senderType]?.includes(receiverType)) {
+            throw new DomainException(`Invalid message receiver type: ${receiverType}`);
+        }
         const MAX_CONTENT_LENGTH = 2000;
 
         if (!id) throw new DomainException('Message ID is required');

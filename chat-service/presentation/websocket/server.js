@@ -4,7 +4,7 @@ import {ChatHandler} from "./handlres/chat.handler.js";
 export const createWebSocketServer = (httpServer, chatService) => {
     const io = new Server(httpServer, {
         cors: {
-            origin: process.env.CORS_ORIGINS.split(","),
+           origin: true,
             methods: ["GET", "POST"]
         }
     });

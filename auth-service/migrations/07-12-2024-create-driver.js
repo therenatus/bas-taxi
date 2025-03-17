@@ -1,4 +1,3 @@
-// migrations/XXXXXX-create-drivers.js
 'use strict';
 
 module.exports = {
@@ -10,7 +9,7 @@ module.exports = {
                 autoIncrement: true,
                 allowNull: false,
             },
-            userId: { // Связь с пользователем
+            userId: {
                 type: Sequelize.INTEGER,
                 allowNull: false,
                 references: {

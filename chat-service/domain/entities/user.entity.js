@@ -1,81 +1,91 @@
-import {DomainException} from "../exceptions/domain.exception.js";
+import { DomainException } from "../exceptions/domain.exception.js";
 
 export class UserEntity {
-    #id;
-    #externalId;
-    #role;
-    #profile;
-    #metadata;
+    #id; // Составной идентификатор (userType:userId)
+    #userType; // Тип пользователя (driver, passenger, admin)
+    #role; // Роль пользователя (driver, passenger, admin, superadmin)
+    #profile; // Профиль пользователя
+    #metadata; // Метаданные
 
     constructor({
                     id,
-                    externalId,
+                    userType,
                     role,
                     profile = {},
                     metadata = {}
                 }) {
-        this.#validate(role, externalId);
+        this.#validate(role, userType, id);
 
-        this.#id = id;
-        this.#externalId = externalId;
-        this.#role = role;
-        this.#profile = profile;
-        this.#metadata = metadata;
+        this.#id = id; // Составной идентификатор
+        this.#userType = userType; // Тип пользователя
+        this.#role = role; // Роль
+        this.#profile = profile; // Профиль
+        this.#metadata = metadata; // Метаданные
     }
 
     get id() { return this.#id; }
-    get externalId() { return this.#externalId; }
+    get userType() { return this.#userType; }
     get role() { return this.#role; }
     get profile() { return { ...this.#profile }; }
     get metadata() { return { ...this.#metadata }; }
 
+    // Проверка, может ли пользователь общаться с другим пользователем
     canChatWith(targetUser) {
         const allowedPairs = {
             driver: ['passenger', 'admin'],
             passenger: ['driver', 'admin'],
             admin: ['driver', 'passenger', 'admin'],
-            superadmin: ['driver', 'passenger', 'admin', 'superadmin']
+            superadmin: ['*'] // Разрешить все типы
         };
 
-        return allowedPairs[this.#role]?.includes(targetUser.role);
+        return allowedPairs[this.#role]?.includes(targetUser.role) ||
+            (allowedPairs[this.#role] === '*' && targetUser.role);
     }
 
+
+    // Проверка доступа к поездке
     canAccessRide(ride) {
         if (this.#role === 'superadmin') return true;
         if (this.#role === 'admin') return ride.isAssignedToAdmin(this.#id);
         return ride.hasParticipant(this.#id);
     }
 
-    #validate(role, externalId) {
+    // Валидация данных
+    #validate(role, userType, id) {
         const validRoles = ['driver', 'passenger', 'admin', 'superadmin'];
+        const validUserTypes = ['driver', 'passenger', 'admin'];
 
         if (!validRoles.includes(role)) {
             throw new DomainException(`Invalid user role: ${role}`);
         }
 
-        if (!externalId) {
-            throw new DomainException("External ID is required");
+        if (!validUserTypes.includes(userType)) {
+            throw new DomainException(`Invalid user type: ${userType}`);
+        }
+
+        if (!id || !id.includes(':')) {
+            throw new DomainException("Invalid composite ID format");
         }
     }
 
     static createFromAuthServiceDTO(dto) {
         return new UserEntity({
-            id: dto.local_id,
-            externalId: dto.external_id,
-            role: dto.role,
+            id: `${dto.userType}:${dto.id}`,
+            userType: dto.userType,
+            role: dto.userType,
             profile: {
-                name: dto.name,
-                email: dto.email,
-                phone: dto.phone
+                name: dto.fullName,
+                phone: dto.phoneNumber
             },
             metadata: dto.metadata
         });
     }
 
+    // Преобразование в JSON
     toJSON() {
         return {
             id: this.#id,
-            externalId: this.#externalId,
+            userType: this.#userType,
             role: this.#role,
             profile: this.#profile,
             metadata: this.#metadata

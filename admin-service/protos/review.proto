@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package review;
+
+service ReviewService {
+  rpc GetReviews(Empty) returns (ReviewsResponse);
+}
+
+message Empty {}
+
+message Review {
+  string id = 1;
+}
+
+message ReviewsResponse {
+  repeated Review reviews = 1;
+}

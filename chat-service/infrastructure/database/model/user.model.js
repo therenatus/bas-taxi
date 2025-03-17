@@ -5,10 +5,9 @@ export default (sequelize, DataTypes) => {
             defaultValue: DataTypes.UUIDV4,
             primaryKey: true
         },
-        externalId: {
-            type: DataTypes.STRING,
-            allowNull: false,
-            unique: true
+        user_type: {
+            type: DataTypes.ENUM('driver', 'passenger', 'admin'),
+            allowNull: false
         },
         role: {
             type: DataTypes.ENUM('driver', 'passenger', 'admin', 'superadmin'),
@@ -36,8 +35,7 @@ export default (sequelize, DataTypes) => {
         paranoid: true,
         indexes: [
             {
-                unique: true,
-                fields: ['externalId']
+                fields: ['user_type']
             },
             {
                 fields: ['role']

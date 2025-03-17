@@ -144,6 +144,26 @@ export const confirmLoginService = async ({ phoneNumber, verificationCode, corre
     return { userId: user.id, token };
 };
 
+export const verifyTokenService = async (token, correlationId) => {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret');
+
+    logger.info('verifyTokenService: Токен расшифрован', { userId: decoded.userId, correlationId });
+
+    const user = await User.findByPk(decoded.userId);
+
+    if (!user) {
+        logger.warn('verifyTokenService: Пользователь не найден', { userId: decoded.userId, correlationId });
+        throw new Error('Пользователь не найден');
+    }
+
+    return {
+        userId: user.id,
+        phoneNumber: user.phoneNumber,
+        role: 'passenger',
+        isPhoneVerified: user.isPhoneVerified,
+    };
+};
+
 export const changePhoneService = async ({ phoneNumber, userId, correlationId }) => {
     try {
         const user = await User.findByPk(userId);
@@ -267,7 +287,7 @@ export const changeNameService = async ({id, fullName, correlationId }) => {
 export const findUserByIdService = async ({ id, correlationId }) => {
     try {
         logger.info('findUserByIdService: Поиск пользователя по ID', { id, correlationId });
-        const user = await User.findOne({ where: { id } });
+        const user = await User.findByPk(id);
         return user;
     } catch (error) {
         logger.error('findUserByIdService: Ошибка при поиске пользователя', { error, correlationId });

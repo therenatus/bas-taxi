@@ -109,6 +109,8 @@ const router = express.Router();
  */
 router.post('/request', authMiddleware(['driver', 'passenger']), requestRideHandler);
 
+router.get('/:rideId', getRideDetailsHandler);
+
 /**
  * @swagger
  * /rides/accept:

@@ -74,3 +74,25 @@ export const createAdmin = [
         }
     },
 ];
+
+export const getAdminById = async (req, res) => {
+    const { id } = req.params;
+    logger.info('getAdminById: Получение данных администратора', { id });
+
+    try {
+        const admin = await Admin.findByPk(id, {
+            attributes: ['id', 'username', 'role', 'city', 'createdAt']
+        });
+
+        if (!admin) {
+            logger.warn('getAdminById: Администратор не найден', { id });
+            return res.status(404).json({ message: 'Администратор не найден' });
+        }
+
+        res.status(200).json(admin);
+    } catch (error) {
+        logger.error('getAdminById: Ошибка при получении администратора', { error: error.message });
+        res.status(500).json({ error: 'Внутренняя ошибка сервера' });
+    }
+};
+

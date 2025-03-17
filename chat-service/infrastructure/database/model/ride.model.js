@@ -5,36 +5,54 @@ export default (sequelize, DataTypes) => {
             defaultValue: DataTypes.UUIDV4,
             primaryKey: true
         },
-        externalId: {
-            type: DataTypes.STRING,
-            allowNull: false,
-            unique: true
-        },
         status: {
             type: DataTypes.ENUM('pending', 'active', 'completed', 'canceled'),
             defaultValue: 'pending'
         },
-        startLocation: {
-            type: DataTypes.GEOGRAPHY('POINT'),
+        start_location: {
+            type: DataTypes.GEOMETRY('POINT'),
             allowNull: false
         },
-        endLocation: {
-            type: DataTypes.GEOGRAPHY('POINT')
+        end_location: {
+            type: DataTypes.GEOMETRY('POINT'),
+            allowNull: true
         },
-        startedAt: DataTypes.DATE,
-        completedAt: DataTypes.DATE
+        started_at: {
+            type: DataTypes.DATE,
+            field: 'started_at'
+        },
+        completed_at: {
+            type: DataTypes.DATE,
+            field: 'completed_at'
+        },
+        driver_id: {
+            type: DataTypes.UUID,
+            allowNull: false,
+            references: {
+                model: 'users',
+                key: 'id'
+            }
+        },
+        passenger_id: {
+            type: DataTypes.UUID,
+            allowNull: false,
+            references: {
+                model: 'users',
+                key: 'id'
+            }
+        }
     }, {
         tableName: 'rides',
         timestamps: true,
         indexes: [
             {
-                fields: ['externalId']
-            },
-            {
                 fields: ['status']
             },
             {
-                fields: ['driverId']
+                fields: ['driver_id']
+            },
+            {
+                fields: ['passenger_id']
             }
         ]
     });

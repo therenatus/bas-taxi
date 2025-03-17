@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package settings;
+
+service SettingsService {
+  rpc UpdateSettings(UpdateSettingsRequest) returns (UpdateSettingsResponse);
+}
+
+message UpdateSettingsRequest {
+  map<string, string> settings = 1;
+}
+
+message UpdateSettingsResponse {
+  string message = 1;
+}

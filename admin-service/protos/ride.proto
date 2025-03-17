@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package ride;
+
+service RideService {
+  rpc GetRides(Empty) returns (RidesResponse);
+}
+
+message Empty {}
+
+message Ride {
+  string id = 1;
+}
+
+message RidesResponse {
+  repeated Ride rides = 1;
+}

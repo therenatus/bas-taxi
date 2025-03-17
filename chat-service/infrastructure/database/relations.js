@@ -1,45 +1,26 @@
-export default function initAssociations() {
-    const { User, Ride, Chat, Message, Attachment } = models;
+// файл: infrastructure/database/relations.js
 
-    // Чат ↔ Поездка
-    Chat.belongsTo(Ride, {
-        foreignKey: 'rideId',
-        as: 'ride'
-    });
+export default function initAssociations(models) {
+    const { User, Ride, Chat, Message, Attachment, ChatParticipant } = models;
 
-    // Чат ↔ Участники (многие-ко-многим)
-    Chat.belongsToMany(User, {
-        through: 'ChatParticipants',
-        foreignKey: 'chatId',
-        as: 'participants'
-    });
+    // Ассоциации для чата
+    Chat.belongsTo(Ride, { foreignKey: 'ride_id', as: 'ride' });
+    Chat.belongsToMany(User, { through: ChatParticipant, foreignKey: 'chat_id', as: 'participants' });
+    Chat.hasMany(Message, { foreignKey: 'chat_id', as: 'messages' });
 
-    // Сообщение ↔ Чат
-    Message.belongsTo(Chat, {
-        foreignKey: 'chatId',
-        as: 'chat'
-    });
+    // Ассоциации для сообщений
+    Message.belongsTo(Chat, { foreignKey: 'chat_id', as: 'chat' });
+    Message.belongsTo(User, { foreignKey: 'sender_id', as: 'sender' });
+    Message.hasMany(Attachment, { foreignKey: 'message_id', as: 'attachments' });
 
-    // Сообщение ↔ Отправитель
-    Message.belongsTo(User, {
-        foreignKey: 'senderId',
-        as: 'sender'
-    });
+    // Ассоциации для поездки
+    Ride.belongsTo(User, { foreignKey: 'driver_id', as: 'driver' });
+    Ride.belongsTo(User, { foreignKey: 'passenger_id', as: 'passenger' });
 
-    // Сообщение ↔ Вложения (один-ко-многим)
-    Message.hasMany(Attachment, {
-        foreignKey: 'messageId',
-        as: 'attachments'
-    });
+    // Ассоциации для администратора чата
+    Chat.belongsTo(User, { foreignKey: 'admin_id', as: 'admin', constraints: false });
 
-    // Поездка ↔ Водитель и Пассажир
-    Ride.belongsTo(User, {
-        foreignKey: 'driverId',
-        as: 'driver'
-    });
-
-    Ride.belongsTo(User, {
-        foreignKey: 'passengerId',
-        as: 'passenger'
-    });
+    // Ассоциация участников чата
+    Chat.hasMany(ChatParticipant, { foreignKey: 'chat_id' });
+    ChatParticipant.belongsTo(Chat, { foreignKey: 'chat_id' });
 }

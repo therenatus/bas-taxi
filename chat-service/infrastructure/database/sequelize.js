@@ -6,24 +6,16 @@ import initAssociations from './relations.js';
 import { v4 as uuidv4 } from 'uuid';
 
 dotenv.config();
-console.log('fsdfsdfsdfsdf')
-console.log({
-  DB_NAME: process.env.DB_NAME,
-  DB_USER: process.env.DB_USER,
-  DB_PASSWORD: process.env.DB_PASSWORD,
-  DB_HOST: process.env.DB_HOST,
-  DB_PORT: process.env.DB_PORT
-})
+
 class Database {
     constructor() {
-        this.sequelize = new Sequelize(
-          process.env.DB_NAME || 'authdb',
-          process.env.DB_USER || 'user',
-          process.env.DB_PASSWORD || 'pass',
+        this.sequelize = new Sequelize('chatdbs',
+          'chatuser',
+          'chatpassword',
           {
-              host: 'localhost',
+              host: process.env.DB_HOST,
               dialect: 'mysql',
-              port:  3312,
+              port:  process.env.DB_PORT,
               logging: process.env.NODE_ENV === 'development' ? logger.info : false,
               dialectOptions: {
                   ssl: process.env.NODE_ENV === 'production' && {
@@ -79,8 +71,17 @@ class Database {
             await this.sequelize.authenticate();
             logger.info('📡 Database connected successfully');
 
-            this.models = initModels(this.sequelize);
+            this.models = initModels(this.sequelize, Sequelize.DataTypes);
+
+            // Логируем загруженные модели
+            console.log('Loaded models:', Object.keys(this.models));
+
             initAssociations(this.models);
+
+            // Создание таблиц (если они не существуют)
+            await this.sequelize.sync({ force: false }); // force: false - таблицы не будут удалены
+
+            logger.info('✅ Tables are synced with the database');
 
             return this.models;
         } catch (error) {
@@ -88,6 +89,7 @@ class Database {
             process.exit(1);
         }
     }
+
 
     async disconnect() {
         try {

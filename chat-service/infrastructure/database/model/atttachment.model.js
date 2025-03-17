@@ -14,11 +14,24 @@ export default (sequelize, DataTypes) => {
             allowNull: false
         },
         metadata: {
-            type: DataTypes.JSONB
+            type: DataTypes.JSON
+        },
+        message_id: {
+            type: DataTypes.UUID,
+            allowNull: false,
+            references: {
+                model: 'messages',
+                key: 'id'
+            }
         }
     }, {
         tableName: 'attachments',
-        timestamps: true
+        timestamps: true,
+        indexes: [
+            {
+                fields: ['message_id']
+            }
+        ]
     });
 
     return Attachment;

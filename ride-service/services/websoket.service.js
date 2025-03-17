@@ -66,7 +66,6 @@ export const createWebSocketService = (server) => {
             if (callback) callback('join_driver_success');
         });
 
-// Обработчик события 'join_user'
         socket.on('join_user', (userId, callback) => {
             socket.join(`user_${userId}`);
             logger.info(`WebSocket: Сокет ${socket.id} присоединился к user_${userId}`);

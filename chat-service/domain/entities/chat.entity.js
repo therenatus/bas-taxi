@@ -20,6 +20,11 @@ export class ChatEntity {
                 }) {
         this.#validateParticipants(participants);
 
+        // Дополнительные проверки данных участников
+        if (!Array.isArray(participants) || participants.some(p => !p.id)) {
+            throw new DomainException("Each participant must have an 'id'");
+        }
+
         this.#id = id;
         this.#participants = new Map(participants.map(p => [p.id, p]));
         this.#rideId = rideId;
@@ -42,7 +47,7 @@ export class ChatEntity {
             throw new DomainException("User already in chat");
         }
 
-        if (this.#rideId && !user.canAccessRide(this.#ride)) {
+        if (this.#rideId && !user.canAccessRide(this.#rideId)) {
             throw new DomainException("User has no access to ride");
         }
 

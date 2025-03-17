@@ -5,6 +5,7 @@ import {confirmLoginSchema, loginSchema} from "../validators/login.validator.js"
 import {confirmLoginService, loginDriverService, registerDriverService} from "../services/driver.service.js";
 import {sendDriverToExchange} from "../utils/rabbitmq.js";
 import Driver from "../models/driver.model.js";
+import {verifyTokenService} from "../services/driver.service.js";
 
 // export const registerDriver = [
 //     validateMiddleware(driverRegisterSchema),
@@ -115,6 +116,28 @@ export const confirmDriverLogin = [
         }
     },
 ];
+
+export const verifyTokenController = async (req, res) => {
+    const correlationId = req.headers['x-correlation-id'] || req.headers['correlationid'];
+    logger.info('verifyToken: Начало проверки токена', { correlationId });
+
+    const authHeader = req.headers['authorization'];
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        logger.warn('verifyToken: Токен отсутствует или формат неверный', { correlationId });
+        return res.status(401).json({ error: 'Требуется токен авторизации' });
+    }
+
+    const token = authHeader.split(' ')[1];
+
+    try {
+        const driverData = await verifyTokenService(token, correlationId);
+        res.status(200).json(driverData);
+    } catch (error) {
+        logger.error('verifyToken: Невалидный токен', { error: error.message, correlationId });
+        res.status(401).json({ error: error.message });
+    }
+};
 
 
 export const getDriverById = async (req, res) => {

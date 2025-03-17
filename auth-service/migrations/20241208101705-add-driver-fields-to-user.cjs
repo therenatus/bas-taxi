@@ -1,4 +1,3 @@
-// migrations/07-12-2024-create-driver.cjs
 'use strict';
 
 module.exports = {
@@ -7,7 +6,6 @@ module.exports = {
       type: Sequelize.STRING,
       allowNull: true,
     });
-    // Добавьте остальные колонки аналогично
     await queryInterface.addColumn('users', 'address', {
       type: Sequelize.STRING,
       allowNull: true,

@@ -18,6 +18,30 @@ export default (sequelize, DataTypes) => {
         edited: {
             type: DataTypes.BOOLEAN,
             defaultValue: false
+        },
+        sender_id: {
+            type: DataTypes.UUID,
+            allowNull: false,
+            references: {
+                model: 'users',
+                key: 'id'
+            }
+        },
+        receiver_id: {
+            type: DataTypes.UUID,
+            allowNull: false,
+            references: {
+                model: 'users',
+                key: 'id'
+            }
+        },
+        chat_id: {
+            type: DataTypes.UUID,
+            allowNull: false,
+            references: {
+                model: 'chats',
+                key: 'id'
+            }
         }
     }, {
         tableName: 'messages',
@@ -25,13 +49,16 @@ export default (sequelize, DataTypes) => {
         paranoid: true,
         indexes: [
             {
-                fields: ['chatId']
+                fields: ['chat_id']
             },
             {
-                fields: ['senderId']
+                fields: ['sender_id']
             },
             {
-                fields: ['createdAt']
+                fields: ['receiver_id']
+            },
+            {
+                fields: ['created_at']
             }
         ]
     });

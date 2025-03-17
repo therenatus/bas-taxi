@@ -1,17 +1,17 @@
 import UserModel from './user.model.js';
-import ChatModel from "./chat.model.js";
-import MessageModel from "./message.model.js";
-import RideModel from "./ride.model.js";
+import RideModel from './ride.model.js';
+import ChatModel from './chat.model.js';
+import MessageModel from './message.model.js';
+import AtttachmentModel from "./atttachment.model.js";
+import ChatParticipantModel from "./chat-participant.model.js";
 
-const initModels = (sequelize) => {
-    const models = {
-        User: UserModel(sequelize),
-        Chat: ChatModel(sequelize),
-        Message: MessageModel(sequelize),
-        Ride: RideModel(sequelize),
+export default (sequelize, DataTypes) => {
+    return {
+        User: UserModel(sequelize, DataTypes),
+        Ride: RideModel(sequelize, DataTypes),
+        Chat: ChatModel(sequelize, DataTypes),
+        Message: MessageModel(sequelize, DataTypes),
+        Attachment: AtttachmentModel(sequelize, DataTypes),
+        ChatParticipant: ChatParticipantModel(sequelize, DataTypes),
     };
-
-    return models;
 };
-
-export default initModels;

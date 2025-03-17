@@ -31,7 +31,7 @@ public/
 *.swo
 
 # Docker
-docker-compose.override.yml
+docker-compose.override.ymlll
 *.env
 .dockerignore
 

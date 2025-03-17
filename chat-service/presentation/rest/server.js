@@ -6,10 +6,7 @@ export const createRestServer = (controllers, middlewares) => {
     const app = express();
 
     app.use(helmet());
-    app.use(cors({
-        origin: process.env.CORS_ORIGINS.split(","),
-        methods: ["GET", "POST", "PUT", "DELETE"]
-    }));
+    app.use(cors());
 
     app.use(express.json({ limit: "10kb" }));
     app.use(express.urlencoded({ extended: true }));

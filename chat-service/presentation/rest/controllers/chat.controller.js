@@ -27,10 +27,20 @@ export class ChatController {
 
     sendMessage = async (req, res) => {
         try {
-            const { id: userId } = req.user;
+            const { receiverType, receiverId, text } = req.body;
+            const validTypes = ['driver', 'passenger', 'admin'];
+            if (!validTypes.includes(receiverType)) {
+                throw new ApplicationError('Недопустимый тип получателя', 'INVALID_RECEIVER_TYPE', 400);
+            }
+            const receiverCompositeId = `${receiverType}:${receiverId}`;
+
+            const { userId, userType, compositeId } = req.user;
+
             const message = await this.#chatService.sendMessage({
-                ...req.body,
-                senderId: userId
+                senderId: compositeId,
+                receiverId: receiverCompositeId,
+                text,
+                rideId: req.body.rideId
             });
 
             this.#sendSuccess(res, 201, message);

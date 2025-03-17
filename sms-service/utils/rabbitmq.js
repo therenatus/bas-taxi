@@ -1,4 +1,3 @@
-// sms-service/src/utils/rabbitmq.js
 import amqp from 'amqplib';
 import dotenv from 'dotenv';
 import smscService from '../services/smsc.service.js';
@@ -20,7 +19,7 @@ class RabbitMQService {
         this.verificationQueue = 'sms_verification_queue';
         this.retryQueue = 'sms_retry_queue';
         this.maxRetries = 5;
-        this.retryDelay = 60000; // 60 секунд
+        this.retryDelay = 60000;
         this.connect();
     }
 
@@ -50,7 +49,6 @@ class RabbitMQService {
             });
             await this.channel.bindQueue(this.retryQueue, this.retryExchange, 'sms_retry');
 
-            // Потребитель для обычных SMS
             this.channel.consume(this.sendQueue, async (msg) => {
                 if (msg !== null) {
                     const message = JSON.parse(msg.content.toString());
@@ -60,7 +58,6 @@ class RabbitMQService {
                 }
             }, { noAck: false });
 
-            // Потребитель для верификационных SMS
             this.channel.consume(this.verificationQueue, async (msg) => {
                 if (msg !== null) {
                     const message = JSON.parse(msg.content.toString());
@@ -70,7 +67,6 @@ class RabbitMQService {
                 }
             }, { noAck: false });
 
-            // Потребитель для повторных попыток
             this.channel.consume(this.retryQueue, async (msg) => {
                 if (msg !== null) {
                     const message = JSON.parse(msg.content.toString());
