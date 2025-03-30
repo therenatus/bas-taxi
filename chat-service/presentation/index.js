@@ -51,7 +51,7 @@ export class PresentationLayer {
                 },
                 servers: [
                     {
-                        url: `http://localhost:${this.#port}/chats`,
+                        url: `http://localhost:${this.#port}`,
                         description: "Локальный сервер",
                     },
                 ],
@@ -71,7 +71,7 @@ export class PresentationLayer {
         };
 
         const swaggerSpec = swaggerJsdoc(swaggerOptions);
-        this.#restApp.use('/chats/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+        this.#restApp.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
     }
 
     start() {

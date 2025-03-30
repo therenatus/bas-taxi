@@ -9,7 +9,7 @@ dotenv.config();
 
 class Database {
     constructor() {
-        this.sequelize = new Sequelize('chatdbs',
+        this.sequelize = new Sequelize('chatdb',
           'chatuser',
           'chatpassword',
           {

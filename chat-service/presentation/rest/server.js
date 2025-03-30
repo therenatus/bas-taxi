@@ -11,7 +11,7 @@ export const createRestServer = (controllers, middlewares) => {
     app.use(express.json({ limit: "10kb" }));
     app.use(express.urlencoded({ extended: true }));
 
-    app.use("/chats", controllers.chatRouter);
+    app.use("/", controllers.chatRouter);
 
     // app.use(middlewares.errorHandler);
 

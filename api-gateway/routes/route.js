@@ -33,7 +33,7 @@ router.use('/chats', createProxyMiddleware({
     changeOrigin: true,
     timeout: 60000,
     pathRewrite: {
-        '^/chats': '/chats',
+        '^/chats': '/',
     },
     proxyTimeout: 60000,
     onProxyReq: (proxyReq, req, res) => {
@@ -72,7 +72,7 @@ router.use('/rides', createProxyMiddleware({
     target: process.env.RIDE_SERVICE_URL,
     changeOrigin: true,
     pathRewrite: {
-        '^/rides': '/rides',
+        '^/rides': '/',
     },
     ws: true,
     logLevel: 'debug'

@@ -56,6 +56,7 @@ const startServer = async () => {
         });
         res.send('Тестовые уведомления отправлены!');
     });
+    setupSwagger(app);
     app.use('/', rideRoute);
 
     app.get('/ws-status', (req, res) => {
@@ -79,8 +80,6 @@ const startServer = async () => {
             res.status(500).end(error);
         }
     });
-
-    setupSwagger(app);
 
     app.get('/health', (req, res) => {
         res.json({ status: 'ok' });
