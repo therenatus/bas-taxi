@@ -1,4 +1,4 @@
-import { getReviewsByDriver } from '../services/review-query.service.js';
+import {getReviewsByDriver, getReviewsByRide} from '../services/review-query.service.js';
 import logger from '../../utils/logger.js';
 
 export const getReviewsByDriverHandler = async (req, res) => {
