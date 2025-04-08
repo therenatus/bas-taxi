@@ -1,6 +1,6 @@
 // src/services/ride.service.js
 import Ride from '../models/ride.model.js';
-import sequelize from '../utils/database.js';
+import sequelize from '../utils/sequelize.js';
 import { initiatePayment, cancelPayment } from './payment.service.js';
 import {assertExchange, getChannel} from '../utils/rabbitmq.js';
 import logger from '../utils/logger.js';
@@ -57,10 +57,6 @@ const publishRideEvent = async (eventType, data, correlationId) => {
 
 
 export const requestRide = async (passengerId, origin, destination, paymentType, correlationId) => {
-    // if (!passengerId || !origin || !destination || !paymentType || !correlationId) {
-    //     throw new Error('Отсутствуют необходимые параметры для запроса поездки');
-    // }
-
     const [latitude, longitude] = origin.split(',').map(Number);
     if (isNaN(latitude) || isNaN(longitude)) {
         throw new Error('Некорректные координаты отправления');
@@ -100,16 +96,13 @@ export const requestRide = async (passengerId, origin, destination, paymentType,
                 status: 'pending',
                 originName,
                 destinationName,
+                rejectedDrivers: [],
+                searchStartTime: Date.now(),
             }, { transaction });
 
-            const nearbyDrivers = await findNearbyDrivers(latitude, longitude, 10, 10);
-
-            if (nearbyDrivers.length === 0) {
-                throw new Error('Нет доступных водителей поблизости');
-            }
-
             await sendRideRequestToGeoService(ride.id, origin, destination, city, correlationId);
-            await notifyNearbyDrivers(ride.id, nearbyDrivers, correlationId);
+            
+            startDriverSearch(ride.id, latitude, longitude, correlationId);
 
             logger.info('Запрос на поездку успешно отправлен', { rideId: ride.id, correlationId });
             return ride;
@@ -119,6 +112,99 @@ export const requestRide = async (passengerId, origin, destination, paymentType,
     } catch (error) {
         logger.error('Ошибка при создании поездки', { error: error.message, correlationId });
         throw error;
+    }
+};
+
+const startDriverSearch = async (rideId, latitude, longitude, correlationId) => {
+    try {
+        const ride = await Ride.findByPk(rideId);
+        if (!ride || ride.status !== 'pending') {
+            return;
+        }
+
+        const searchDuration = Date.now() - ride.searchStartTime;
+        if (searchDuration >= 180000) {
+            ride.status = 'cancelled';
+            ride.cancellationReason = 'Превышено время ожидания поиска водителя';
+            await ride.save();
+            
+            emitToPassenger(ride.passengerId, {
+                event: 'ride_cancelled',
+                data: {
+                    rideId,
+                    reason: 'Не найдено доступных водителей'
+                }
+            });
+            
+            return;
+        }
+
+        const nearbyDrivers = await findNearbyDrivers(latitude, longitude, 10, 10);
+        
+        const availableDrivers = nearbyDrivers.filter(driver => 
+            !ride.rejectedDrivers.includes(driver.member)
+        );
+
+        if (availableDrivers.length === 0) {
+            setTimeout(() => {
+                startDriverSearch(rideId, latitude, longitude, correlationId);
+            }, 5000);
+            return;
+        }
+
+        const nextDriver = availableDrivers[0];
+        
+        await notifyDriver(rideId, nextDriver, correlationId);
+
+        setTimeout(async () => {
+            const updatedRide = await Ride.findByPk(rideId);
+            if (updatedRide && updatedRide.status === 'pending') {
+                updatedRide.rejectedDrivers = [...updatedRide.rejectedDrivers, nextDriver.member];
+                await updatedRide.save();
+                
+                startDriverSearch(rideId, latitude, longitude, correlationId);
+            }
+        }, 5000);
+
+    } catch (error) {
+        logger.error('Ошибка в процессе поиска водителей', { error: error.message, rideId, correlationId });
+    }
+};
+
+const notifyDriver = async (rideId, driver, correlationId) => {
+    try {
+        const message = {
+            event: 'new_ride_request',
+            data: { rideId, distance: driver.distance },
+            timestamp: new Date().toISOString(),
+        };
+
+        emitToDriver(driver.member, message);
+
+        const channel = await getChannel();
+        const exchangeName = 'driver_notifications_exchange';
+        
+        await channel.assertExchange(exchangeName, 'fanout');
+        channel.publish(exchangeName, '', Buffer.from(JSON.stringify(message)), {
+            contentType: 'application/json',
+            headers: { 
+                'x-correlation-id': correlationId,
+                driverId: driver.member 
+            },
+        });
+
+        logger.info('Уведомление отправлено водителю', { 
+            driverId: driver.member,
+            rideId,
+            correlationId 
+        });
+    } catch (error) {
+        logger.error('Ошибка при отправке уведомления водителю', {
+            error: error.message,
+            driverId: driver.member,
+            rideId,
+            correlationId
+        });
     }
 };
 
@@ -135,7 +221,7 @@ export const processRideGeoData = async (geoData, correlationId) => {
         if (!nearbyDrivers.length) throw new Error('Нет доступных водителей рядом');
 
         const distanceKm = distanceData.distance / 1000;
-        const price = await ensureCitySupportedAndGetPrice(ride.city, distanceKm);
+        const price = await ensureCitySupportedAndGetPrice(ride.city, distanceKm, distanceData.duration / 60);
 
         ride.distance = distanceKm;
         ride.price = price;
@@ -348,7 +434,7 @@ export const getRideInfo = async (origin, destination, correlationId) => {
         return { city, distance: distanceInKm, duration: durationInMinutes, price };
     } catch (error) {
         logger.error('Ошибка при получении информации о поездке', { error: error.message, correlationId });
-        throw new Error('Не удалось получить информацию о поездке');
+        throw new Error(`Не удалось получить информацию о поездке: ${error.message}`);
     }
 };
 
@@ -400,27 +486,82 @@ export const deactivateParkingMode = async (driverId, correlationId) => {
 export const acceptRide = async (rideId, driverId, correlationId) => {
     const transaction = await sequelize.transaction();
     try {
+        // Находим поездку
         const ride = await Ride.findByPk(rideId, { transaction });
-
         if (!ride) {
             throw new Error(`Поездка с ID ${rideId} не найдена`);
         }
-
         if (ride.status !== 'pending') {
             throw new Error(`Поездка недоступна для принятия`);
         }
+
+        // Получаем тариф для города поездки
+        const tariff = await Tariff.findOne({ where: { city: ride.city } });
+        if (!tariff) {
+            throw new Error(`Тариф для города ${ride.city} не найден`);
+        }
+        const serviceFeePercentage = tariff.serviceFeePercentage;
+        // Вычисляем сумму списания: процент от полной цены поездки
+        const amountToDeduct = ride.price * serviceFeePercentage / 100;
+
+        // Запрашиваем баланс водителя через balance‑service
+        const balanceServiceUrl = process.env.BALANCE_SERVICE_URL || 'http://localhost:3005';
+        const balanceResponse = await axios.get(`${balanceServiceUrl}/balance/${driverId}`);
+        const driverBalance = balanceResponse.data.balance;
+
+        // Если средств недостаточно – возвращаем ошибку
+        if (driverBalance < amountToDeduct) {
+            throw new Error('Недостаточно средств на балансе водителя для принятия поездки');
+        }
+
+        // Списываем деньги с баланса водителя через balance‑service
+        await axios.post(`${balanceServiceUrl}/balance/deduct`, { driverId, amount: amountToDeduct });
+
+        // Обновляем статус поездки и назначаем водителя
         ride.driverId = driverId;
         ride.status = 'driver_assigned';
         await ride.save({ transaction });
 
-        await publishRideEvent('ride_accepted', { rideId: ride.id, driverId }, correlationId);
+        // Публикуем событие о принятии поездки
+        await publishRideEvent('ride_accepted', { 
+            rideId: ride.id, 
+            driverId,
+            status: ride.status 
+        }, correlationId);
 
-        emitRideUpdate(rideId, { status: 'driver_assigned', driverId, message: 'Водитель принял вашу заявку' });
-        emitToDriver(driverId, { event: 'ride_assigned', data: { rideId, status: 'driver_assigned' }});
+        // Уведомляем участников поездки
+        emitRideUpdate(rideId, { 
+            status: ride.status, 
+            driverId, 
+            message: 'Водитель принял вашу заявку' 
+        });
 
-        emitToPassenger(ride.passengerId, { event: 'ride_accepted', data: { rideId, driverId, message: 'Ваша поездка принята водителем' }});
+        emitToDriver(driverId, { 
+            event: 'ride_assigned', 
+            data: { 
+                rideId, 
+                status: ride.status,
+                origin: ride.origin,
+                destination: ride.destination,
+                price: ride.price,
+                originName: ride.originName,
+                destinationName: ride.destinationName
+            }
+        });
 
+        emitToPassenger(ride.passengerId, { 
+            event: 'ride_accepted', 
+            data: { 
+                rideId, 
+                driverId, 
+                message: 'Ваша поездка принята водителем',
+                status: ride.status
+            }
+        });
+
+        // Отменяем поиск других водителей
         await cancelRideNotifications(rideId);
+        
         await transaction.commit();
 
         logger.info('Поездка успешно принята водителем', { rideId, driverId, correlationId });
@@ -455,6 +596,7 @@ export const onsiteRide = async (rideId, driverId, correlationId) => {
             status: 'on_site',
             message: 'Водитель на месте',
         });
+        emitToPassenger(ride.passengerId, { event: 'ride_accepted', data: { rideId, driverId, message: 'Водитель на месте' }});
 
         await publishRideEvent('on_site', { rideId, status: 'on_site' }, correlationId);
 

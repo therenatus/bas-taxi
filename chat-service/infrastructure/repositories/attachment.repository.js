@@ -1,11 +1,14 @@
 import { ApplicationError } from "../../application/exceptions/application.error.js";
 import logger from "../config/logger.js";
+import { Op } from "sequelize";
 
 export class AttachmentRepository {
     #sequelizeModel;
+    #messageModel;
 
-    constructor(sequelizeModel) {
+    constructor(sequelizeModel, messageModel) {
         this.#sequelizeModel = sequelizeModel;
+        this.#messageModel = messageModel;
     }
 
     /**
@@ -69,6 +72,99 @@ export class AttachmentRepository {
         } catch (error) {
             logger.error(`Ошибка удаления вложений: ${error.message}`);
             throw this.#handleError(error, 'Ошибка удаления вложений');
+        }
+    }
+
+    /**
+     * Находит вложения для чата
+     * @param {string} chatId - ID чата
+     * @param {Object} filter - Параметры фильтрации
+     * @returns {Promise<Array>} - Массив вложений
+     */
+    async findByChat(chatId, filter = {}) {
+        try {
+            const { limit = 20, offset = 0, type, startDate, endDate } = filter;
+            
+            const whereClause = {
+                '$message.chat_id$': chatId
+            };
+            
+            if (type) {
+                whereClause.mime_type = type;
+            }
+            
+            if (startDate || endDate) {
+                whereClause.created_at = {};
+                
+                if (startDate) {
+                    whereClause.created_at[Op.gte] = new Date(startDate);
+                }
+                
+                if (endDate) {
+                    whereClause.created_at[Op.lte] = new Date(endDate);
+                }
+            }
+            
+            const attachments = await this.#sequelizeModel.findAll({
+                where: whereClause,
+                include: [{
+                    model: this.#messageModel,
+                    as: 'message',
+                    attributes: []
+                }],
+                limit,
+                offset,
+                order: [['created_at', 'DESC']]
+            });
+            
+            return attachments.map(attachment => this.#toDomainEntity(attachment));
+        } catch (error) {
+            throw new Error(`Failed to find attachments by chat: ${error.message}`);
+        }
+    }
+    
+    /**
+     * Находит вложение по ID
+     * @param {string} id - ID вложения
+     * @returns {Promise<Object|null>} - Вложение или null
+     */
+    async findById(id) {
+        try {
+            const attachment = await this.#sequelizeModel.findByPk(id);
+            return attachment ? this.#toDomainEntity(attachment) : null;
+        } catch (error) {
+            throw new Error(`Failed to find attachment by ID: ${error.message}`);
+        }
+    }
+    
+    /**
+     * Удаляет вложение
+     * @param {string} id - ID вложения
+     * @returns {Promise<boolean>} - Результат удаления
+     */
+    async delete(id) {
+        try {
+            const deleted = await this.#sequelizeModel.destroy({
+                where: { id }
+            });
+            
+            return deleted > 0;
+        } catch (error) {
+            throw new Error(`Failed to delete attachment: ${error.message}`);
+        }
+    }
+    
+    /**
+     * Создает новое вложение
+     * @param {Object} data - Данные вложения
+     * @returns {Promise<Object>} - Созданное вложение
+     */
+    async save(data) {
+        try {
+            const attachment = await this.#sequelizeModel.create(data);
+            return this.#toDomainEntity(attachment);
+        } catch (error) {
+            throw new Error(`Failed to save attachment: ${error.message}`);
         }
     }
 

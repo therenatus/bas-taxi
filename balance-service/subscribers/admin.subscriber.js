@@ -1,3 +1,4 @@
+// subscribers/admin.subscriber.js
 import { getChannel } from '../utils/rabbitmq.js';
 import Tariff from '../models/tariff.model.js';
 import ProcessedMessage from '../models/processed-message.model.js';

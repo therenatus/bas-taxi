@@ -167,3 +167,37 @@ const getAllDriverCount = async ({ correlationId }) => {
         return { total: 0, blocked: 0, active: 0 };
     }
 };
+
+export const deleteDriverProfileService = async (driverId) => {
+    logger.info('deleteDriverProfileService: Начало удаления профиля водителя', { driverId });
+    
+    const driver = await Driver.findByPk(driverId);
+    
+    if (!driver) {
+        logger.warn('deleteDriverProfileService: Водитель не найден', { driverId });
+        throw new Error('Водитель не найден');
+    }
+
+    // Проверяем, не было ли удаления в течение последнего месяца
+    if (driver.deletedAt) {
+        const oneMonthAgo = new Date();
+        oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+        
+        if (driver.deletedAt > oneMonthAgo) {
+            const daysLeft = Math.ceil((driver.deletedAt - oneMonthAgo) / (1000 * 60 * 60 * 24));
+            logger.warn('deleteDriverProfileService: Попытка повторного удаления раньше срока', { 
+                driverId, 
+                daysLeft 
+            });
+            throw new Error(`Повторная регистрация возможна только через ${daysLeft} дней`);
+        }
+    }
+
+    // Устанавливаем флаг удаления и время удаления
+    driver.isDeleted = true;
+    driver.deletedAt = new Date();
+    await driver.save();
+
+    logger.info('deleteDriverProfileService: Профиль водителя успешно удален', { driverId });
+    return { message: 'Профиль успешно удален' };
+};

@@ -97,7 +97,7 @@ export const getCityFromCoordinates = async (coordinates, correlationId) => {
             throw new Error('Ошибка при получении данных от geo-service');
         }
 
-        logger.info('Получены данные расстояния и времени из geo-service', { correlationId });
+        logger.info('Получены данные о городе из geo-service', { correlationId });
         return response.data;
     } catch (error) {
         logger.error('Ошибка при запросе к geo-service', { error: error.message, correlationId });

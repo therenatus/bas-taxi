@@ -19,6 +19,15 @@ import {
     getDriverRidesHandler,
     getUserRidesHandler,
     getRideDetailsHandler,
+    getTariffHandler,
+    updateBaseTariffHandler,
+    updateHourAdjustmentHandler,
+    deleteHourAdjustmentHandler,
+    updateMonthAdjustmentHandler,
+    deleteMonthAdjustmentHandler,
+    addHolidayHandler,
+    updateHolidayHandler,
+    deleteHolidayHandler,
 } from '../controllers/ride.controller.js';
 import { authMiddleware } from "../middlewares/auth.middleware.js";
 
@@ -29,6 +38,56 @@ const router = express.Router();
  * tags:
  *   name: Rides
  *   description: Управление поездками
+ */
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Ride:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *         passengerId:
+ *           type: integer
+ *           nullable: true
+ *         driverId:
+ *           type: integer
+ *           nullable: true
+ *         origin:
+ *           type: string
+ *         destination:
+ *           type: string
+ *         originName:
+ *           type: string
+ *           nullable: true
+ *         destinationName:
+ *           type: string
+ *           nullable: true
+ *         city:
+ *           type: string
+ *         distance:
+ *           type: number
+ *           nullable: true
+ *         price:
+ *           type: number
+ *           nullable: true
+ *         paymentType:
+ *           type: string
+ *           enum: [cash, card]
+ *         status:
+ *           type: string
+ *           enum: [pending, driver_assigned, in_progress, completed, cancelled, on_site]
+ *         cancellationReason:
+ *           type: string
+ *           nullable: true
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *         updatedAt:
+ *           type: string
+ *           format: date-time
  */
 
 /**
@@ -511,30 +570,163 @@ router.post('/line/activate', authMiddleware(['driver']), activateLineHandler);
  */
 router.post('/line/deactivate', authMiddleware(['driver']), deactivateLineHandler);
 
-// /**
-//  * @swagger
-//  * /driver/{driverId}/details:
-//  *   get:
-//  *     summary: Получение данных о водителе по driverId
-//  *     tags: [Rides]
-//  *     parameters:
-//  *       - in: path
-//  *         name: driverId
-//  *         required: true
-//  *         schema:
-//  *           type: string
-//  *         description: Идентификатор водителя
-//  *     responses:
-//  *       200:
-//  *         description: Данные о водителе получены
-//  *       400:
-//  *         description: Не указан driverId
-//  *       404:
-//  *         description: Данные о водителе не найдены
-//  *       500:
-//  *         description: Не удалось получить данные о водителе
-//  */
-router.get('/driver/:driverId/details', getDriverDetailsHandler);
+/**
+ * @swagger
+ * /driver/{driverId}:
+ *   get:
+ *     summary: Получение данных о водителе по driverId
+ *     tags: [Rides]
+ *     parameters:
+ *       - in: path
+ *         name: driverId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Идентификатор водителя
+ *     responses:
+ *       200:
+ *         description: Данные о водителе получены
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: string
+ *                 name:
+ *                   type: string
+ *                 phone:
+ *                   type: string
+ *                 rating:
+ *                   type: number
+ *                 reviewCount:
+ *                   type: integer
+ *       400:
+ *         description: Не указан driverId
+ *       404:
+ *         description: Данные о водителе не найдены
+ *       500:
+ *         description: Не удалось получить данные о водителе
+ */
+router.get('/driver/:driverId', getDriverDetailsHandler);
+
+/**
+ * @swagger
+ * /ride/{rideId}:
+ *   get:
+ *     summary: Получение деталей поездки
+ *     tags: [Rides]
+ *     parameters:
+ *       - in: path
+ *         name: rideId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Идентификатор поездки
+ *     responses:
+ *       200:
+ *         description: Данные о поездке получены
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Ride'
+ *       400:
+ *         description: Не указан rideId
+ *       404:
+ *         description: Данные о поездке не найдены
+ *       500:
+ *         description: Не удалось получить данные о поездке
+ */
+router.get('/ride/:rideId', getRideDetailsHandler);
+
+/**
+ * @swagger
+ * /driver/rides/my:
+ *   get:
+ *     summary: Водитель получает список своих активных поездок
+ *     tags: [Rides]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Список поездок водителя получен
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Ride'
+ *       401:
+ *         description: Не авторизован
+ *       403:
+ *         description: Нет прав доступа (пользователь не водитель)
+ *       404:
+ *         description: Поездки не найдены
+ *       500:
+ *         description: Ошибка сервера
+ */
+router.get(
+    '/driver/rides/my',
+    authMiddleware(['driver']),
+    (req, res) => getDriverRidesHandler({ params: { driverId: req.user.id } }, res)
+);
+
+/**
+ * @swagger
+ * /user/rides/my:
+ *   get:
+ *     summary: Пассажир получает список своих активных поездок
+ *     tags: [Rides]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Список поездок пассажира получен
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Ride'
+ *       401:
+ *         description: Не авторизован
+ *       403:
+ *         description: Нет прав доступа (пользователь не пассажир)
+ *       404:
+ *         description: Поездки не найдены
+ *       500:
+ *         description: Ошибка сервера
+ */
+router.get(
+    '/user/rides/my',
+    authMiddleware(['user']),
+    (req, res) => getUserRidesHandler({ params: { userId: req.user.id } }, res)
+);
+
+/**
+ * @swagger
+ * /rides/{rideId}:
+ *   get:
+ *     summary: Получение данных о конкретной поездке
+ *     tags: [Rides]
+ *     parameters:
+ *       - in: path
+ *         name: rideId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Идентификатор поездки
+ *     responses:
+ *       200:
+ *         description: Данные о поездке получены
+ *       400:
+ *         description: Не указан rideId
+ *       404:
+ *         description: Данные о поездке не найдены
+ *       500:
+ *         description: Не удалось получить данные о поездке
+ */
+router.get('/rides/:rideId', authMiddleware(['driver', 'passenger', 'admin', ' moderator']), getRideDetailsHandler);
 
 // /**
 //  * @swagger
@@ -542,6 +734,8 @@ router.get('/driver/:driverId/details', getDriverDetailsHandler);
 //  *   get:
 //  *     summary: Получение списка поездок водителя
 //  *     tags: [Rides]
+//  *     security:
+//  *       - bearerAuth: []
 //  *     parameters:
 //  *       - in: path
 //  *         name: driverId
@@ -552,6 +746,12 @@ router.get('/driver/:driverId/details', getDriverDetailsHandler);
 //  *     responses:
 //  *       200:
 //  *         description: Данные о поездках получены
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: array
+//  *               items:
+//  *                 $ref: '#/components/schemas/Ride'
 //  *       400:
 //  *         description: Не указан driverId
 //  *       404:
@@ -559,7 +759,7 @@ router.get('/driver/:driverId/details', getDriverDetailsHandler);
 //  *       500:
 //  *         description: Не удалось получить данные о поездках
 //  */
-router.get('/driver/:driverId/rides', authMiddleware(['driver']), getDriverRidesHandler);
+router.get('/driver/:driverId/rides', authMiddleware(['admin']), getDriverRidesHandler);
 
 // /**
 //  * @swagger
@@ -567,6 +767,8 @@ router.get('/driver/:driverId/rides', authMiddleware(['driver']), getDriverRides
 //  *   get:
 //  *     summary: Получение списка поездок пользователя
 //  *     tags: [Rides]
+//  *     security:
+//  *       - bearerAuth: []
 //  *     parameters:
 //  *       - in: path
 //  *         name: userId
@@ -577,6 +779,12 @@ router.get('/driver/:driverId/rides', authMiddleware(['driver']), getDriverRides
 //  *     responses:
 //  *       200:
 //  *         description: Данные о поездках получены
+//  *         content:
+//  *           application/json:
+//  *             schema:
+//  *               type: array
+//  *               items:
+//  *                 $ref: '#/components/schemas/Ride'
 //  *       400:
 //  *         description: Не указан userId
 //  *       404:
@@ -584,31 +792,389 @@ router.get('/driver/:driverId/rides', authMiddleware(['driver']), getDriverRides
 //  *       500:
 //  *         description: Не удалось получить данные о поездках
 //  */
-router.get('/user/:userId/rides', authMiddleware(['passenger']), getUserRidesHandler);
+router.get('/user/:userId/rides', authMiddleware(['admin']), getUserRidesHandler);
 
-// /**
-//  * @swagger
-//  * /rides/{rideId}:
-//  *   get:
-//  *     summary: Получение данных о конкретной поездке
-//  *     tags: [Rides]
-//  *     parameters:
-//  *       - in: path
-//  *         name: rideId
-//  *         required: true
-//  *         schema:
-//  *           type: string
-//  *         description: Идентификатор поездки
-//  *     responses:
-//  *       200:
-//  *         description: Данные о поездке получены
-//  *       400:
-//  *         description: Не указан rideId
-//  *       404:
-//  *         description: Данные о поездке не найдены
-//  *       500:
-//  *         description: Не удалось получить данные о поездке
-//  */
-router.get('/rides/:rideId', authMiddleware(['driver', 'passenger', 'admin', ' moderator']), getRideDetailsHandler);
+/**
+ * @swagger
+ * tags:
+ *   name: Tariffs
+ *   description: Управление тарифами
+ */
+
+/**
+ * @swagger
+ * /tariffs/{cityId}/{carClassId}:
+ *   get:
+ *     summary: Получение тарифа для города и класса автомобиля
+ *     tags: [Tariffs]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: cityId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID города
+ *       - in: path
+ *         name: carClassId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID класса автомобиля
+ *     responses:
+ *       200:
+ *         description: Информация о тарифе
+ *       404:
+ *         description: Тариф не найден
+ *       500:
+ *         description: Ошибка сервера
+ */
+router.get('/tariffs/:cityId/:carClassId', authMiddleware(['admin']), getTariffHandler);
+
+/**
+ * @swagger
+ * /tariffs/base:
+ *   put:
+ *     summary: Обновление базового тарифа
+ *     tags: [Tariffs]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - cityId
+ *               - carClassId
+ *               - baseFare
+ *               - costPerKm
+ *               - costPerMinute
+ *             properties:
+ *               cityId:
+ *                 type: integer
+ *               carClassId:
+ *                 type: integer
+ *               baseFare:
+ *                 type: number
+ *               costPerKm:
+ *                 type: number
+ *               costPerMinute:
+ *                 type: number
+ *               reason:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Базовый тариф обновлен
+ *       404:
+ *         description: Тариф не найден
+ *       500:
+ *         description: Ошибка сервера
+ */
+router.put('/tariffs/base', authMiddleware(['admin']), updateBaseTariffHandler);
+
+/**
+ * @swagger
+ * /tariffs/hour:
+ *   put:
+ *     summary: Добавление/обновление часовой корректировки
+ *     tags: [Tariffs]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - cityId
+ *               - carClassId
+ *               - hour
+ *               - percent
+ *             properties:
+ *               cityId:
+ *                 type: integer
+ *               carClassId:
+ *                 type: integer
+ *               hour:
+ *                 type: integer
+ *                 minimum: 0
+ *                 maximum: 23
+ *               percent:
+ *                 type: number
+ *               reason:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Часовая корректировка обновлена
+ *       404:
+ *         description: Тариф не найден
+ *       500:
+ *         description: Ошибка сервера
+ */
+router.put('/tariffs/hour', authMiddleware(['admin']), updateHourAdjustmentHandler);
+
+/**
+ * @swagger
+ * /tariffs/hour:
+ *   delete:
+ *     summary: Удаление часовой корректировки
+ *     tags: [Tariffs]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - cityId
+ *               - carClassId
+ *               - hour
+ *             properties:
+ *               cityId:
+ *                 type: integer
+ *               carClassId:
+ *                 type: integer
+ *               hour:
+ *                 type: integer
+ *                 minimum: 0
+ *                 maximum: 23
+ *               reason:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Часовая корректировка удалена
+ *       404:
+ *         description: Тариф или корректировка не найдены
+ *       500:
+ *         description: Ошибка сервера
+ */
+router.delete('/tariffs/hour', authMiddleware(['admin']), deleteHourAdjustmentHandler);
+
+/**
+ * @swagger
+ * /tariffs/month:
+ *   put:
+ *     summary: Добавление/обновление месячной корректировки
+ *     tags: [Tariffs]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - cityId
+ *               - carClassId
+ *               - month
+ *               - percent
+ *             properties:
+ *               cityId:
+ *                 type: integer
+ *               carClassId:
+ *                 type: integer
+ *               month:
+ *                 type: integer
+ *                 minimum: 1
+ *                 maximum: 12
+ *               percent:
+ *                 type: number
+ *               reason:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Месячная корректировка обновлена
+ *       404:
+ *         description: Тариф не найден
+ *       500:
+ *         description: Ошибка сервера
+ */
+router.put('/tariffs/month', authMiddleware(['admin']), updateMonthAdjustmentHandler);
+
+/**
+ * @swagger
+ * /tariffs/month:
+ *   delete:
+ *     summary: Удаление месячной корректировки
+ *     tags: [Tariffs]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - cityId
+ *               - carClassId
+ *               - month
+ *             properties:
+ *               cityId:
+ *                 type: integer
+ *               carClassId:
+ *                 type: integer
+ *               month:
+ *                 type: integer
+ *                 minimum: 1
+ *                 maximum: 12
+ *               reason:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Месячная корректировка удалена
+ *       404:
+ *         description: Тариф или корректировка не найдены
+ *       500:
+ *         description: Ошибка сервера
+ */
+router.delete('/tariffs/month', authMiddleware(['admin']), deleteMonthAdjustmentHandler);
+
+/**
+ * @swagger
+ * /tariffs/holiday:
+ *   post:
+ *     summary: Добавление праздничного дня
+ *     tags: [Tariffs]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - cityId
+ *               - carClassId
+ *               - month
+ *               - day
+ *               - percent
+ *             properties:
+ *               cityId:
+ *                 type: integer
+ *               carClassId:
+ *                 type: integer
+ *               month:
+ *                 type: integer
+ *                 minimum: 1
+ *                 maximum: 12
+ *               day:
+ *                 type: integer
+ *                 minimum: 1
+ *                 maximum: 31
+ *               percent:
+ *                 type: number
+ *               reason:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Праздничный день добавлен
+ *       400:
+ *         description: Праздничный день уже существует
+ *       404:
+ *         description: Тариф не найден
+ *       500:
+ *         description: Ошибка сервера
+ */
+router.post('/tariffs/holiday', authMiddleware(['admin']), addHolidayHandler);
+
+/**
+ * @swagger
+ * /tariffs/holiday:
+ *   put:
+ *     summary: Обновление процента корректировки для праздника
+ *     tags: [Tariffs]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - cityId
+ *               - carClassId
+ *               - month
+ *               - day
+ *               - percent
+ *             properties:
+ *               cityId:
+ *                 type: integer
+ *               carClassId:
+ *                 type: integer
+ *               month:
+ *                 type: integer
+ *                 minimum: 1
+ *                 maximum: 12
+ *               day:
+ *                 type: integer
+ *                 minimum: 1
+ *                 maximum: 31
+ *               percent:
+ *                 type: number
+ *               reason:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Праздничный день обновлен
+ *       404:
+ *         description: Тариф или праздник не найдены
+ *       500:
+ *         description: Ошибка сервера
+ */
+router.put('/tariffs/holiday', authMiddleware(['admin']), updateHolidayHandler);
+
+/**
+ * @swagger
+ * /tariffs/holiday:
+ *   delete:
+ *     summary: Удаление праздничного дня
+ *     tags: [Tariffs]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - cityId
+ *               - carClassId
+ *               - month
+ *               - day
+ *             properties:
+ *               cityId:
+ *                 type: integer
+ *               carClassId:
+ *                 type: integer
+ *               month:
+ *                 type: integer
+ *                 minimum: 1
+ *                 maximum: 12
+ *               day:
+ *                 type: integer
+ *                 minimum: 1
+ *                 maximum: 31
+ *               reason:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Праздничный день удален
+ *       404:
+ *         description: Тариф или праздник не найдены
+ *       500:
+ *         description: Ошибка сервера
+ */
+router.delete('/tariffs/holiday', authMiddleware(['admin']), deleteHolidayHandler);
 
 export default router;

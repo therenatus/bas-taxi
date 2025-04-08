@@ -7,12 +7,12 @@ import ChangePhone from "../models/change-phone.model.js";
 
 const SMS_SEND_INTERVAL_MS = 60 * 1000;
 
-export const registerPassengerService = async ({ phoneNumber, correlationId }) => {
+export const registerPassengerService = async ({ phoneNumber, fullName, correlationId }) => {
     logger.info('registerPassengerService: Начало регистрации пассажира', { correlationId });
 
     const existingUser = await User.findOne({ where: { phoneNumber } });
     if (existingUser) {
-        logger.warn('registerPassengerService: Пользователь с таким номером телефона уже существует', { phoneNumber, correlationId });
+        logger.warn('registerPassengerService: Пользователь с таким номером телефона уже существует', { phoneNumber, fullName, correlationId });
         throw new Error('Номер телефона уже используется');
     }
 
@@ -22,7 +22,7 @@ export const registerPassengerService = async ({ phoneNumber, correlationId }) =
     const user = await User.create({
         phoneNumber,
         role: 'passenger',
-        fullName: phoneNumber,
+        fullName: fullName,
         isApproved: true,
         isPhoneVerified: true,
         verificationCode,
@@ -313,6 +313,29 @@ export const findUserByPhoneService = async ({ phoneNumber, correlationId }) => 
         return user;
     } catch (error) {
         logger.error('findUserByPhoneService: Ошибка при поиске пользователя по номеру телефона', { error, correlationId });
+        throw error;
+    }
+};
+
+export const deleteSelfService = async ({ userId, correlationId }) => {
+    try {
+        logger.info('deleteSelfService: Начало самоудаления пользователя', { userId, correlationId });
+        const user = await User.findByPk(userId);
+
+        if (!user) {
+            logger.warn('deleteSelfService: Пользователь не найден', { userId, correlationId });
+            throw new Error('Пользователь не найден');
+        }
+
+        user.isDeleted = true;
+        user.deletedAt = new Date();
+        user.blockReason = 'Самоудаление аккаунта';
+        await user.save();
+
+        logger.info('deleteSelfService: Пользователь удалил свой аккаунт', { userId, correlationId });
+        return user;
+    } catch (error) {
+        logger.error('deleteSelfService: Ошибка при самоудалении пользователя', { error, correlationId });
         throw error;
     }
 };

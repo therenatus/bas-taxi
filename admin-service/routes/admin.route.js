@@ -6,14 +6,68 @@ import {
     approveDriver,
     getRides,
     getReviews,
-    updateSettings, getDriverRequests, rejectDriver, getDriverDetails,
+    updateSettings, getDriverRequests, rejectDriver, getDriverDetails, getUserRidesViaGateway, getDriverRidesViaGateway,
+    createAdmin,
+    getAdminById
 } from '../controllers/admin.controller.js';
 import {rejectDriverSchema} from "../validators/reject-driver.js";
 import {updateCostSchema} from "../validators/update-cost.validator.js";
 import {authorizeRoles} from "../middlewares/role.middleware.js";
 import DriverRequest from "../models/driver-request.model.js";
+import tariffRouter from './tariff.route.js';
+import { createAdminSchema } from '../validators/admin.validator.js';
 
 const router = Router();
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Ride:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *         passengerId:
+ *           type: integer
+ *           nullable: true
+ *         driverId:
+ *           type: integer
+ *           nullable: true
+ *         origin:
+ *           type: string
+ *         destination:
+ *           type: string
+ *         originName:
+ *           type: string
+ *           nullable: true
+ *         destinationName:
+ *           type: string
+ *           nullable: true
+ *         city:
+ *           type: string
+ *         distance:
+ *           type: number
+ *           nullable: true
+ *         price:
+ *           type: number
+ *           nullable: true
+ *         paymentType:
+ *           type: string
+ *           enum: [cash, card]
+ *         status:
+ *           type: string
+ *           enum: [pending, driver_assigned, in_progress, completed, cancelled, on_site]
+ *         cancellationReason:
+ *           type: string
+ *           nullable: true
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *         updatedAt:
+ *           type: string
+ *           format: date-time
+ */
 
 /**
  * @swagger
@@ -396,27 +450,7 @@ router.get('/reviews',authMiddleware, authorizeRoles(['superadmin', 'admin', 'mo
  *                 message:
  *                   type: string
  *                   example: "Тарифы успешно обновлены"
- *       400:
- *         description: Ошибка валидации данных
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
- *       500:
- *         description: Внутренняя ошибка сервера
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
  */
-// router.post(
-//     '/settings',
-//     authMiddleware,
-//     authorizeRoles('admin', 'moderator'),
-//     validateMiddleware(updateCostSchema),
-//     updateSettings
-// );
-
 router.post(
     '/tariff',
     authMiddleware, authorizeRoles(['superadmin', 'admin', 'moderator']),
@@ -424,61 +458,203 @@ router.post(
     updateSettings
 );
 
-// /**
-//  * @swagger
-//  * /admin/driver-requests/{requestId}/document:
-//  *   get:
-//  *     summary: Скачать документ заявки водителя
-//  *     tags: [Admin]
-//  *     security:
-//  *       - bearerAuth: []
-//  *     parameters:
-//  *       - in: path
-//  *         name: requestId
-//  *         required: true
-//  *         schema:
-//  *           type: integer
-//  *         description: Идентификатор заявки водителя
-//  *     responses:
-//  *       '200':
-//  *         description: Файл успешно скачан
-//  *         content:
-//  *           application/octet-stream:
-//  *             schema:
-//  *               type: string
-//  *               format: binary
-//  *       '404':
-//  *         description: Заявка водителя не найдена
-//  *         content:
-//  *           application/json:
-//  *             schema:
-//  *               $ref: '#/components/schemas/ErrorResponse'
-//  *       '500':
-//  *         description: Ошибка при скачивании документа
-//  *         content:
-//  *           application/json:
-//  *             schema:
-//  *               $ref: '#/components/schemas/ErrorResponse'
-//  */
-// router.get('/driver-requests/:requestId/document', authMiddleware, authorizeRoles('admin', 'moderator'), async (req, res) => {
-//     const { requestId } = req.params;
-//     try {
-//         const driverRequest = await DriverRequest.findByPk(requestId);
-//         if (!driverRequest) {
-//             return res.status(404).json({ message: 'Заявка водителя не найдена' });
-//         }
-//
-//         const filePath = driverRequest.documentPath;
-//         res.download(filePath, (err) => {
-//             if (err) {
-//                 logger.error('Ошибка при скачивании документа водителя', { error: err.message });
-//                 res.status(500).json({ error: 'Ошибка при скачивании документа' });
-//             }
-//         });
-//     } catch (error) {
-//         logger.error('Ошибка при обработке запроса на скачивание документа', { error: error.message });
-//         res.status(500).json({ error: 'Ошибка при скачивании документа' });
-//     }
-// });
+/**
+ * @swagger
+ * /admin/user/{userId}/rides:
+ *   get:
+ *     summary: Получить поездки пользователя через API Gateway
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Идентификатор пользователя
+ *     responses:
+ *       200:
+ *         description: Список поездок пользователя получен
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Ride'
+ *       401:
+ *         description: Неавторизованный доступ
+ *       403:
+ *         description: Доступ запрещен
+ *       500:
+ *         description: Внутренняя ошибка сервера
+ */
+router.get('/user/:userId/rides', authMiddleware, authorizeRoles(['superadmin', 'admin', 'moderator']), getUserRidesViaGateway);
+
+/**
+ * @swagger
+ * /admin/driver/{driverId}/rides:
+ *   get:
+ *     summary: Получить поездки водителя через API Gateway
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: driverId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Идентификатор водителя
+ *     responses:
+ *       200:
+ *         description: Список поездок водителя получен
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Ride'
+ *       401:
+ *         description: Неавторизованный доступ
+ *       403:
+ *         description: Доступ запрещен
+ *       500:
+ *         description: Внутренняя ошибка сервера
+ */
+router.get('/driver/:driverId/rides', authMiddleware, authorizeRoles(['superadmin', 'admin', 'moderator']), getDriverRidesViaGateway);
+
+/**
+ * @swagger
+ * /admin/create:
+ *   post:
+ *     summary: Создание администратора или модератора с 2FA по умолчанию
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *               - role
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 description: Уникальный email администратора
+ *                 example: "admin@example.com"
+ *               password:
+ *                 type: string
+ *                 description: Пароль
+ *                 example: "password123"
+ *               role:
+ *                 type: string
+ *                 description: Роль пользователя (admin или moderator)
+ *                 example: "admin"
+ *               city:
+ *                 type: string
+ *                 description: Город (обязателен для модераторов)
+ *                 example: "Алматы"
+ *     responses:
+ *       201:
+ *         description: Пользователь успешно создан, 2FA активирована
+ *       400:
+ *         description: Ошибка валидации
+ *       403:
+ *         description: Доступ запрещен
+ */
+router.post('/create', authMiddleware, authorizeRoles(['superadmin']), validateMiddleware(createAdminSchema), createAdmin);
+
+/**
+ * @swagger
+ * /admin/{id}:
+ *   get:
+ *     summary: Получить информацию об администраторе по ID
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: ID администратора
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Успешный ответ
+ *       404:
+ *         description: Администратор не найден
+ *       403:
+ *         description: Доступ запрещен
+ */
+router.get('/:id', authMiddleware, authorizeRoles(['superadmin', 'admin']), getAdminById);
+
+// Подключаем роутер для тарифов
+router.use('/', tariffRouter);
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Tariff:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *           description: Уникальный идентификатор тарифа
+ *         cityId:
+ *           type: integer
+ *           description: ID города
+ *         carClassId:
+ *           type: integer
+ *           description: ID класса автомобиля
+ *         baseFare:
+ *           type: number
+ *           description: Базовая стоимость поездки
+ *         costPerKm:
+ *           type: number
+ *           description: Стоимость за километр
+ *         costPerMinute:
+ *           type: number
+ *           description: Стоимость за минуту
+ *         seasonalMultiplier:
+ *           type: number
+ *           description: Сезонный множитель
+ *         hourlyAdjustments:
+ *           type: object
+ *           additionalProperties:
+ *             type: number
+ *           description: Почасовые коэффициенты (ключ - час, значение - коэффициент)
+ *         monthlyAdjustments:
+ *           type: object
+ *           additionalProperties:
+ *             type: number
+ *           description: Месячные коэффициенты (ключ - месяц, значение - коэффициент)
+ *         holidays:
+ *           type: array
+ *           items:
+ *             type: object
+ *             properties:
+ *               month:
+ *                 type: integer
+ *               day:
+ *                 type: integer
+ *               multiplier:
+ *                 type: number
+ *               name:
+ *                 type: string
+ *           description: Список праздничных дней с коэффициентами
+ *         createdAt:
+ *           type: string
+ *           format: date-time
+ *         updatedAt:
+ *           type: string
+ *           format: date-time
+ */
 
 export default router;

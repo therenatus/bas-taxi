@@ -12,7 +12,8 @@ import {
     findUserByPhoneService,
     loginPassengerService,
     loginPassengerWebService,
-    registerPassengerService, verifyTokenService
+    registerPassengerService, verifyTokenService,
+    deleteSelfService
 } from "../services/passanger.service.js";
 import {confirmLoginSchema, loginSchema} from "../validators/login.validator.js";
 
@@ -20,10 +21,10 @@ export const registerPassenger = async (req, res) => {
     const correlationId = req.headers['x-correlation-id'] || req.headers['correlationid'];
     logger.info('registerPassenger: Начало обработки запроса', { correlationId });
     try {
-        const { phoneNumber } = req.body;
-        logger.info('registerPassenger: Получены данные', { phoneNumber, correlationId });
+        const { phoneNumber, fullName } = req.body;
+        logger.info('registerPassenger: Получены данные', { phoneNumber, fullName, correlationId });
 
-        await registerPassengerService({ phoneNumber, correlationId });
+        await registerPassengerService({ phoneNumber, fullName, correlationId });
         logger.info('registerPassenger: Регистрация пассажира завершена успешно', { correlationId });
 
         res.status(201).json({
@@ -244,6 +245,20 @@ export const findUserByPhone = async (req, res) => {
         res.status(200).json(user);
     } catch (error) {
         logger.error('findUserByPhone: Ошибка при поиске пользователя', { error: error.message, correlationId });
+        res.status(400).json({ error: error.message });
+    }
+};
+
+export const deleteSelf = async (req, res) => {
+    const correlationId = req.headers['x-correlation-id'] || req.headers['correlationid'];
+    logger.info('deleteSelf: Начало обработки запроса на самоудаление', { correlationId });
+    try {
+        const userId = req.user.userId;
+        await deleteSelfService({ userId, correlationId });
+        logger.info('deleteSelf: Пользователь успешно удалил свой аккаунт', { correlationId, userId });
+        res.status(200).json({ message: 'Аккаунт успешно удален' });
+    } catch (error) {
+        logger.error('deleteSelf: Ошибка при самоудалении пользователя', { error: error.message, correlationId });
         res.status(400).json({ error: error.message });
     }
 };

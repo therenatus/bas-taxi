@@ -1,3 +1,4 @@
+// subscribers/ride.subscriber.js
 import { getChannel } from '../utils/rabbitmq.js';
 import { updateDriverBalance } from '../services/balance.service.js';
 import logger from '../utils/logger.js';

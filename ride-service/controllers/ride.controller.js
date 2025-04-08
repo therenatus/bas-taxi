@@ -18,6 +18,19 @@ import {
     getRideDetails,
     getDriverRides,
 } from '../services/ride.service.js';
+
+import {
+    getTariff,
+    updateBaseTariff,
+    updateHourAdjustment,
+    deleteHourAdjustment,
+    updateMonthAdjustment,
+    deleteMonthAdjustment,
+    addHoliday,
+    updateHoliday,
+    deleteHoliday,
+} from '../services/tariff.service.js';
+
 import logger from '../utils/logger.js';
 import {findNearbyDrivers, findNearbyParkedDrivers} from "../services/location.serrvice.js";
 
@@ -376,5 +389,433 @@ export const getDriverRidesHandler = async (req, res) => {
     } catch (error) {
         logger.error('Ошибка при получении данных о поездках через RabbitMQ', { error: error.message });
         res.status(500).json({ error: 'Не удалось получить данные о поездках' });
+    }
+};
+
+export const getTariffHandler = async (req, res) => {
+    try {
+        const { cityId, carClassId } = req.params;
+        const correlationId = req.correlationId;
+
+        const tariff = await getTariff(parseInt(cityId), parseInt(carClassId));
+
+        res.status(200).json({ 
+            message: 'Тариф успешно получен', 
+            tariff 
+        });
+    } catch (error) {
+        logger.error('Ошибка при получении тарифа', { 
+            error: error.message, 
+            correlationId: req.correlationId 
+        });
+        
+        if (error.message === 'Тариф не найден') {
+            return res.status(404).json({ 
+                error: error.message, 
+                correlationId: req.correlationId 
+            });
+        }
+        
+        res.status(500).json({ 
+            error: 'Ошибка при получении тарифа', 
+            correlationId: req.correlationId 
+        });
+    }
+};
+
+export const updateBaseTariffHandler = async (req, res) => {
+    try {
+        const { cityId, carClassId, baseFare, costPerKm, costPerMinute, reason } = req.body;
+        const adminId = req.user.adminId || req.user.userId;
+        const correlationId = req.correlationId;
+
+        const tariff = await updateBaseTariff(
+            cityId, 
+            carClassId, 
+            parseFloat(baseFare), 
+            parseFloat(costPerKm), 
+            parseFloat(costPerMinute), 
+            adminId, 
+            reason
+        );
+
+        res.status(200).json({ 
+            message: 'Базовый тариф успешно обновлен', 
+            tariff 
+        });
+    } catch (error) {
+        logger.error('Ошибка при обновлении базового тарифа', { 
+            error: error.message, 
+            correlationId: req.correlationId 
+        });
+        
+        if (error.message === 'Тариф не найден') {
+            return res.status(404).json({ 
+                error: error.message, 
+                correlationId: req.correlationId 
+            });
+        }
+        
+        res.status(500).json({ 
+            error: 'Ошибка при обновлении базового тарифа', 
+            correlationId: req.correlationId 
+        });
+    }
+};
+
+export const updateHourAdjustmentHandler = async (req, res) => {
+    try {
+        const { cityId, carClassId, hour, percent, reason } = req.body;
+        const adminId = req.user.adminId || req.user.userId;
+        const correlationId = req.correlationId;
+
+        // Проверки входных данных
+        if (hour < 0 || hour > 23) {
+            return res.status(400).json({ 
+                error: 'Некорректное значение часа (должно быть от 0 до 23)', 
+                correlationId 
+            });
+        }
+
+        const tariff = await updateHourAdjustment(
+            cityId, 
+            carClassId, 
+            hour, 
+            parseFloat(percent), 
+            adminId,
+            reason
+        );
+
+        res.status(200).json({ 
+            message: `Часовая корректировка для ${hour}:00 успешно обновлена`, 
+            tariff 
+        });
+    } catch (error) {
+        logger.error('Ошибка при обновлении часовой корректировки', { 
+            error: error.message, 
+            correlationId: req.correlationId 
+        });
+        
+        if (error.message === 'Тариф не найден') {
+            return res.status(404).json({ 
+                error: error.message, 
+                correlationId: req.correlationId 
+            });
+        }
+        
+        res.status(500).json({ 
+            error: 'Ошибка при обновлении часовой корректировки', 
+            correlationId: req.correlationId 
+        });
+    }
+};
+
+export const deleteHourAdjustmentHandler = async (req, res) => {
+    try {
+        const { cityId, carClassId, hour, reason } = req.body;
+        const adminId = req.user.adminId || req.user.userId;
+        const correlationId = req.correlationId;
+
+        // Проверки входных данных
+        if (hour < 0 || hour > 23) {
+            return res.status(400).json({ 
+                error: 'Некорректное значение часа (должно быть от 0 до 23)', 
+                correlationId 
+            });
+        }
+
+        const tariff = await deleteHourAdjustment(
+            cityId, 
+            carClassId, 
+            hour, 
+            adminId,
+            reason
+        );
+
+        res.status(200).json({ 
+            message: `Часовая корректировка для ${hour}:00 успешно удалена`, 
+            tariff 
+        });
+    } catch (error) {
+        logger.error('Ошибка при удалении часовой корректировки', { 
+            error: error.message, 
+            correlationId: req.correlationId 
+        });
+        
+        if (error.message.includes('не найден')) {
+            return res.status(404).json({ 
+                error: error.message, 
+                correlationId: req.correlationId 
+            });
+        }
+        
+        res.status(500).json({ 
+            error: 'Ошибка при удалении часовой корректировки', 
+            correlationId: req.correlationId 
+        });
+    }
+};
+
+export const updateMonthAdjustmentHandler = async (req, res) => {
+    try {
+        const { cityId, carClassId, month, percent, reason } = req.body;
+        const adminId = req.user.adminId || req.user.userId;
+        const correlationId = req.correlationId;
+
+        // Проверки входных данных
+        if (month < 1 || month > 12) {
+            return res.status(400).json({ 
+                error: 'Некорректное значение месяца (должно быть от 1 до 12)', 
+                correlationId 
+            });
+        }
+
+        const tariff = await updateMonthAdjustment(
+            cityId, 
+            carClassId, 
+            month, 
+            parseFloat(percent), 
+            adminId,
+            reason
+        );
+
+        res.status(200).json({ 
+            message: `Месячная корректировка для месяца ${month} успешно обновлена`, 
+            tariff 
+        });
+    } catch (error) {
+        logger.error('Ошибка при обновлении месячной корректировки', { 
+            error: error.message, 
+            correlationId: req.correlationId 
+        });
+        
+        if (error.message === 'Тариф не найден') {
+            return res.status(404).json({ 
+                error: error.message, 
+                correlationId: req.correlationId 
+            });
+        }
+        
+        res.status(500).json({ 
+            error: 'Ошибка при обновлении месячной корректировки', 
+            correlationId: req.correlationId 
+        });
+    }
+};
+
+export const deleteMonthAdjustmentHandler = async (req, res) => {
+    try {
+        const { cityId, carClassId, month, reason } = req.body;
+        const adminId = req.user.adminId || req.user.userId;
+        const correlationId = req.correlationId;
+
+        // Проверки входных данных
+        if (month < 1 || month > 12) {
+            return res.status(400).json({ 
+                error: 'Некорректное значение месяца (должно быть от 1 до 12)', 
+                correlationId 
+            });
+        }
+
+        const tariff = await deleteMonthAdjustment(
+            cityId, 
+            carClassId, 
+            month, 
+            adminId,
+            reason
+        );
+
+        res.status(200).json({ 
+            message: `Месячная корректировка для месяца ${month} успешно удалена`, 
+            tariff 
+        });
+    } catch (error) {
+        logger.error('Ошибка при удалении месячной корректировки', { 
+            error: error.message, 
+            correlationId: req.correlationId 
+        });
+        
+        if (error.message.includes('не найден')) {
+            return res.status(404).json({ 
+                error: error.message, 
+                correlationId: req.correlationId 
+            });
+        }
+        
+        res.status(500).json({ 
+            error: 'Ошибка при удалении месячной корректировки', 
+            correlationId: req.correlationId 
+        });
+    }
+};
+
+export const addHolidayHandler = async (req, res) => {
+    try {
+        const { cityId, carClassId, month, day, percent, reason } = req.body;
+        const adminId = req.user.adminId || req.user.userId;
+        const correlationId = req.correlationId;
+
+        // Проверки входных данных
+        if (month < 1 || month > 12) {
+            return res.status(400).json({ 
+                error: 'Некорректное значение месяца (должно быть от 1 до 12)', 
+                correlationId 
+            });
+        }
+
+        if (day < 1 || day > 31) {
+            return res.status(400).json({ 
+                error: 'Некорректное значение дня (должно быть от 1 до 31)', 
+                correlationId 
+            });
+        }
+
+        const tariff = await addHoliday(
+            cityId, 
+            carClassId, 
+            parseInt(month), 
+            parseInt(day), 
+            parseFloat(percent), 
+            adminId,
+            reason
+        );
+
+        res.status(201).json({ 
+            message: `Праздничный день ${day}.${month} успешно добавлен`, 
+            tariff 
+        });
+    } catch (error) {
+        logger.error('Ошибка при добавлении праздничного дня', { 
+            error: error.message, 
+            correlationId: req.correlationId 
+        });
+        
+        if (error.message === 'Тариф не найден') {
+            return res.status(404).json({ 
+                error: error.message, 
+                correlationId: req.correlationId 
+            });
+        }
+
+        if (error.message.includes('уже существует')) {
+            return res.status(400).json({ 
+                error: error.message, 
+                correlationId: req.correlationId 
+            });
+        }
+        
+        res.status(500).json({ 
+            error: 'Ошибка при добавлении праздничного дня', 
+            correlationId: req.correlationId 
+        });
+    }
+};
+
+export const updateHolidayHandler = async (req, res) => {
+    try {
+        const { cityId, carClassId, month, day, percent, reason } = req.body;
+        const adminId = req.user.adminId || req.user.userId;
+        const correlationId = req.correlationId;
+
+        // Проверки входных данных
+        if (month < 1 || month > 12) {
+            return res.status(400).json({ 
+                error: 'Некорректное значение месяца (должно быть от 1 до 12)', 
+                correlationId 
+            });
+        }
+
+        if (day < 1 || day > 31) {
+            return res.status(400).json({ 
+                error: 'Некорректное значение дня (должно быть от 1 до 31)', 
+                correlationId 
+            });
+        }
+
+        const tariff = await updateHoliday(
+            cityId, 
+            carClassId, 
+            parseInt(month), 
+            parseInt(day), 
+            parseFloat(percent), 
+            adminId,
+            reason
+        );
+
+        res.status(200).json({ 
+            message: `Праздничный день ${day}.${month} успешно обновлен`, 
+            tariff 
+        });
+    } catch (error) {
+        logger.error('Ошибка при обновлении праздничного дня', { 
+            error: error.message, 
+            correlationId: req.correlationId 
+        });
+        
+        if (error.message.includes('не найден')) {
+            return res.status(404).json({ 
+                error: error.message, 
+                correlationId: req.correlationId 
+            });
+        }
+        
+        res.status(500).json({ 
+            error: 'Ошибка при обновлении праздничного дня', 
+            correlationId: req.correlationId 
+        });
+    }
+};
+
+export const deleteHolidayHandler = async (req, res) => {
+    try {
+        const { cityId, carClassId, month, day, reason } = req.body;
+        const adminId = req.user.adminId || req.user.userId;
+        const correlationId = req.correlationId;
+
+        // Проверки входных данных
+        if (month < 1 || month > 12) {
+            return res.status(400).json({ 
+                error: 'Некорректное значение месяца (должно быть от 1 до 12)', 
+                correlationId 
+            });
+        }
+
+        if (day < 1 || day > 31) {
+            return res.status(400).json({ 
+                error: 'Некорректное значение дня (должно быть от 1 до 31)', 
+                correlationId 
+            });
+        }
+
+        const tariff = await deleteHoliday(
+            cityId, 
+            carClassId, 
+            parseInt(month), 
+            parseInt(day), 
+            adminId,
+            reason
+        );
+
+        res.status(200).json({ 
+            message: `Праздничный день ${day}.${month} успешно удален`, 
+            tariff 
+        });
+    } catch (error) {
+        logger.error('Ошибка при удалении праздничного дня', { 
+            error: error.message, 
+            correlationId: req.correlationId 
+        });
+        
+        if (error.message.includes('не найден')) {
+            return res.status(404).json({ 
+                error: error.message, 
+                correlationId: req.correlationId 
+            });
+        }
+        
+        res.status(500).json({ 
+            error: 'Ошибка при удалении праздничного дня', 
+            correlationId: req.correlationId 
+        });
     }
 };

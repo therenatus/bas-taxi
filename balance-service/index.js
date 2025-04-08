@@ -1,3 +1,4 @@
+// index.js
 import express from 'express';
 import logger from './utils/logger.js';
 import sequelize from './utils/database.js';
@@ -7,6 +8,7 @@ import {subscribeToAdminEvents} from './subscribers/admin.subscriber.js';
 import {subscribeToRideEvents} from './subscribers/ride.subscriber.js';
 import {randomUUID} from 'node:crypto';
 import client from 'prom-client';
+import {subscribeToDriverApproval} from "./subscribers/driver-approval.subscriber.js";
 
 const uuidv4 = randomUUID();
 const app = express();
@@ -19,7 +21,7 @@ app.use((req, res, next) => {
     next();
 });
 
-app.use('/balance', balanceRoutes);
+app.use('/', balanceRoutes);
 
 client.collectDefaultMetrics();
 
@@ -37,6 +39,7 @@ sequelize.sync().then(() => {
 
         await subscribeToAdminEvents();
         await subscribeToRideEvents();
+        await subscribeToDriverApproval();
     });
 }).catch(error => {
     logger.error('Ошибка подключения к базе данных', { error: error.message });

@@ -123,6 +123,32 @@ export class ChatRepository {
         }
     }
 
+    async findByType(chatType, userId) {
+        try {
+            const chats = await this.#sequelizeModel.findAll({
+                where: { type: chatType },
+                include: [{
+                    model: this.#participantRepository.participantModel,
+                    as: 'participants',
+                    where: { user_id: userId }
+                }]
+            });
+            
+            return chats.map(chat => this.#toDomainEntity(chat));
+        } catch (error) {
+            throw new Error(`Error finding chats by type: ${error.message}`);
+        }
+    }
+
+    async findById(chatId) {
+        try {
+            const chat = await this.#sequelizeModel.findByPk(chatId);
+            return chat ? this.#toDomainEntity(chat) : null;
+        } catch (error) {
+            throw new Error(`Error finding chat by ID: ${error.message}`);
+        }
+    }
+
     async findByUser(userId) {
         try {
             const chatModel = await this.#sequelizeModel.findOne({
@@ -143,18 +169,127 @@ export class ChatRepository {
         }
     }
 
-    async findById(chatId) {
+    /**
+     * Обновляет статус участника чата
+     * @param {string} chatId - ID чата
+     * @param {string} userId - ID пользователя
+     * @param {Object} updates - Обновления статуса
+     * @returns {Promise<Object>} - Обновленный статус участника
+     */
+    async updateParticipant(chatId, userId, updates) {
         try {
-            const dbChat = await this.#sequelizeModel.findByPk(chatId, {
-                include: ['participants', 'messages']
-            });
-            return dbChat ? this.#toDomainEntity(dbChat, {}) : null;
-        } catch (error) {
-            throw new ApplicationError(
-                'Failed to fetch chat',
-                'DATABASE_ERROR',
-                500
+            const [_, [participant]] = await this.#participantRepository.participantModel.update(
+                updates,
+                {
+                    where: {
+                        chat_id: chatId,
+                        user_id: userId
+                    },
+                    returning: true
+                }
             );
+            
+            if (!participant) {
+                throw new Error(`Participant not found: ${userId} in chat ${chatId}`);
+            }
+            
+            return this.#toParticipantDTO(participant);
+        } catch (error) {
+            throw new Error(`Error updating participant: ${error.message}`);
         }
+    }
+    
+    /**
+     * Добавляет участника в чат
+     * @param {string} chatId - ID чата
+     * @param {string} userId - ID пользователя
+     * @returns {Promise<Object>} - Добавленный участник
+     */
+    async addParticipant(chatId, userId) {
+        try {
+            // Проверяем, существует ли чат
+            const chat = await this.#sequelizeModel.findByPk(chatId);
+            
+            if (!chat) {
+                throw new Error(`Chat not found: ${chatId}`);
+            }
+            
+            // Проверяем, не является ли пользователь уже участником
+            const existing = await this.#participantRepository.participantModel.findOne({
+                where: {
+                    chat_id: chatId,
+                    user_id: userId
+                }
+            });
+            
+            if (existing) {
+                return this.#toParticipantDTO(existing);
+            }
+            
+            // Добавляем участника
+            const participant = await this.#participantRepository.participantModel.create({
+                chat_id: chatId,
+                user_id: userId,
+                joined_at: new Date(),
+                role: 'member'
+            });
+            
+            return this.#toParticipantDTO(participant);
+        } catch (error) {
+            throw new Error(`Error adding participant: ${error.message}`);
+        }
+    }
+    
+    /**
+     * Удаляет участника из чата
+     * @param {string} chatId - ID чата
+     * @param {string} userId - ID пользователя
+     * @returns {Promise<boolean>} - Результат удаления
+     */
+    async removeParticipant(chatId, userId) {
+        try {
+            const deleted = await this.#participantRepository.participantModel.destroy({
+                where: {
+                    chat_id: chatId,
+                    user_id: userId
+                }
+            });
+            
+            return deleted > 0;
+        } catch (error) {
+            throw new Error(`Error removing participant: ${error.message}`);
+        }
+    }
+    
+    /**
+     * Получает всех участников чата
+     * @param {string} chatId - ID чата
+     * @returns {Promise<Array>} - Массив участников
+     */
+    async getParticipants(chatId) {
+        try {
+            const participants = await this.#participantRepository.participantModel.findAll({
+                where: { chat_id: chatId }
+            });
+            
+            return participants.map(p => this.#toParticipantDTO(p));
+        } catch (error) {
+            throw new Error(`Error getting participants: ${error.message}`);
+        }
+    }
+    
+    /**
+     * Преобразует модель участника в DTO
+     * @private
+     */
+    #toParticipantDTO(model) {
+        return {
+            chatId: model.chat_id,
+            userId: model.user_id,
+            role: model.role,
+            joinedAt: model.joined_at,
+            archived: model.archived || false,
+            muted: model.muted || false
+        };
     }
 }

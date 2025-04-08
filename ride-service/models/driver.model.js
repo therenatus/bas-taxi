@@ -1,6 +1,6 @@
 // models/driverModel.js
 import { DataTypes } from 'sequelize';
-import sequelize from '../utils/database.js';
+import sequelize from '../utils/sequelize.js';
 
 const Driver = sequelize.define('Driver', {
     id: {

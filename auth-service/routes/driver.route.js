@@ -5,7 +5,7 @@ import {
         confirmDriverLogin,
         loginDriver,
         getDriverById,
-        getDriverData, verifyTokenController
+        getDriverData, verifyTokenController, deleteDriverProfile
 } from '../controllers/driver.controller.js';
 import path from "path";
 import * as fs from "node:fs";
@@ -313,5 +313,66 @@ router.post('/confirm', confirmDriverLogin);
  */
 router.get('/verify-token', verifyTokenController);
 
+/**
+ * @swagger
+ * /auth/driver/delete:
+ *   delete:
+ *     summary: Удаление профиля водителя
+ *     tags: [Driver]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Профиль успешно удален
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Профиль успешно удален"
+ *       400:
+ *         description: Неверный запрос или попытка повторного удаления раньше срока
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Повторная регистрация возможна только через 15 дней"
+ *       401:
+ *         description: Не авторизован
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Требуется авторизация"
+ *       404:
+ *         description: Водитель не найден
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Водитель не найден"
+ *       500:
+ *         description: Внутренняя ошибка сервера
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Ошибка при удалении профиля"
+ */
+router.delete('/delete', verifyTokenController, deleteDriverProfile);
 
 export default router;

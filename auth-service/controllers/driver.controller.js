@@ -2,7 +2,7 @@ import logger from '../utils/logger.js';
 import validateMiddleware from '../middlewares/validate.middleware.js';
 import {driverRegisterSchema} from "../validators/register-driver.validator.js";
 import {confirmLoginSchema, loginSchema} from "../validators/login.validator.js";
-import {confirmLoginService, loginDriverService, registerDriverService} from "../services/driver.service.js";
+import {confirmLoginService, loginDriverService, registerDriverService, deleteDriverProfileService} from "../services/driver.service.js";
 import {sendDriverToExchange} from "../utils/rabbitmq.js";
 import Driver from "../models/driver.model.js";
 import {verifyTokenService} from "../services/driver.service.js";
@@ -171,5 +171,30 @@ export const getDriverData = async (req, res) => {
         res.status(200).json(driver);
     } catch (error) {
         res.status(500).json({ error: 'Ошибка при получении данных водителя' });
+    }
+};
+
+export const deleteDriverProfile = async (req, res) => {
+    const driverId = req.user.driverId;
+    logger.info('deleteDriverProfile: Начало обработки запроса на удаление профиля', { driverId });
+
+    try {
+        const result = await deleteDriverProfileService(driverId);
+        res.status(200).json(result);
+    } catch (error) {
+        logger.error('deleteDriverProfile: Ошибка при удалении профиля', { 
+            error: error.message,
+            driverId 
+        });
+        
+        if (error.message.includes('не найден')) {
+            return res.status(404).json({ error: error.message });
+        }
+        
+        if (error.message.includes('Повторная регистрация')) {
+            return res.status(400).json({ error: error.message });
+        }
+        
+        res.status(500).json({ error: 'Ошибка при удалении профиля' });
     }
 };

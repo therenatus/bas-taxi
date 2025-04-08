@@ -11,7 +11,8 @@ import {
     changeUserName,
     deleteUser,
     blockUser,
-    verifyTokenController
+    verifyTokenController,
+    deleteSelf
 } from '../controllers/passanger.controller.js';
 import {roleMiddleware} from "../middlewares/role.middleware.js";
 
@@ -216,7 +217,49 @@ router.post('/find-by-id', findUserById);
 router.post('/find-by-name', findUserByName);
 router.post('/find-by-phone', findUserByPhone);
 
+/**
+ * @swagger
+ * /auth/passenger/delete-self:
+ *   delete:
+ *     summary: Удалить свой аккаунт
+ *     tags: [Passenger]
+ *     description: Позволяет пассажиру удалить свой собственный аккаунт
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Аккаунт успешно удален
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Аккаунт успешно удален"
+ *       400:
+ *         description: Ошибка при удалении аккаунта
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *       401:
+ *         description: Не авторизован
+ */
+router.delete('/delete-self', roleMiddleware(['passenger']), deleteSelf);
 
+// router.get('/:id', getDriverById);
+// router.get('/data/:id', getDriverData);
+//
+// router.post('/block', blockUser);
+// router.post('/delete', deleteUser);
+// router.post('/change-name', changeUserName);
+// router.post('/find-by-id', findUserById);
+// router.post('/find-by-name', findUserByName);
+// router.post('/find-by-phone', findUserByPhone);
 
 
 export default router;

@@ -2,6 +2,7 @@ import express from 'express';
 import http from 'http';
 import config from './utils/config.js';
 import logger from './utils/logger.js';
+import { connectDB } from './utils/database.js';
 import { connectRabbitMQ, getChannel } from './utils/rabbitmq.js';
 import rideRoute from './routes/ride.route.js';
 import client from 'prom-client';
@@ -18,6 +19,14 @@ import {
 const startServer = async () => {
     const app = express();
     app.use(express.json());
+
+    try {
+        await connectDB();
+        logger.info('База данных успешно подключена');
+    } catch (error) {
+        logger.error('Ошибка подключения к базе данных. Завершаем процесс...', error.message);
+        process.exit(1);
+    }
 
     try {
         await connectRabbitMQ();
@@ -88,8 +97,10 @@ const startServer = async () => {
     try {
         await startRideSubscribers(websocketService);
         logger.info('Ride-события успешно настроены');
+
         await subscribeToTariffUpdates();
         logger.info('Тарифные подписчики успешно настроены');
+
         await subscribeToDriverApproval();
         logger.info('Driver подписчики успешно настроены');
     } catch (error) {

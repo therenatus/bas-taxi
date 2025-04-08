@@ -207,5 +207,215 @@ export const createChatRoutes = ({ chatController }) => {
      */
     router.post("/", authMiddleware(["driver", "passenger", "admin"]), chatController.sendMessage);
 
+    /**
+     * @swagger
+     * /chats/driver-admin:
+     *   post:
+     *     summary: Создание чата между водителем и администратором
+     *     tags: [Chat]
+     *     security:
+     *       - bearerAuth: []
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             type: object
+     *             properties:
+     *               driverId:
+     *                 type: string
+     *                 example: "123"
+     *               adminId:
+     *                 type: string
+     *                 example: "456"
+     *     responses:
+     *       201:
+     *         description: Чат успешно создан
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: object
+     *               properties:
+     *                 chatId:
+     *                   type: string
+     *                   example: "chat789"
+     *                 type:
+     *                   type: string
+     *                   example: "driver_admin"
+     *                 participants:
+     *                   type: array
+     *                   items:
+     *                     type: string
+     *                   example: ["driver:123", "admin:456"]
+     *       401:
+     *         description: Неавторизованный доступ
+     *       500:
+     *         description: Внутренняя ошибка сервера
+     */
+    router.post("/driver-admin", authMiddleware(["admin"]), chatController.createDriverAdminChat);
+
+    /**
+     * @swagger
+     * /chats/driver-admin:
+     *   get:
+     *     summary: Получение списка чатов между водителем и администратором
+     *     tags: [Chat]
+     *     security:
+     *       - bearerAuth: []
+     *     responses:
+     *       200:
+     *         description: Список чатов успешно получен
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: array
+     *               items:
+     *                 type: object
+     *                 properties:
+     *                   id:
+     *                     type: string
+     *                     example: "chat789"
+     *                   participantIds:
+     *                     type: array
+     *                     items:
+     *                       type: string
+     *                     example: ["driver:123", "admin:456"]
+     *                   createdAt:
+     *                     type: string
+     *                     format: date-time
+     *       401:
+     *         description: Неавторизованный доступ
+     *       500:
+     *         description: Внутренняя ошибка сервера
+     */
+    router.get("/driver-admin", authMiddleware(["driver", "admin"]), chatController.getDriverAdminChats);
+
+    /**
+     * @swagger
+     * /chats/passenger-admin:
+     *   post:
+     *     summary: Создание чата между пассажиром и администратором
+     *     tags: [Chat]
+     *     security:
+     *       - bearerAuth: []
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             type: object
+     *             properties:
+     *               passengerId:
+     *                 type: string
+     *                 example: "123"
+     *               adminId:
+     *                 type: string
+     *                 example: "456"
+     *     responses:
+     *       201:
+     *         description: Чат успешно создан
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: object
+     *               properties:
+     *                 chatId:
+     *                   type: string
+     *                   example: "chat789"
+     *                 type:
+     *                   type: string
+     *                   example: "passenger_admin"
+     *                 participants:
+     *                   type: array
+     *                   items:
+     *                     type: string
+     *                   example: ["passenger:123", "admin:456"]
+     *       401:
+     *         description: Неавторизованный доступ
+     *       500:
+     *         description: Внутренняя ошибка сервера
+     */
+    router.post("/passenger-admin", authMiddleware(["admin", "passenger"]), chatController.createPassengerAdminChat);
+
+    /**
+     * @swagger
+     * /chats/passenger-admin:
+     *   get:
+     *     summary: Получение списка чатов между пассажиром и администратором
+     *     tags: [Chat]
+     *     security:
+     *       - bearerAuth: []
+     *     responses:
+     *       200:
+     *         description: Список чатов успешно получен
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: array
+     *               items:
+     *                 type: object
+     *                 properties:
+     *                   id:
+     *                     type: string
+     *                     example: "chat789"
+     *                   participantIds:
+     *                     type: array
+     *                     items:
+     *                       type: string
+     *                     example: ["passenger:123", "admin:456"]
+     *                   createdAt:
+     *                     type: string
+     *                     format: date-time
+     *       401:
+     *         description: Неавторизованный доступ
+     *       500:
+     *         description: Внутренняя ошибка сервера
+     */
+    router.get("/passenger-admin", authMiddleware(["passenger", "admin"]), chatController.getPassengerAdminChats);
+
+    /**
+     * @swagger
+     * /chats/group:
+     *   post:
+     *     summary: Создание группового чата
+     *     tags: [Chat]
+     *     security:
+     *       - bearerAuth: []
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema:
+     *             type: object
+     *             properties:
+     *               name:
+     *                 type: string
+     *                 example: "Групповой чат поддержки"
+     *               participantIds:
+     *                 type: array
+     *                 items:
+     *                   type: string
+     *                 example: ["driver:123", "admin:456", "passenger:789"]
+     *     responses:
+     *       201:
+     *         description: Чат успешно создан
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: object
+     *               properties:
+     *                 chatId:
+     *                   type: string
+     *                   example: "chat789"
+     *                 type:
+     *                   type: string
+     *                   example: "group"
+     *       401:
+     *         description: Неавторизованный доступ
+     *       500:
+     *         description: Внутренняя ошибка сервера
+     */
+    router.post("/group", authMiddleware(["admin"]), chatController.createGroupChat);
+
     return router;
 };

@@ -1,5 +1,5 @@
 import { DataTypes } from 'sequelize';
-import sequelize from '../utils/database.js';
+import sequelize from '../utils/sequelize.js';
 
 const ProcessedMessage = sequelize.define('ProcessedMessage', {
     messageId: {

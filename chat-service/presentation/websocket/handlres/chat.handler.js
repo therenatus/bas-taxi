@@ -26,6 +26,11 @@ export class ChatHandler {
         socket.on("join_ride", this.#handleJoinRide(socket));
         socket.on("send_message", this.#handleSendMessage(socket));
         socket.on("disconnect", this.#handleDisconnect(socket));
+        socket.on("join_driver_admin_chat", this.#handleJoinDriverAdminChat(socket));
+        socket.on("join_passenger_admin_chat", this.#handleJoinPassengerAdminChat(socket));
+        socket.on("join_group_chat", this.#handleJoinGroupChat(socket));
+        socket.on("mark_as_read", this.#handleMarkAsRead(socket));
+        socket.on("typing", this.#handleTyping(socket));
     };
 
     #handleJoinRide = (socket) => async (rideId) => {
@@ -39,6 +44,158 @@ export class ChatHandler {
         } catch (error) {
             socket.emit("error", {
                 code: "JOIN_ERROR",
+                message: error.message
+            });
+        }
+    };
+
+    #handleJoinDriverAdminChat = (socket) => async (chatId) => {
+        try {
+            // Проверяем, является ли пользователь участником этого чата
+            const chats = await this.#chatService.getDriverAdminChats(socket.user.id);
+            const isParticipant = chats.some(chat => chat.id === chatId);
+            
+            if (!isParticipant) {
+                throw new Error("Вы не являетесь участником этого чата");
+            }
+            
+            // Получаем историю сообщений
+            const messages = await this.#chatService.getChatHistory({
+                chatId,
+                userId: socket.user.id
+            });
+            
+            // Подписываемся на канал чата
+            socket.join(`driver_admin_chat_${chatId}`);
+            
+            // Отправляем историю сообщений
+            socket.emit("chat_history", messages);
+        } catch (error) {
+            socket.emit("error", {
+                code: "JOIN_ERROR",
+                message: error.message
+            });
+        }
+    };
+
+    #handleJoinPassengerAdminChat = (socket) => async (chatId) => {
+        try {
+            // Проверяем, является ли пользователь участником этого чата
+            const chats = await this.#chatService.getChatsByType('passenger_admin', socket.user.id);
+            const isParticipant = chats.some(chat => chat.id === chatId);
+            
+            if (!isParticipant) {
+                throw new Error("Вы не являетесь участником этого чата");
+            }
+            
+            // Получаем историю сообщений
+            const messages = await this.#chatService.getChatHistory({
+                chatId,
+                userId: socket.user.id
+            });
+            
+            // Подписываемся на канал чата
+            socket.join(`passenger_admin_chat_${chatId}`);
+            
+            // Отправляем историю сообщений
+            socket.emit("chat_history", messages);
+        } catch (error) {
+            socket.emit("error", {
+                code: "JOIN_ERROR",
+                message: error.message
+            });
+        }
+    };
+
+    #handleJoinGroupChat = (socket) => async (chatId) => {
+        try {
+            // Проверяем, является ли пользователь участником этого чата
+            const chats = await this.#chatService.getChatsByType('group', socket.user.id);
+            const isParticipant = chats.some(chat => chat.id === chatId);
+            
+            if (!isParticipant) {
+                throw new Error("Вы не являетесь участником этого чата");
+            }
+            
+            // Получаем историю сообщений
+            const messages = await this.#chatService.getChatHistory({
+                chatId,
+                userId: socket.user.id
+            });
+            
+            // Подписываемся на канал чата
+            socket.join(`group_chat_${chatId}`);
+            
+            // Отправляем историю сообщений
+            socket.emit("chat_history", messages);
+        } catch (error) {
+            socket.emit("error", {
+                code: "JOIN_ERROR",
+                message: error.message
+            });
+        }
+    };
+
+    #handleMarkAsRead = (socket) => async (data) => {
+        try {
+            const { messageId, chatId } = data;
+            
+            if (!messageId && !chatId) {
+                throw new Error("Необходимо указать ID сообщения или чата");
+            }
+            
+            if (messageId) {
+                // Отмечаем конкретное сообщение как прочитанное
+                await this.#chatService.markMessageAsRead(messageId, socket.user.id);
+            } else if (chatId) {
+                // Отмечаем все сообщения в чате как прочитанные
+                await this.#chatService.markAllMessagesAsRead(chatId, socket.user.id);
+            }
+            
+            // Отправляем подтверждение клиенту
+            socket.emit("messages_read", { success: true, messageId, chatId });
+        } catch (error) {
+            socket.emit("error", {
+                code: "READ_ERROR",
+                message: error.message
+            });
+        }
+    };
+
+    #handleTyping = (socket) => async (data) => {
+        try {
+            const { chatId, isTyping } = data;
+            
+            if (!chatId) {
+                throw new Error("Необходимо указать ID чата");
+            }
+            
+            // Получаем информацию о чате
+            const chat = await this.#chatService.getChatById(chatId);
+            
+            if (!chat) {
+                throw new Error("Чат не найден");
+            }
+            
+            // Проверяем, что пользователь является участником чата
+            if (!chat.participantIds.includes(socket.user.id)) {
+                throw new Error("Вы не являетесь участником этого чата");
+            }
+            
+            // Отправляем всем участникам чата уведомление о печати
+            const eventName = chat.type === 'ride' 
+                ? `ride_${chat.ride_id}` 
+                : `${chat.type}_chat_${chat.id}`;
+            
+            this.#io.to(eventName).emit("user_typing", {
+                userId: socket.user.id,
+                chatId,
+                isTyping,
+                timestamp: new Date()
+            });
+        } catch (error) {
+            socket.emit("error", {
+                code: "TYPING_ERROR",
                 message: error.message
             });
         }

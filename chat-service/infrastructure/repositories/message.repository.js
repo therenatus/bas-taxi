@@ -2,6 +2,7 @@ import { MessageEntity } from '../../domain/entities/message.entity.js';
 import { ApplicationError } from '../../application/exceptions/application.error.js';
 import {Op, Transaction} from 'sequelize';
 import logger from "../config/logger.js";
+import { Sequelize } from 'sequelize';
 
 export class MessageRepository {
     #sequelizeModel;
@@ -31,25 +32,12 @@ export class MessageRepository {
     }
 
 
-    async save(messageData) {
+    async save(messageData, options = {}) {
         try {
-            const savedMessage = await this.#sequelizeModel.create({
-                sender_id: messageData.sender_id,
-                receiver_id: messageData.receiver_id,
-                chat_id: messageData.chat_id,
-                content: messageData.content,
-                status: messageData.status,
-                created_at: messageData.createdAt,
-            });
-
-            return savedMessage;
+            const message = await this.#sequelizeModel.create(messageData, options);
+            return this.#toDomainEntity(message);
         } catch (error) {
-            console.error("Ошибка сохранения сообщения:", error);
-            throw new ApplicationError(
-                `Failed to save message: ${error.message}`,
-                'DATABASE_ERROR',
-                500
-            );
+            throw new Error(`Failed to save message: ${error.message}`);
         }
     }
 
@@ -201,31 +189,138 @@ export class MessageRepository {
         }
     }
 
-    async updateStatus(messageId, status) {
-        const transaction = await this.#sequelizeModel.sequelize.transaction();
-
+    /**
+     * Обновляет статус сообщения
+     * @param {string} messageId - ID сообщения
+     * @param {string} status - Новый статус (delivered, read)
+     * @param {Date} [timestamp] - Временная метка изменения статуса
+     * @returns {Promise<Object>} - Обновленное сообщение
+     */
+    async updateStatus(messageId, status, timestamp = new Date()) {
         try {
-            const [affectedRows] = await this.#sequelizeModel.update(
-                { status },
-                {
+            const statusField = status === 'read' ? 'read_at' : 'delivered_at';
+            
+            const [updated, messages] = await this.#sequelizeModel.update(
+                { 
+                    status, 
+                    [statusField]: timestamp 
+                },
+                { 
                     where: { id: messageId },
-                    transaction
+                    returning: true 
                 }
             );
-
-            if (affectedRows === 0) {
-                throw new ApplicationError('Сообщение не найдено', 'NOT_FOUND', 404);
+            
+            if (updated === 0) {
+                throw new Error(`Message with ID ${messageId} not found`);
             }
-
-            const message = await this.#sequelizeModel.findByPk(messageId);
-            await this.#invalidateCache(message.chat_id);
-            await transaction.commit();
-
-            return this.#toDomainEntity(message);
+            
+            return this.#toDomainEntity(messages[0]);
         } catch (error) {
-            await transaction.rollback();
-            logger.error(`Ошибка обновления статуса: ${error.message}`);
-            throw this.#handleError(error, 'Ошибка обновления статуса');
+            throw new Error(`Failed to update message status: ${error.message}`);
+        }
+    }
+    
+    /**
+     * Отмечает сообщение как доставленное
+     * @param {string} messageId - ID сообщения
+     * @returns {Promise<Object>} - Обновленное сообщение
+     */
+    async markAsDelivered(messageId) {
+        return this.updateStatus(messageId, 'delivered');
+    }
+    
+    /**
+     * Отмечает сообщение как прочитанное
+     * @param {string} messageId - ID сообщения
+     * @returns {Promise<Object>} - Обновленное сообщение
+     */
+    async markAsRead(messageId) {
+        return this.updateStatus(messageId, 'read');
+    }
+    
+    /**
+     * Отмечает все сообщения в чате как прочитанные для указанного пользователя
+     * @param {string} chatId - ID чата
+     * @param {string} userId - ID пользователя, который прочитал сообщения
+     * @returns {Promise<number>} - Количество обновленных сообщений
+     */
+    async markAllAsRead(chatId, userId) {
+        try {
+            const timestamp = new Date();
+            
+            const [updated] = await this.#sequelizeModel.update(
+                { 
+                    status: 'read', 
+                    read_at: timestamp 
+                },
+                { 
+                    where: { 
+                        chat_id: chatId, 
+                        receiver_id: userId,
+                        status: { [Op.ne]: 'read' } 
+                    }
+                }
+            );
+            
+            return updated;
+        } catch (error) {
+            throw new Error(`Failed to mark messages as read: ${error.message}`);
+        }
+    }
+    
+    /**
+     * Получает количество непрочитанных сообщений для пользователя
+     * @param {string} userId - ID пользователя
+     * @param {string} [chatId] - ID конкретного чата (опционально)
+     * @returns {Promise<number>} - Количество непрочитанных сообщений
+     */
+    async getUnreadCount(userId, chatId = null) {
+        try {
+            const whereClause = { 
+                receiver_id: userId,
+                status: { [Op.ne]: 'read' }
+            };
+            
+            if (chatId) {
+                whereClause.chat_id = chatId;
+            }
+            
+            const count = await this.#sequelizeModel.count({
+                where: whereClause
+            });
+            
+            return count;
+        } catch (error) {
+            throw new Error(`Failed to get unread message count: ${error.message}`);
+        }
+    }
+    
+    /**
+     * Получает непрочитанные сообщения для пользователя по чатам
+     * @param {string} userId - ID пользователя
+     * @returns {Promise<Object>} - Объект с количеством непрочитанных сообщений по чатам
+     */
+    async getUnreadCountByChat(userId) {
+        try {
+            const results = await this.#sequelizeModel.findAll({
+                attributes: [
+                    'chat_id',
+                    [Sequelize.fn('COUNT', Sequelize.col('id')), 'count']
+                ],
+                where: { 
+                    receiver_id: userId,
+                    status: { [Op.ne]: 'read' }
+                },
+                group: ['chat_id']
+            });
+            
+            return results.reduce((acc, result) => {
+                acc[result.chat_id] = parseInt(result.get('count'), 10);
+                return acc;
+            }, {});
+        } catch (error) {
+            throw new Error(`Failed to get unread messages by chat: ${error.message}`);
         }
     }
 
