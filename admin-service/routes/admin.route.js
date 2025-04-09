@@ -8,7 +8,12 @@ import {
     getReviews,
     updateSettings, getDriverRequests, rejectDriver, getDriverDetails, getUserRidesViaGateway, getDriverRidesViaGateway,
     createAdmin,
-    getAdminById
+    getAdminById,
+    getRidesByTimeRange,
+    blockUserViaGateway,
+    blockDriverViaGateway,
+    unblockUserViaGateway,
+    unblockDriverViaGateway
 } from '../controllers/admin.controller.js';
 import {rejectDriverSchema} from "../validators/reject-driver.js";
 import {updateCostSchema} from "../validators/update-cost.validator.js";
@@ -462,7 +467,7 @@ router.post(
  * @swagger
  * /admin/user/{userId}/rides:
  *   get:
- *     summary: Получить поездки пользователя через API Gateway
+ *     summary: Получение списка поездок пользователя
  *     tags: [Admin]
  *     security:
  *       - bearerAuth: []
@@ -475,19 +480,19 @@ router.post(
  *         description: Идентификатор пользователя
  *     responses:
  *       200:
- *         description: Список поездок пользователя получен
+ *         description: Данные о поездках получены
  *         content:
  *           application/json:
  *             schema:
  *               type: array
  *               items:
  *                 $ref: '#/components/schemas/Ride'
- *       401:
- *         description: Неавторизованный доступ
- *       403:
- *         description: Доступ запрещен
+ *       400:
+ *         description: Не указан userId
+ *       404:
+ *         description: Поездки с указанным userId не найдены
  *       500:
- *         description: Внутренняя ошибка сервера
+ *         description: Не удалось получить данные о поездках
  */
 router.get('/user/:userId/rides', authMiddleware, authorizeRoles(['superadmin', 'admin', 'moderator']), getUserRidesViaGateway);
 
@@ -495,7 +500,7 @@ router.get('/user/:userId/rides', authMiddleware, authorizeRoles(['superadmin', 
  * @swagger
  * /admin/driver/{driverId}/rides:
  *   get:
- *     summary: Получить поездки водителя через API Gateway
+ *     summary: Получение списка поездок водителя
  *     tags: [Admin]
  *     security:
  *       - bearerAuth: []
@@ -508,21 +513,58 @@ router.get('/user/:userId/rides', authMiddleware, authorizeRoles(['superadmin', 
  *         description: Идентификатор водителя
  *     responses:
  *       200:
- *         description: Список поездок водителя получен
+ *         description: Данные о поездках получены
  *         content:
  *           application/json:
  *             schema:
  *               type: array
  *               items:
  *                 $ref: '#/components/schemas/Ride'
+ *       400:
+ *         description: Не указан driverId
+ *       404:
+ *         description: Поездки с указанным driverId не найдены
+ *       500:
+ *         description: Не удалось получить данные о поездках
+ */
+router.get('/driver/:driverId/rides', authMiddleware, authorizeRoles(['superadmin', 'admin', 'moderator']), getDriverRidesViaGateway);
+
+/**
+ * @swagger
+ * /admin/rides:
+ *   get:
+ *     summary: Получение поездок по временному промежутку
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: startTime
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: Начало временного промежутка (ISO формат)
+ *       - in: query
+ *         name: endTime
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: Конец временного промежутка (ISO формат)
+ *     responses:
+ *       200:
+ *         description: Список поездок в указанном временном промежутке
+ *       400:
+ *         description: Некорректный запрос
  *       401:
- *         description: Неавторизованный доступ
+ *         description: Не авторизован
  *       403:
  *         description: Доступ запрещен
  *       500:
- *         description: Внутренняя ошибка сервера
+ *         description: Ошибка сервера
  */
-router.get('/driver/:driverId/rides', authMiddleware, authorizeRoles(['superadmin', 'admin', 'moderator']), getDriverRidesViaGateway);
+router.get('/rides', authMiddleware, authorizeRoles(['superadmin', 'admin']), getRidesByTimeRange);
 
 /**
  * @swagger
@@ -593,6 +635,217 @@ router.post('/create', authMiddleware, authorizeRoles(['superadmin']), validateM
  *         description: Доступ запрещен
  */
 router.get('/:id', authMiddleware, authorizeRoles(['superadmin', 'admin']), getAdminById);
+
+/**
+ * @swagger
+ * /admin/user/{userId}/block:
+ *   post:
+ *     summary: Блокировка пассажира администратором
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Идентификатор пассажира
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               reason:
+ *                 type: string
+ *                 description: Причина блокировки
+ *                 example: Нарушение правил сервиса
+ *             required:
+ *               - reason
+ *     responses:
+ *       200:
+ *         description: Пассажир успешно заблокирован
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Пассажир успешно заблокирован
+ *                 userInfo:
+ *                   type: object
+ *       400:
+ *         description: Некорректные параметры запроса
+ *       401:
+ *         description: Неавторизованный доступ
+ *       403:
+ *         description: Доступ запрещен
+ *       404:
+ *         description: Пассажир не найден
+ *       500:
+ *         description: Ошибка сервера
+ */
+router.post('/user/:userId/block', authMiddleware, authorizeRoles(['superadmin', 'admin']), blockUserViaGateway);
+
+/**
+ * @swagger
+ * /admin/driver/{driverId}/block:
+ *   post:
+ *     summary: Блокировка водителя администратором
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: driverId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Идентификатор водителя
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               reason:
+ *                 type: string
+ *                 description: Причина блокировки
+ *                 example: Нарушение правил сервиса
+ *             required:
+ *               - reason
+ *     responses:
+ *       200:
+ *         description: Водитель успешно заблокирован
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Водитель успешно заблокирован
+ *                 driverInfo:
+ *                   type: object
+ *       400:
+ *         description: Некорректные параметры запроса
+ *       401:
+ *         description: Неавторизованный доступ
+ *       403:
+ *         description: Доступ запрещен
+ *       404:
+ *         description: Водитель не найден
+ *       500:
+ *         description: Ошибка сервера
+ */
+router.post('/driver/:driverId/block', authMiddleware, authorizeRoles(['superadmin', 'admin']), blockDriverViaGateway);
+
+/**
+ * @swagger
+ * /admin/user/{userId}/unblock:
+ *   post:
+ *     summary: Разблокировка пассажира администратором
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Идентификатор пассажира
+ *     responses:
+ *       200:
+ *         description: Пассажир успешно разблокирован
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Пассажир успешно разблокирован
+ *                 userInfo:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                       example: 1
+ *                     phoneNumber:
+ *                       type: string
+ *                       example: "+1234567890"
+ *                     isBlocked:
+ *                       type: boolean
+ *                       example: false
+ *       400:
+ *         description: Некорректные параметры запроса
+ *       401:
+ *         description: Неавторизованный доступ
+ *       403:
+ *         description: Доступ запрещен, недостаточно прав
+ *       404:
+ *         description: Пассажир не найден
+ *       500:
+ *         description: Ошибка сервера
+ */
+router.post('/user/:userId/unblock', authMiddleware, authorizeRoles(['superadmin', 'admin']), unblockUserViaGateway);
+
+/**
+ * @swagger
+ * /admin/driver/{driverId}/unblock:
+ *   post:
+ *     summary: Разблокировка водителя администратором
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     description: Разблокирует ранее заблокированного водителя, что позволяет ему снова принимать заказы
+ *     parameters:
+ *       - in: path
+ *         name: driverId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Идентификатор водителя
+ *     responses:
+ *       200:
+ *         description: Водитель успешно разблокирован
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Водитель успешно разблокирован
+ *                 driverInfo:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                       example: 1
+ *                     phoneNumber:
+ *                       type: string
+ *                       example: "+1234567890"
+ *                     isBlocked:
+ *                       type: boolean
+ *                       example: false
+ *       400:
+ *         description: Некорректные параметры запроса
+ *       401:
+ *         description: Неавторизованный доступ
+ *       403:
+ *         description: Доступ запрещен, недостаточно прав
+ *       404:
+ *         description: Водитель не найден
+ *       500:
+ *         description: Ошибка сервера
+ */
+router.post('/driver/:driverId/unblock', authMiddleware, authorizeRoles(['superadmin', 'admin']), unblockDriverViaGateway);
 
 // Подключаем роутер для тарифов
 router.use('/', tariffRouter);

@@ -1,8 +1,8 @@
 import logger from '../utils/logger.js';
 import { ZodError } from 'zod';
 
-const validateMiddleware = (schema) => {
 
+const validateMiddleware = (schema) => {
     return (req, res, next) => {
         console.info('body:', req.body);
         try {
@@ -19,4 +19,6 @@ const validateMiddleware = (schema) => {
     };
 };
 
+// Экспортируем под двумя именами для обратной совместимости
+export const validateSchema = validateMiddleware;
 export default validateMiddleware;

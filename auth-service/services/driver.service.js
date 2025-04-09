@@ -201,3 +201,79 @@ export const deleteDriverProfileService = async (driverId) => {
     logger.info('deleteDriverProfileService: Профиль водителя успешно удален', { driverId });
     return { message: 'Профиль успешно удален' };
 };
+
+export const blockDriverService = async (driverId, reason, adminId, correlationId) => {
+    logger.info('blockDriverService: Начало блокировки водителя', { driverId, adminId, correlationId });
+    
+    const driver = await Driver.findByPk(driverId);
+    
+    if (!driver) {
+        logger.warn('blockDriverService: Водитель не найден', { driverId, correlationId });
+        throw new Error('Водитель не найден');
+    }
+    
+    if (driver.isBlocked) {
+        logger.warn('blockDriverService: Водитель уже заблокирован', { driverId, correlationId });
+        throw new Error('Водитель уже заблокирован');
+    }
+    
+    // Блокируем водителя
+    driver.isBlocked = true;
+    driver.blockReason = reason;
+    driver.blockedBy = adminId;
+    driver.blockedAt = new Date();
+    await driver.save();
+    
+    // Вместо публикации события через RabbitMQ тут, мы возвращаем информацию о заблокированном водителе
+    // и дальнейшая логика по отмене поездок и т.д. должна происходить в контроллере
+    
+    logger.info('blockDriverService: Водитель успешно заблокирован', { driverId, adminId, correlationId });
+    
+    return {
+        id: driver.id,
+        phoneNumber: driver.phoneNumber,
+        firstName: driver.firstName,
+        lastName: driver.lastName,
+        licensePlate: driver.licensePlate,
+        blockReason: driver.blockReason,
+        blockedAt: driver.blockedAt
+    };
+};
+
+export const unblockDriverService = async (driverId, adminId, correlationId) => {
+    logger.info('unblockDriverService: Начало разблокировки водителя', { driverId, adminId, correlationId });
+    
+    const driver = await Driver.findByPk(driverId);
+    
+    if (!driver) {
+        logger.warn('unblockDriverService: Водитель не найден', { driverId, correlationId });
+        throw new Error('Водитель не найден');
+    }
+    
+    if (!driver.isBlocked) {
+        logger.warn('unblockDriverService: Водитель не заблокирован', { driverId, correlationId });
+        throw new Error('Водитель не заблокирован');
+    }
+    
+    // Разблокируем водителя
+    driver.isBlocked = false;
+    driver.blockReason = null;
+    driver.blockedBy = null;
+    driver.blockedAt = null;
+    driver.unblockedBy = adminId;
+    driver.unblockedAt = new Date();
+    await driver.save();
+    
+    logger.info('unblockDriverService: Водитель успешно разблокирован', { driverId, adminId, correlationId });
+    
+    // Отправляем событие в другие сервисы через контроллер
+    return {
+        id: driver.id,
+        phoneNumber: driver.phoneNumber,
+        firstName: driver.firstName,
+        lastName: driver.lastName,
+        licensePlate: driver.licensePlate,
+        unblockedBy: driver.unblockedBy,
+        unblockedAt: driver.unblockedAt
+    };
+};

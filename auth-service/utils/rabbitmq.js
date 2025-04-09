@@ -64,6 +64,17 @@ export const sendDriverToExchange = async (driverData) => {
     }
 };
 
+export const sendUserToExchange = async (userData) => {
+    try {
+        const exchange = 'user_events';
+        await sendToExchange(exchange, userData);
+        logger.info('Данные пользователя отправлены в RabbitMQ', userData);
+    } catch (error) {
+        logger.error('Ошибка отправки данных пользователя в RabbitMQ:', error.message);
+        throw error;
+    }
+};
+
 const sendToExchange = async (exchange, message) => {
     try {
         if (!channel) {
@@ -131,4 +142,48 @@ export const getChannel = async () => {
         await connectRabbitMQ();
     }
     return channel;
+};
+
+
+export const publishEvent = async (exchange, routingKey, data, options = {}) => {
+    try {
+        if (!channel) {
+            await connectRabbitMQ();
+        }
+        
+        // Установка типа обмена (по умолчанию topic)
+        const exchangeType = options.exchangeType || 'topic';
+        
+        // Создаем обмен, если его еще нет
+        await channel.assertExchange(exchange, exchangeType, { durable: true });
+        
+        // Метаданные сообщения
+        const messageOptions = {
+            persistent: true,
+            timestamp: Date.now(),
+            contentType: 'application/json',
+            ...options
+        };
+        
+        // Публикация сообщения
+        channel.publish(
+            exchange, 
+            routingKey, 
+            Buffer.from(JSON.stringify(data)), 
+            messageOptions
+        );
+        
+        logger.info('Событие опубликовано в RabbitMQ', { 
+            exchange, 
+            routingKey, 
+            data: typeof data === 'object' ? JSON.stringify(data) : data 
+        });
+    } catch (error) {
+        logger.error('Ошибка при публикации события в RabbitMQ', {
+            error: error.message,
+            exchange,
+            routingKey
+        });
+        throw error;
+    }
 };

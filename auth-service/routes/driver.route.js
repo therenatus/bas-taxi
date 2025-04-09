@@ -5,13 +5,16 @@ import {
         confirmDriverLogin,
         loginDriver,
         getDriverById,
-        getDriverData, verifyTokenController, deleteDriverProfile
+        getDriverData, verifyTokenController, deleteDriverProfile, blockDriver, unblockDriver
 } from '../controllers/driver.controller.js';
 import path from "path";
 import * as fs from "node:fs";
 import {fileURLToPath} from "url";
 import slugify from "slugify";
 import logger from "../utils/logger.js";
+import { authenticate, authorize } from '../middlewares/auth.middleware.js';
+import { validateSchema } from '../middlewares/validate.middleware.js';
+import { registerDriverSchema, loginDriverSchema } from '../validators/driver.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -48,6 +51,109 @@ const upload = multer({ storage });
 router.get('/:id', getDriverById);
 router.get('/data/:id', getDriverData);
 
+/**
+ * @swagger
+ * /auth/driver/{driverId}/block:
+ *   post:
+ *     summary: Блокировка водителя администратором
+ *     tags: [Driver]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: driverId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Идентификатор водителя
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               reason:
+ *                 type: string
+ *                 description: Причина блокировки
+ *                 example: "Нарушение правил сервиса"
+ *             required:
+ *               - reason
+ *     responses:
+ *       200:
+ *         description: Водитель успешно заблокирован
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Водитель успешно заблокирован"
+ *                 driverInfo:
+ *                   type: object
+ *       400:
+ *         description: Некорректные параметры запроса
+ *       401:
+ *         description: Неавторизованный доступ
+ *       403:
+ *         description: Доступ запрещен
+ *       404:
+ *         description: Водитель не найден
+ *       500:
+ *         description: Ошибка сервера
+ */
+router.post('/:driverId/block', authenticate, authorize(['admin', 'superadmin']), blockDriver);
+
+/**
+ * @swagger
+ * /auth/driver/{driverId}/unblock:
+ *   post:
+ *     summary: Разблокировка водителя администратором
+ *     tags: [Driver]
+ *     security:
+ *       - bearerAuth: []
+ *     description: Разблокирует ранее заблокированного водителя, позволяя ему снова принимать заказы и пользоваться сервисом
+ *     parameters:
+ *       - in: path
+ *         name: driverId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Идентификатор водителя
+ *     responses:
+ *       200:
+ *         description: Водитель успешно разблокирован
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Водитель успешно разблокирован"
+ *                 driverInfo:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                       example: 1
+ *                     phoneNumber:
+ *                       type: string
+ *                       example: "+1234567890" 
+ *                     isBlocked:
+ *                       type: boolean
+ *                       example: false
+ *       401:
+ *         description: Неавторизованный доступ
+ *       403:
+ *         description: Доступ запрещен, недостаточно прав
+ *       404:
+ *         description: Водитель не найден
+ *       500:
+ *         description: Ошибка сервера
+ */
+router.post('/:driverId/unblock', authenticate, authorize(['admin', 'superadmin']), unblockDriver);
 
 /**
  * @swagger
@@ -374,5 +480,57 @@ router.get('/verify-token', verifyTokenController);
  *                   example: "Ошибка при удалении профиля"
  */
 router.delete('/delete', verifyTokenController, deleteDriverProfile);
+
+/**
+ * @swagger
+ * /api/driver/{driverId}/block:
+ *   put:
+ *     tags: [Driver]
+ *     summary: Block a driver
+ *     description: Admin can block a driver
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: driverId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Id of the driver to block
+ *     responses:
+ *       200:
+ *         description: Driver blocked successfully
+ *       400:
+ *         description: Bad request
+ *       403:
+ *         description: Forbidden access
+ */
+router.put('/:driverId/block', authenticate, authorize(['admin', 'superadmin']), blockDriver);
+
+/**
+ * @swagger
+ * /api/driver/{driverId}/unblock:
+ *   put:
+ *     tags: [Driver]
+ *     summary: Unblock a driver
+ *     description: Admin can unblock a previously blocked driver
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: driverId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Id of the driver to unblock
+ *     responses:
+ *       200:
+ *         description: Driver unblocked successfully
+ *       400:
+ *         description: Bad request
+ *       403:
+ *         description: Forbidden access
+ */
+router.put('/:driverId/unblock', authenticate, authorize(['admin', 'superadmin']), unblockDriver);
 
 export default router;

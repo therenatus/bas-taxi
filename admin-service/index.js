@@ -30,8 +30,22 @@ app.use((req, res, next) => {
     next();
 });
 
-app.use('/', adminRoutes);
+// Сначала настраиваем Swagger, чтобы его маршруты были доступны без авторизации
 setupSwagger(app);
+
+// Middleware для проверки авторизации для маршрутов API (кроме Swagger)
+app.use((req, res, next) => {
+    // Пропускаем запросы к Swagger
+    if (req.path.startsWith('/api-docs')) {
+        return next();
+    }
+    
+    // Для остальных маршрутов применяется авторизация через соответствующие middleware
+    next();
+});
+
+// Подключаем маршруты API после настройки Swagger и авторизации
+app.use('/', adminRoutes);
 
 sequelize.authenticate()
     .then(() => {
@@ -49,7 +63,6 @@ connectRabbitMQ()
     .catch(err => {
         logger.error('Ошибка при подключении к RabbitMQ', { error: err.message });
     });
-
 
 app.use((err, req, res, next) => {
     logger.error('Необработанная ошибка', {

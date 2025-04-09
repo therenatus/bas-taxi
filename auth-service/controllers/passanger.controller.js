@@ -13,7 +13,8 @@ import {
     loginPassengerService,
     loginPassengerWebService,
     registerPassengerService, verifyTokenService,
-    deleteSelfService
+    deleteSelfService,
+    unblockUserService
 } from "../services/passanger.service.js";
 import {confirmLoginSchema, loginSchema} from "../validators/login.validator.js";
 
@@ -154,16 +155,82 @@ export const confirmPhone = async (req, res) => {
 };
 
 export const blockUser = async (req, res) => {
-    const correlationId = req.headers['x-correlation-id'] || req.headers['correlationid'];
-    logger.info('blockUser: Начало обработки запроса', { correlationId });
     try {
-        const { id, reason } = req.body;
-        const user = await blockUserService({ id, reason, correlationId });
-        logger.info('blockUser: Пользователь заблокирован', { correlationId, id, reason });
-        res.status(200).json(user);
+        const { userId } = req.params;
+        const { reason } = req.body;
+        const adminId = req.user?.id;
+        const correlationId = req.headers['x-correlation-id'] || req.headers['correlationid'];
+        
+        logger.info('blockUser: Начало обработки запроса на блокировку пассажира', {
+            userId,
+            adminId,
+            correlationId
+        });
+        
+        if (!userId) {
+            return res.status(400).json({ error: 'ID пассажира не указан' });
+        }
+        
+        if (!reason) {
+            return res.status(400).json({ error: 'Причина блокировки не указана' });
+        }
+        
+        const blockedUser = await blockUserService({
+            id: userId,
+            reason,
+            adminId,
+            correlationId
+        });
+        
+        res.status(200).json({
+            message: 'Пассажир успешно заблокирован',
+            userInfo: blockedUser
+        });
     } catch (error) {
-        logger.error('blockUser: Ошибка блокировки пользователя', { error: error.message, correlationId });
-        res.status(400).json({ error: error.message });
+        logger.error('blockUser: Ошибка при блокировке пассажира', {
+            error: error.message,
+            correlationId: req.headers['x-correlation-id'] || req.headers['correlationid']
+        });
+        
+        const status = error.message.includes('не найден') ? 404 : 400;
+        res.status(status).json({ error: error.message });
+    }
+};
+
+export const unblockUser = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const adminId = req.user?.id;
+        const correlationId = req.headers['x-correlation-id'] || req.headers['correlationid'];
+        
+        logger.info('unblockUser: Начало обработки запроса на разблокировку пассажира', {
+            userId,
+            adminId,
+            correlationId
+        });
+        
+        if (!userId) {
+            return res.status(400).json({ error: 'ID пассажира не указан' });
+        }
+        
+        const unblockedUser = await unblockUserService({
+            id: userId,
+            adminId,
+            correlationId
+        });
+        
+        res.status(200).json({
+            message: 'Пассажир успешно разблокирован',
+            userInfo: unblockedUser
+        });
+    } catch (error) {
+        logger.error('unblockUser: Ошибка при разблокировке пассажира', {
+            error: error.message,
+            correlationId: req.headers['x-correlation-id'] || req.headers['correlationid']
+        });
+        
+        const status = error.message.includes('не найден') ? 404 : 400;
+        res.status(status).json({ error: error.message });
     }
 };
 
@@ -236,7 +303,7 @@ export const findUserByPhone = async (req, res) => {
     logger.info('findUserByPhone: Начало обработки запроса', { correlationId });
     try {
         const { phoneNumber } = req.body;
-        const user = await findUserByPhoneService({ phoneNumber, correlationId });
+        const user = await findUserByPhoneService({ phoneNumber, correlationId  });
         if (!user) {
             logger.info('findUserByPhone: Пользователь не найден', { correlationId, phoneNumber });
             return res.status(404).json({ message: 'Пользователь не найден' });

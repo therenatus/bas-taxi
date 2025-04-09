@@ -867,3 +867,52 @@ export const getDriverRides = async (driverId, correlationId) => {
         return [];
     }
 };
+
+export const getAllUserRides = async (userId, userType, correlationId) => {
+    try {
+        let rides = [];
+        
+        if (userType === 'passenger') {
+            rides = await Ride.findAll({
+                where: { passengerId: userId },
+                order: [['createdAt', 'DESC']]
+            });
+            logger.info('Данные о поездках пассажира успешно получены', { userId, correlationId });
+        } else if (userType === 'driver') {
+            rides = await Ride.findAll({
+                where: { driverId: userId },
+                order: [['createdAt', 'DESC']]
+            });
+            logger.info('Данные о поездках водителя успешно получены', { userId, correlationId });
+        }
+        
+        return rides;
+    } catch (error) {
+        logger.error('Ошибка при получении списка всех поездок пользователя', { 
+            error: error.message, 
+            userId, 
+            userType, 
+            correlationId 
+        });
+        return [];
+    }
+};
+
+export const cancelRideIfPassengerNotArrived = async (rideId) => {
+    const ride = await Ride.findByPk(rideId);
+    if (!ride) {
+        throw new Error('Поездка не найдена');
+    }
+
+    const currentTime = new Date();
+    const arrivalTime = new Date(ride.driverArrivalTime);
+    const timeDiff = (currentTime - arrivalTime) / (1000 * 60); // разница в минутах
+
+    if (ride.status === 'driver_arrived' && timeDiff >= 10) {
+        ride.status = 'cancelled';
+        await ride.save();
+        return { message: 'Поездка отменена, так как пассажир не пришел' };
+    }
+
+    throw new Error('Поездка не может быть отменена');
+};

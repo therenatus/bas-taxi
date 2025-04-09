@@ -1,8 +1,6 @@
 import { getChannel } from '../utils/rabbitmq.js';
 import logger from '../utils/logger.js';
-import bcrypt from 'bcryptjs';
-import speakeasy from 'speakeasy';
-import Admin from '../models/admin.model.js';
+
 
 const API_GATEWAY_URL = process.env.API_GATEWAY_URL;
 
@@ -97,40 +95,6 @@ export const createTariffInService = async (tariffData, correlationId) => {
         });
         throw error;
     }
-};
-
-export const createAdminService = async ({ email, password, role, city }, correlationId) => {
-    logger.info('Создание администратора', { email, correlationId });
-    const existing = await Admin.findOne({ where: { email } });
-    if (existing) {
-        logger.warn('Email уже используется', { email, correlationId });
-        throw new Error('Email уже используется');
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const secret = speakeasy.generateSecret({ length: 20 });
-
-    const admin = await Admin.create({
-        email,
-        password: hashedPassword,
-        role,
-        city,
-        twoFactorSecret: secret.base32,
-        twoFactorEnabled: true
-    });
-
-    logger.info('Администратор успешно создан с включенной 2FA', { email, role, correlationId });
-    return { admin, otpauth_url: secret.otpauth_url };
-};
-
-export const getAdminByIdService = async (id, correlationId) => {
-    logger.info('Получение администратора по ID', { id, correlationId });
-    const admin = await Admin.findByPk(id, { attributes: ['id', 'email', 'role', 'city', 'createdAt'] });
-    if (!admin) {
-        logger.warn('Администратор не найден', { id, correlationId });
-        throw new Error('Администратор не найден');
-    }
-    return admin;
 };
 
 

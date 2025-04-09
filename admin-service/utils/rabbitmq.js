@@ -2,8 +2,13 @@ import amqp from 'amqplib';
 import dotenv from 'dotenv';
 import logger from './logger.js';
 import DriverRequest from '../models/driver-request.model.js';
+import { v4 as uuidv4 } from 'uuid';
 
 dotenv.config();
+
+// Константы для RabbitMQ
+const EXCHANGE_NAME = 'admin_events';
+const EXCHANGE_TYPE = 'topic';
 
 let channel;
 
@@ -15,6 +20,8 @@ export const connectRabbitMQ = async () => {
 
         const exchangeName = 'driver_verification';
         await channel.assertExchange(exchangeName, 'fanout', { durable: true });
+        await channel.assertExchange(EXCHANGE_NAME, EXCHANGE_TYPE, { durable: true });
+        
         const q = await channel.assertQueue('', { exclusive: true });
         await channel.bindQueue(q.queue, exchangeName, '');
 
@@ -47,4 +54,42 @@ export const getChannel = async () => {
         await connectRabbitMQ();
     }
     return channel;
+};
+
+
+export const publishToRabbitMQ = async (routingKey, data, correlationId = null) => {
+    try {
+        const ch = await getChannel();
+        const messageId = uuidv4();
+        const messageCorrelationId = correlationId || uuidv4();
+        
+        const success = await ch.publish(
+            EXCHANGE_NAME,
+            routingKey,
+            Buffer.from(JSON.stringify(data)),
+            {
+                persistent: true,
+                messageId,
+                correlationId: messageCorrelationId,
+                timestamp: Date.now(),
+                contentType: 'application/json'
+            }
+        );
+        
+        logger.info('Сообщение опубликовано в RabbitMQ', {
+            routingKey,
+            messageId,
+            correlationId: messageCorrelationId,
+            success
+        });
+        
+        return success;
+    } catch (error) {
+        logger.error('Ошибка при публикации сообщения в RabbitMQ', {
+            error: error.message,
+            routingKey,
+            correlationId
+        });
+        throw error;
+    }
 };

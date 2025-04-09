@@ -31,18 +31,30 @@ User.init({
         type: DataTypes.DATE,
         allowNull: true,
     },
-    // isBlocked: {
-    //     type: DataTypes.BOOLEAN,
-    //     defaultValue: false,
-    // },
-    // isDeleted: {
-    //     type: DataTypes.BOOLEAN,
-    //     defaultValue: false,
-    // },
-    // blockReason: {
-    //     type: DataTypes.STRING,
-    //     allowNull: true,
-    // }
+    isBlocked: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+    },
+    isDeleted: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+    },
+    blockReason: {
+        type: DataTypes.STRING,
+        allowNull: true,
+    },
+    blockedBy: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+    },
+    blockedAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+    },
+    deletedAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+    }
 }, {
     sequelize,
     modelName: 'User',

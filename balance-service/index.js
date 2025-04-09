@@ -2,13 +2,15 @@
 import express from 'express';
 import logger from './utils/logger.js';
 import sequelize from './utils/database.js';
-import balanceRoutes from './routes/balance.route.js';
+import balanceRoutes from './routes/balance.routes.js';
 import errorHandler from './middlewares/error.js';
 import {subscribeToAdminEvents} from './subscribers/admin.subscriber.js';
 import {subscribeToRideEvents} from './subscribers/ride.subscriber.js';
 import {randomUUID} from 'node:crypto';
 import client from 'prom-client';
 import {subscribeToDriverApproval} from "./subscribers/driver-approval.subscriber.js";
+import swaggerUi from 'swagger-ui-express';
+import swaggerSpec from './config/swagger.js';
 
 const uuidv4 = randomUUID();
 const app = express();
@@ -20,7 +22,7 @@ app.use((req, res, next) => {
     res.setHeader('X-Correlation-ID', req.correlationId);
     next();
 });
-
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/', balanceRoutes);
 
 client.collectDefaultMetrics();

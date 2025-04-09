@@ -4,6 +4,7 @@ import { generateVerificationCode } from '../utils/generate-code.js';
 import { sendVerificationCode } from "../utils/sms.service.js";
 import jwt from "jsonwebtoken";
 import ChangePhone from "../models/change-phone.model.js";
+import { sendUserToExchange } from "../utils/rabbitmq.js";
 
 const SMS_SEND_INTERVAL_MS = 60 * 1000;
 
@@ -219,24 +220,113 @@ export const confirmPhoneService = async ({ phoneNumber, verificationCode, userI
     logger.info('confirmPhoneService: Номер телефона успешно изменен', { userId, phoneNumber, correlationId });
 };
 
-export const blockUserService = async ({ id, reason, correlationId }) => {
+export const blockUserService = async ({ id, reason, adminId, correlationId }) => {
     try {
-        logger.info('blockUserService: Начало блокировки пользователя', { id, reason, correlationId });
+        logger.info('blockUserService: Начало блокировки пользователя', { id, reason, adminId, correlationId });
+        
         const user = await User.findByPk(id);
-
         if (!user) {
             logger.warn('blockUserService: Пользователь не найден', { id, correlationId });
             throw new Error('Пользователь не найден');
         }
 
+        if (user.isBlocked) {
+            logger.warn('blockUserService: Пользователь уже заблокирован', { id, correlationId });
+            throw new Error('Пользователь уже заблокирован');
+        }
+
         user.isBlocked = true;
         user.blockReason = reason;
+        user.blockedBy = adminId;
+        user.blockedAt = new Date();
+        
         await user.save();
 
-        logger.info('blockUserService: Пользователь заблокирован', { id, reason, correlationId });
-        return user;
+        try {
+            const channel = await getChannel();
+            await channel.publish(EXCHANGE_NAME, 'user.blocked', Buffer.from(JSON.stringify({
+                userId: id,
+                reason,
+                blockedBy: adminId,
+                blockedAt: user.blockedAt
+            })), { persistent: true });
+            
+            logger.info('blockUserService: Событие о блокировке отправлено в RabbitMQ', {
+                userId: id,
+                correlationId
+            });
+        } catch (mqError) {
+            logger.error('blockUserService: Ошибка при отправке события в RabbitMQ', {
+                error: mqError.message,
+                correlationId
+            });
+            // Продолжаем выполнение, так как основная операция блокировки успешна
+        }
+
+        logger.info('blockUserService: Пользователь заблокирован', { id, reason, adminId, correlationId });
+        return {
+            id: user.id,
+            phoneNumber: user.phoneNumber,
+            isBlocked: user.isBlocked,
+            blockReason: user.blockReason
+        };
     } catch (error) {
-        logger.error('blockUserService: Ошибка при блокировке пользователя', { error, correlationId });
+        logger.error('blockUserService: Ошибка при блокировке пользователя', { error: error.message, correlationId });
+        throw error;
+    }
+};
+
+export const unblockUserService = async ({ id, adminId, correlationId }) => {
+    try {
+        logger.info('unblockUserService: Начало разблокировки пользователя', { id, adminId, correlationId });
+        
+        const user = await User.findByPk(id);
+        if (!user) {
+            logger.warn('unblockUserService: Пользователь не найден', { id, correlationId });
+            throw new Error('Пользователь не найден');
+        }
+
+        if (!user.isBlocked) {
+            logger.warn('unblockUserService: Пользователь не заблокирован', { id, correlationId });
+            throw new Error('Пользователь не заблокирован');
+        }
+
+        user.isBlocked = false;
+        user.blockReason = null;
+        user.blockedBy = null;
+        user.blockedAt = null;
+        user.unblockedAt = new Date();
+        
+        await user.save();
+
+        try {
+            const channel = await getChannel();
+            await channel.publish(EXCHANGE_NAME, 'user.unblocked', Buffer.from(JSON.stringify({
+                userId: id,
+                unblockedBy: adminId,
+                unblockedAt: user.unblockedAt
+            })), { persistent: true });
+            
+            logger.info('unblockUserService: Событие о разблокировке отправлено в RabbitMQ', {
+                userId: id,
+                correlationId
+            });
+        } catch (mqError) {
+            logger.error('unblockUserService: Ошибка при отправке события в RabbitMQ', {
+                error: mqError.message,
+                correlationId
+            });
+            // Продолжаем выполнение, так как основная операция разблокировки успешна
+        }
+
+        logger.info('unblockUserService: Пользователь разблокирован', { id, adminId, correlationId });
+        return {
+            id: user.id,
+            phoneNumber: user.phoneNumber,
+            isBlocked: user.isBlocked
+        };
+    } catch (error) {
+        logger.error('unblockUserService: Ошибка при разблокировке пользователя', { error: error.message, correlationId });
         throw error;
     }
 };

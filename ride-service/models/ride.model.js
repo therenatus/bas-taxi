@@ -65,6 +65,10 @@ const Ride = sequelize.define('Ride', {
         type: DataTypes.BIGINT,
         allowNull: false,
     },
+    driverArrivalTime: {
+        type: DataTypes.DATE,
+        allowNull: true,
+    },
 }, {
     tableName: 'rides',
     timestamps: true,

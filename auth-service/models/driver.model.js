@@ -123,6 +123,22 @@ Driver.init({
         type: DataTypes.DATE,
         allowNull: true,
     },
+    isBlocked: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
+    },
+    blockReason: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+    },
+    blockedBy: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+    },
+    blockedAt: {
+        type: DataTypes.DATE,
+        allowNull: true,
+    },
 }, {
     sequelize,
     modelName: 'Driver',

@@ -13,7 +13,7 @@ const options = {
     definition: {
         openapi: '3.0.0',
         info: {
-            title: 'Auth Service API',
+            title: 'Admin Service API',
             version: '1.0.0',
             description: 'Документация для ADMIN Service',
         },
@@ -27,6 +27,8 @@ const options = {
                 },
             },
         },
+        // Глобальное требование авторизации для всех маршрутов
+        // Каждый маршрут может переопределить это свойство
         security: [{
             BearerAuth: []
         }],
@@ -38,7 +40,22 @@ const options = {
 const swaggerSpec = swaggerJSDoc(options);
 
 const setupSwagger = (app) => {
-    app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+    // Опции для настройки Swagger UI
+    const swaggerUiOptions = {
+        explorer: true,
+        swaggerOptions: {
+            // Отключаем требование авторизации для UI (не влияет на API)
+            persistAuthorization: true,
+        }
+    };
+    
+    // Добавляем middleware, которое пропускает запросы к Swagger UI без проверки авторизации
+    app.use('/api-docs', (req, res, next) => {
+        // Исключаем требование токена для документации
+        next();
+    });
+    
+    app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, swaggerUiOptions));
 };
 
 export default setupSwagger;

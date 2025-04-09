@@ -2,10 +2,19 @@ import logger from '../utils/logger.js';
 import validateMiddleware from '../middlewares/validate.middleware.js';
 import {driverRegisterSchema} from "../validators/register-driver.validator.js";
 import {confirmLoginSchema, loginSchema} from "../validators/login.validator.js";
-import {confirmLoginService, loginDriverService, registerDriverService, deleteDriverProfileService} from "../services/driver.service.js";
+import {
+    confirmLoginService,
+    loginDriverService,
+    registerDriverService,
+    deleteDriverProfileService,
+    blockDriverService,
+    unblockDriverService
+} from "../services/driver.service.js";
 import {sendDriverToExchange} from "../utils/rabbitmq.js";
 import Driver from "../models/driver.model.js";
 import {verifyTokenService} from "../services/driver.service.js";
+import {v4 as uuidv4} from 'uuid';
+import {publishEvent} from "../utils/rabbitmq.js";
 
 // export const registerDriver = [
 //     validateMiddleware(driverRegisterSchema),
@@ -196,5 +205,112 @@ export const deleteDriverProfile = async (req, res) => {
         }
         
         res.status(500).json({ error: 'Ошибка при удалении профиля' });
+    }
+};
+
+export const blockDriver = async (req, res) => {
+    const { driverId } = req.params;
+    const { reason } = req.body;
+    const adminId = req.user.adminId || req.user.id;
+    const correlationId = req.headers['x-correlation-id'] || req.headers['correlationid'];
+    
+    logger.info('blockDriver: Начало обработки запроса на блокировку водителя', { 
+        driverId, 
+        adminId, 
+        correlationId 
+    });
+    
+    if (!reason) {
+        return res.status(400).json({ 
+            error: 'Необходимо указать причину блокировки',
+            correlationId 
+        });
+    }
+    
+    try {
+        const blockedDriver = await blockDriverService(driverId, reason, adminId, correlationId);
+        
+        // Отправка события в RabbitMQ о блокировке водителя для других сервисов
+        try {
+            await sendDriverToExchange({ 
+                event: 'driver_blocked', 
+                driverId, 
+                reason, 
+                adminId, 
+                timestamp: new Date().toISOString() 
+            });
+            logger.info('blockDriver: Событие о блокировке отправлено в RabbitMQ', { 
+                driverId, 
+                correlationId 
+            });
+        } catch (mqError) {
+            logger.error('blockDriver: Ошибка при отправке события в RabbitMQ', { 
+                error: mqError.message, 
+                driverId, 
+                correlationId 
+            });
+            // Продолжаем выполнение даже при ошибке отправки в RabbitMQ
+        }
+        
+        res.status(200).json({ 
+            message: 'Водитель успешно заблокирован',
+            driverInfo: blockedDriver
+        });
+    } catch (error) {
+        logger.error('blockDriver: Ошибка при блокировке водителя', { 
+            error: error.message,
+            driverId,
+            correlationId
+        });
+        
+        if (error.message.includes('не найден')) {
+            return res.status(404).json({ error: error.message });
+        }
+        
+        if (error.message.includes('уже заблокирован')) {
+            return res.status(400).json({ error: error.message });
+        }
+        
+        res.status(500).json({ error: 'Ошибка при блокировке водителя', details: error.message });
+    }
+};
+
+export const unblockDriver = async (req, res) => {
+    const correlationId = req.headers['x-correlation-id'] || uuidv4();
+    const { driverId } = req.params;
+    const adminId = req.user.id;
+
+    try {
+        logger.info('unblockDriver controller: Запрос на разблокировку водителя', { driverId, adminId, correlationId });
+        
+        const driverData = await unblockDriverService(driverId, adminId, correlationId);
+        
+        // Публикуем событие о разблокировке водителя
+        const routingKey = 'driver.unblocked';
+        const eventData = {
+            driverId: driverData.id,
+            adminId,
+            timestamp: new Date().toISOString()
+        };
+        
+        await publishEvent(routingKey, eventData, correlationId);
+        logger.info('unblockDriver controller: Событие о разблокировке водителя опубликовано', { correlationId });
+        
+        return res.status(200).json({
+            success: true,
+            message: 'Водитель успешно разблокирован',
+            data: driverData
+        });
+    } catch (error) {
+        logger.error('unblockDriver controller: Ошибка при разблокировке водителя', { 
+            driverId, 
+            error: error.message, 
+            correlationId 
+        });
+        
+        return res.status(400).json({
+            success: false,
+            message: error.message || 'Ошибка при разблокировке водителя'
+        });
     }
 };

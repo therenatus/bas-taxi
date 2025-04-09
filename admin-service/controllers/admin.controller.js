@@ -3,11 +3,9 @@
 import axios from 'axios';
 import dotenv from 'dotenv';
 import logger from '../utils/logger.js';
-import { updateSettingsInService, createTariffInService, createAdminService, getAdminByIdService } from '../services/admin.service.js';
-import { getChannel } from '../utils/rabbitmq.js';
+import { updateSettingsInService, createTariffInService } from '../services/admin.service.js';
+import { getChannel, publishToRabbitMQ } from '../utils/rabbitmq.js';
 import DriverRequest from "../models/driver-request.model.js";
-import { publishToRabbitMQ } from '../services/admin.service.js';
-import { API_GATEWAY_URL } from '../config/config.js';
 
 dotenv.config();
 
@@ -231,52 +229,249 @@ export const getDriverRidesViaGateway = async (req, res) => {
     }
 };
 
-export const createAdmin = async (req, res) => {
+export const getRidesByTimeRange = async (req, res) => {
+    const { startTime, endTime } = req.query;
     const correlationId = req.headers['x-correlation-id'] || req.headers['correlationid'];
-    logger.info('Начало создания администратора', { correlationId });
+
+    try {
+        if (!startTime || !endTime) {
+            return res.status(400).json({ 
+                error: 'Необходимо указать начало и конец временного промежутка' 
+            });
+        }
+
+        const response = await axios.get(`${API_GATEWAY_URL}/rides/time-range`, {
+            params: { startTime, endTime },
+            headers: {
+                Authorization: req.headers.authorization,
+                'X-Correlation-ID': correlationId
+            }
+        });
+
+        logger.info('Данные о поездках по временному промежутку успешно получены', { 
+            startTime, endTime, correlationId 
+        });
+        
+        res.status(200).json(response.data);
+    } catch (error) {
+        logger.error('Ошибка при получении поездок по временному промежутку', { 
+            error: error.message || 'Неизвестная ошибка', 
+            startTime, 
+            endTime,
+            correlationId
+        });
+        
+        res.status(error.response?.status || 500).json({ 
+            error: error.response?.data?.error || 'Ошибка при получении поездок по временному промежутку' 
+        });
+    }
+};
+
+export const blockUserViaGateway = async (req, res) => {
+    const { userId } = req.params;
+    const { reason } = req.body;
+    const correlationId = req.headers['x-correlation-id'] || req.headers['correlationid'];
+    
+    if (!userId) {
+        return res.status(400).json({ error: 'Не указан ID пассажира' });
+    }
+    
+    if (!reason) {
+        return res.status(400).json({ error: 'Необходимо указать причину блокировки' });
+    }
     
     try {
-        const result = await createAdminService(req.body, correlationId);
+        const response = await axios.post(
+            `${API_GATEWAY_URL}/auth/passenger/${userId}/block`, 
+            { reason },
+            {
+                headers: {
+                    Authorization: req.headers.authorization,
+                    'X-Correlation-ID': correlationId
+                }
+            }
+        );
         
-        res.status(201).json({ 
-            message: 'Администратор успешно создан с включенной 2FA', 
-            otpauth_url: result.otpauth_url 
+        logger.info('Пассажир успешно заблокирован через API Gateway', { 
+            userId, 
+            correlationId 
         });
+        
+        res.status(200).json(response.data);
     } catch (error) {
-        logger.error('Ошибка при создании администратора', { error: error.message, correlationId });
-        if (error.message === 'Email уже используется') {
-            return res.status(400).json({ error: error.message });
-        }
-        res.status(500).json({ error: 'Внутренняя ошибка сервера' });
+        logger.error('Ошибка при блокировке пассажира через API Gateway', { 
+            error: error.message, 
+            userId,
+            correlationId 
+        });
+        
+        res.status(error.response?.status || 500).json({ 
+            error: error.response?.data?.error || 'Не удалось заблокировать пассажира' 
+        });
+    }
+};
+
+export const createAdmin = async (req, res) => {
+    try {
+        const response = await axios.post(`${API_GATEWAY_URL}/admin/create`, req.body, {
+            headers: {
+                Authorization: req.headers.authorization,
+                'X-Correlation-ID': req.headers['x-correlation-id']
+            }
+        });
+        res.status(201).json(response.data);
+    } catch (error) {
+        logger.error('Ошибка при создании администратора через API Gateway', { 
+            error: error.message,
+            correlationId: req.headers['x-correlation-id']
+        });
+        res.status(error.response?.status || 500).json({ 
+            error: 'Ошибка при создании администратора',
+            details: error.response?.data || error.message
+        });
     }
 };
 
 export const getAdminById = async (req, res) => {
     const { id } = req.params;
-    const correlationId = req.headers['x-correlation-id'] || req.headers['correlationid'];
-    logger.info('Начало получения данных администратора', { id, correlationId });
-    
     try {
-        const admin = await getAdminByIdService(id, correlationId);
-        res.status(200).json(admin);
+        const response = await axios.get(`${API_GATEWAY_URL}/admin/${id}`, {
+            headers: {
+                Authorization: req.headers.authorization,
+                'X-Correlation-ID': req.headers['x-correlation-id']
+            }
+        });
+        res.status(200).json(response.data);
     } catch (error) {
-        logger.error('Ошибка при получении данных администратора', { error: error.message, id, correlationId });
-        if (error.message === 'Администратор не найден') {
-            return res.status(404).json({ error: error.message });
-        }
-        res.status(500).json({ error: 'Внутренняя ошибка сервера' });
+        logger.error('Ошибка при получении администратора через API Gateway', { 
+            error: error.message,
+            correlationId: req.headers['x-correlation-id']
+        });
+        res.status(error.response?.status || 500).json({ 
+            error: 'Ошибка при получении администратора',
+            details: error.response?.data || error.message
+        });
     }
 };
 
-export {
-    getUsers,
-    approveDriver,
-    getRides,
-    getReviews,
-    updateSettings,
-    getDriverRequests,
-    rejectDriver,
-    getDriverDetails,
-    getUserRidesViaGateway,
-    getDriverRidesViaGateway
+export const blockDriverViaGateway = async (req, res) => {
+    const { driverId } = req.params;
+    const { reason } = req.body;
+    const correlationId = req.headers['x-correlation-id'] || req.headers['correlationid'];
+    
+    if (!driverId) {
+        return res.status(400).json({ error: 'Не указан ID водителя' });
+    }
+    
+    if (!reason) {
+        return res.status(400).json({ error: 'Необходимо указать причину блокировки' });
+    }
+    
+    try {
+        const response = await axios.post(
+            `${API_GATEWAY_URL}/auth/driver/${driverId}/block`, 
+            { reason },
+            {
+                headers: {
+                    Authorization: req.headers.authorization,
+                    'X-Correlation-ID': correlationId
+                }
+            }
+        );
+        
+        logger.info('Водитель успешно заблокирован через API Gateway', { 
+            driverId, 
+            correlationId 
+        });
+        
+        res.status(200).json(response.data);
+    } catch (error) {
+        logger.error('Ошибка при блокировке водителя через API Gateway', { 
+            error: error.message, 
+            driverId,
+            correlationId 
+        });
+        
+        res.status(error.response?.status || 500).json({ 
+            error: error.response?.data?.error || 'Не удалось заблокировать водителя' 
+        });
+    }
+};
+
+export const unblockUserViaGateway = async (req, res) => {
+    const { userId } = req.params;
+    const correlationId = req.headers['x-correlation-id'] || req.headers['correlationid'];
+    
+    if (!userId) {
+        return res.status(400).json({ error: 'Не указан ID пассажира' });
+    }
+    
+    try {
+        const response = await axios.post(
+            `${API_GATEWAY_URL}/auth/passenger/${userId}/unblock`,
+            {},
+            {
+                headers: {
+                    Authorization: req.headers.authorization,
+                    'X-Correlation-ID': correlationId
+                }
+            }
+        );
+        
+        logger.info('Пассажир успешно разблокирован через API Gateway', { 
+            userId, 
+            correlationId 
+        });
+        
+        res.status(200).json(response.data);
+    } catch (error) {
+        logger.error('Ошибка при разблокировке пассажира через API Gateway', { 
+            error: error.message, 
+            userId,
+            correlationId 
+        });
+        
+        res.status(error.response?.status || 500).json({ 
+            error: error.response?.data?.error || 'Не удалось разблокировать пассажира' 
+        });
+    }
+};
+
+export const unblockDriverViaGateway = async (req, res) => {
+    const { driverId } = req.params;
+    const correlationId = req.headers['x-correlation-id'] || req.headers['correlationid'];
+    
+    if (!driverId) {
+        return res.status(400).json({ error: 'Не указан ID водителя' });
+    }
+    
+    try {
+        const response = await axios.post(
+            `${API_GATEWAY_URL}/auth/driver/${driverId}/unblock`,
+            {},
+            {
+                headers: {
+                    Authorization: req.headers.authorization,
+                    'X-Correlation-ID': correlationId
+                }
+            }
+        );
+        
+        logger.info('Водитель успешно разблокирован через API Gateway', { 
+            driverId, 
+            correlationId 
+        });
+        
+        res.status(200).json(response.data);
+    } catch (error) {
+        logger.error('Ошибка при разблокировке водителя через API Gateway', { 
+            error: error.message, 
+            driverId,
+            correlationId 
+        });
+        
+        res.status(error.response?.status || 500).json({ 
+            error: error.response?.data?.error || 'Не удалось разблокировать водителя' 
+        });
+    }
 };

@@ -17,6 +17,8 @@ import {
     getUserRides,
     getRideDetails,
     getDriverRides,
+    getAllUserRides,
+    cancelRideIfPassengerNotArrived
 } from '../services/ride.service.js';
 
 import {
@@ -33,6 +35,8 @@ import {
 
 import logger from '../utils/logger.js';
 import {findNearbyDrivers, findNearbyParkedDrivers} from "../services/location.serrvice.js";
+import Ride from '../models/ride.model.js';
+import { Op } from 'sequelize';
 
 export const requestRideHandler = async (req, res) => {
     try {
@@ -816,6 +820,92 @@ export const deleteHolidayHandler = async (req, res) => {
         res.status(500).json({ 
             error: 'Ошибка при удалении праздничного дня', 
             correlationId: req.correlationId 
+        });
+    }
+};
+
+export const getRidesByTimeRange = async (req, res) => {
+    const { startTime, endTime } = req.query;
+
+    try {
+        const rides = await Ride.findAll({
+            where: {
+                createdAt: {
+                    [Op.between]: [new Date(startTime), new Date(endTime)],
+                },
+            },
+        });
+        res.status(200).json(rides);
+    } catch (error) {
+        logger.error('Ошибка при получении поездок по временным промежуткам', { error: error.message });
+        res.status(500).json({ error: 'Ошибка при получении поездок' });
+    }
+};
+
+export const getAllUserRidesHandler = async (req, res) => {
+    const userId = req.user.id;
+    const userType = req.user.role === 'driver' ? 'driver' : 'passenger';
+    const correlationId = req.headers['x-correlation-id'] || req.correlationId;
+
+    try {
+        const rides = await getAllUserRides(userId, userType, correlationId);
+        
+        if (rides.length === 0) {
+            return res.status(200).json([]);
+        }
+        
+        // Преобразуем числовые значения в строки для совместимости с клиентом
+        const formattedRides = rides.map(ride => {
+            return {
+                ...ride.toJSON(),
+                price: ride.price ? ride.price.toString() : null
+            };
+        });
+        
+        res.status(200).json(formattedRides);
+    } catch (error) {
+        logger.error('Ошибка при получении всех поездок пользователя', { 
+            error: error.message,
+            userId,
+            userType,
+            correlationId
+        });
+        res.status(500).json({ 
+            error: 'Не удалось получить данные о поездках',
+            details: error.message
+        });
+    }
+};
+
+export const cancelRideIfPassengerNotArrivedHandler = async (req, res) => {
+    const { rideId } = req.params;
+    const driverId = req.user.id;
+    const correlationId = req.headers['x-correlation-id'] || req.correlationId;
+
+    try {
+        const result = await cancelRideIfPassengerNotArrived(rideId);
+        
+        logger.info('Поездка успешно отменена из-за неявки пассажира', { 
+            rideId, 
+            driverId, 
+            correlationId 
+        });
+        
+        res.status(200).json({ 
+            message: 'Поездка успешно отменена из-за неявки пассажира',
+            details: result
+        });
+    } catch (error) {
+        logger.error('Ошибка при отмене поездки', { 
+            error: error.message,
+            rideId,
+            driverId,
+            correlationId
+        });
+        
+        res.status(400).json({ 
+            error: 'Не удалось отменить поездку',
+            details: error.message
         });
     }
 };

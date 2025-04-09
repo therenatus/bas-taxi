@@ -12,7 +12,8 @@ import {
     deleteUser,
     blockUser,
     verifyTokenController,
-    deleteSelf
+    deleteSelf,
+    unblockUser
 } from '../controllers/passanger.controller.js';
 import {roleMiddleware} from "../middlewares/role.middleware.js";
 
@@ -210,7 +211,117 @@ router.post('/change-phone', roleMiddleware(['passenger']), changePhone);
  */
 router.post('/confirm-phone', roleMiddleware(['passenger']), confirmPhone);
 
-router.post('/block', blockUser);
+/**
+ * @swagger
+ * /auth/passenger/{userId}/block:
+ *   post:
+ *     summary: Блокировка пассажира
+ *     tags: [Passenger]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Идентификатор пассажира
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - reason
+ *             properties:
+ *               reason:
+ *                 type: string
+ *                 description: Причина блокировки
+ *                 example: Нарушение правил использования приложения
+ *     responses:
+ *       200:
+ *         description: Пассажир успешно заблокирован
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Пассажир успешно заблокирован
+ *                 userInfo:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                     phoneNumber:
+ *                       type: string
+ *                     isBlocked:
+ *                       type: boolean
+ *                     blockReason:
+ *                       type: string
+ *       400:
+ *         description: Ошибка входных данных
+ *       401:
+ *         description: Не авторизован
+ *       403:
+ *         description: Доступ запрещен
+ *       404:
+ *         description: Пассажир не найден
+ *       500:
+ *         description: Ошибка сервера
+ */
+router.post('/:userId/block', roleMiddleware(['admin', 'superadmin']), blockUser);
+
+/**
+ * @swagger
+ * /auth/passenger/{userId}/unblock:
+ *   post:
+ *     summary: Разблокировка пассажира
+ *     tags: [Passenger]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Идентификатор пассажира
+ *     responses:
+ *       200:
+ *         description: Пассажир успешно разблокирован
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Пассажир успешно разблокирован
+ *                 userInfo:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                     phoneNumber:
+ *                       type: string
+ *                     isBlocked:
+ *                       type: boolean
+ *       400:
+ *         description: Ошибка входных данных
+ *       401:
+ *         description: Не авторизован
+ *       403:
+ *         description: Доступ запрещен
+ *       404:
+ *         description: Пассажир не найден
+ *       500:
+ *         description: Ошибка сервера
+ */
+router.post('/:userId/unblock', roleMiddleware(['admin', 'superadmin']), unblockUser);
+
 router.post('/delete', deleteUser);
 router.post('/change-name', changeUserName);
 router.post('/find-by-id', findUserById);

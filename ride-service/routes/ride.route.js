@@ -28,6 +28,9 @@ import {
     addHolidayHandler,
     updateHolidayHandler,
     deleteHolidayHandler,
+    getRidesByTimeRange,
+    getAllUserRidesHandler,
+    cancelRideIfPassengerNotArrivedHandler
 } from '../controllers/ride.controller.js';
 import { authMiddleware } from "../middlewares/auth.middleware.js";
 
@@ -1176,5 +1179,103 @@ router.put('/tariffs/holiday', authMiddleware(['admin']), updateHolidayHandler);
  *         description: Ошибка сервера
  */
 router.delete('/tariffs/holiday', authMiddleware(['admin']), deleteHolidayHandler);
+
+/**
+ * @swagger
+ * /rides/time-range:
+ *   get:
+ *     summary: Получение поездок по временному промежутку
+ *     tags: [Rides]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: startTime
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: Начало временного промежутка (ISO формат)
+ *       - in: query
+ *         name: endTime
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *         description: Конец временного промежутка (ISO формат)
+ *     responses:
+ *       200:
+ *         description: Список поездок в указанном временном промежутке
+ *       400:
+ *         description: Некорректный запрос
+ *       401:
+ *         description: Не авторизован
+ *       403:
+ *         description: Доступ запрещен
+ *       500:
+ *         description: Ошибка сервера
+ */
+router.get('/time-range', authMiddleware(['admin', 'superadmin']), getRidesByTimeRange);
+
+/**
+ * @swagger
+ * /rides/my-rides:
+ *   get:
+ *     summary: Получение всех поездок текущего пользователя (водителя или пассажира)
+ *     tags: [Rides]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Список всех поездок пользователя
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Ride'
+ *       401:
+ *         description: Не авторизован
+ *       500:
+ *         description: Ошибка сервера
+ */
+router.get('/my-rides', authMiddleware(['driver', 'passenger']), getAllUserRidesHandler);
+
+/**
+ * @swagger
+ * /rides/{rideId}/cancel-passenger-no-show:
+ *   post:
+ *     summary: Отмена поездки из-за неявки пассажира (доступно если водитель на месте более 10 минут)
+ *     tags: [Rides]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: rideId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Идентификатор поездки
+ *     responses:
+ *       200:
+ *         description: Поездка успешно отменена
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Поездка успешно отменена из-за неявки пассажира"
+ *                 details:
+ *                   type: object
+ *       400:
+ *         description: Ошибка запроса или невозможно отменить поездку
+ *       401:
+ *         description: Не авторизован
+ *       500:
+ *         description: Ошибка сервера
+ */
+router.post('/:rideId/cancel-passenger-no-show', authMiddleware(['driver']), cancelRideIfPassengerNotArrivedHandler);
 
 export default router;
