@@ -5,7 +5,7 @@ import Admin from '../models/admin.model.js';
 import logger from '../utils/logger.js';
 
 export const createAdminService = async ({ email, password, role, city }) => {
-    logger.info('Создание администратора', { email });
+    logger.info('Создание администратора', { email, role });
     const existing = await Admin.findOne({ where: { email } });
     if (existing) {
         logger.warn('Email уже используется', { email });
@@ -25,7 +25,17 @@ export const createAdminService = async ({ email, password, role, city }) => {
     });
 
     logger.info('Администратор успешно создан с включенной 2FA', { email, role });
-    return { admin, otpauth_url: secret.otpauth_url };
+    
+    // Возвращаем информацию, которую суперадмин передаст пользователю
+    return {
+        id: admin.id,
+        email: admin.email,
+        password: password, // Нешифрованный пароль для передачи
+        role: admin.role,
+        city: admin.city,
+        twoFactorSecret: secret.base32,
+        createdAt: admin.createdAt
+    };
 };
 
 export const loginAdminService = async ({ email, password, twoFactorToken }) => {
@@ -46,7 +56,8 @@ export const loginAdminService = async ({ email, password, twoFactorToken }) => 
         secret: admin.twoFactorSecret,
         encoding: 'base32',
         token: twoFactorToken,
-        digits: 6
+        digits: 6,
+        window: 1 // Допускаем небольшую погрешность во времени
     });
 
     if (!verified) {
@@ -56,7 +67,7 @@ export const loginAdminService = async ({ email, password, twoFactorToken }) => 
 
     const token = jwt.sign({ adminId: admin.id, email: admin.email, role: admin.role, city: admin.city }, process.env.JWT_SECRET, { expiresIn: '1d' });
 
-    logger.info('Администратор успешно вошёл в систему', { email });
+    logger.info('Администратор успешно вошёл в систему', { email, role: admin.role });
     return { token, role: admin.role, city: admin.city };
 };
 

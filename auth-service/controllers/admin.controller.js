@@ -3,8 +3,22 @@ import logger from '../utils/logger.js';
 
 export const createAdmin = async (req, res) => {
     try {
-        const result = await createAdminService(req.body);
-        res.status(201).json(result);
+        const adminData = await createAdminService(req.body);
+        
+        // Формируем ответ с данными аккаунта
+        res.status(201).json({
+            message: 'Аккаунт успешно создан',
+            admin: {
+                id: adminData.id,
+                email: adminData.email,
+                password: adminData.password, // Пароль для передачи сотруднику
+                role: adminData.role,
+                city: adminData.city,
+                twoFactorSecret: adminData.twoFactorSecret, // Секретный ключ для 2FA
+                createdAt: adminData.createdAt
+            }
+        });
+        
     } catch (error) {
         logger.error('Ошибка при создании администратора', { error: error.message });
         res.status(400).json({ error: error.message });
