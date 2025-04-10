@@ -32,7 +32,7 @@ app.use((req, res, next) => {
 
 // Сначала настраиваем Swagger, чтобы его маршруты были доступны без авторизации
 setupSwagger(app);
-
+app.use('/', adminRoutes);
 // Middleware для проверки авторизации для маршрутов API (кроме Swagger)
 app.use((req, res, next) => {
     // Пропускаем запросы к Swagger
@@ -45,7 +45,6 @@ app.use((req, res, next) => {
 });
 
 // Подключаем маршруты API после настройки Swagger и авторизации
-app.use('/', adminRoutes);
 
 sequelize.authenticate()
     .then(() => {
