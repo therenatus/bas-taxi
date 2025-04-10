@@ -1,0 +1,562 @@
+{
+    "_type": "export",
+    "__export_format": 4,
+    "__export_date": "2023-04-10T00:00:00.000Z",
+    "__export_source": "insomnia.desktop.app:v2023.5.8",
+    "resources": [
+      {
+        "_id": "wrk_ride_api",
+        "parentId": null,
+        "modified": 1681084800000,
+        "created": 1681084800000,
+        "name": "BAS-Taxi Ride API",
+        "description": "API для управления поездками",
+        "scope": "collection",
+        "_type": "workspace"
+      },
+      {
+        "_id": "fld_ride_management",
+        "parentId": "wrk_ride_api",
+        "modified": 1681084800000,
+        "created": 1681084800000,
+        "name": "Управление поездками",
+        "description": "",
+        "environment": {},
+        "environmentPropertyOrder": null,
+        "metaSortKey": -1681084800000,
+        "_type": "request_group"
+      },
+      {
+        "_id": "req_ride_request",
+        "parentId": "fld_ride_management",
+        "modified": 1681084800000,
+        "created": 1681084800000,
+        "url": "{{ _.API_URL }}/rides/request",
+        "name": "Создание запроса на поездку",
+        "description": "",
+        "method": "POST",
+        "body": {
+          "mimeType": "application/json",
+          "text": "{\n  \"origin\": \"43.2025,76.8921\",\n  \"destination\": \"43.20917,76.76028\"\n}"
+        },
+        "parameters": [],
+        "headers": [
+          {
+            "name": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "authentication": {
+          "type": "bearer",
+          "token": "{{ _.PASSENGER_TOKEN }}"
+        },
+        "metaSortKey": -1681084800000,
+        "isPrivate": false,
+        "settingStoreCookies": true,
+        "settingSendCookies": true,
+        "settingDisableRenderRequestBody": false,
+        "settingEncodeUrl": true,
+        "settingRebuildPath": true,
+        "settingFollowRedirects": "global",
+        "_type": "request"
+      },
+      {
+        "_id": "req_ride_accept",
+        "parentId": "fld_ride_management",
+        "modified": 1681084800000,
+        "created": 1681084800000,
+        "url": "{{ _.API_URL }}/rides/accept",
+        "name": "Принятие поездки водителем",
+        "description": "",
+        "method": "POST",
+        "body": {
+          "mimeType": "application/json",
+          "text": "{\n  \"rideId\": 123\n}"
+        },
+        "parameters": [],
+        "headers": [
+          {
+            "name": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "authentication": {
+          "type": "bearer",
+          "token": "{{ _.DRIVER_TOKEN }}"
+        },
+        "metaSortKey": -1681084790000,
+        "isPrivate": false,
+        "settingStoreCookies": true,
+        "settingSendCookies": true,
+        "settingDisableRenderRequestBody": false,
+        "settingEncodeUrl": true,
+        "settingRebuildPath": true,
+        "settingFollowRedirects": "global",
+        "_type": "request"
+      },
+      {
+        "_id": "req_ride_start",
+        "parentId": "fld_ride_management",
+        "modified": 1681084800000,
+        "created": 1681084800000,
+        "url": "{{ _.API_URL }}/rides/123/start",
+        "name": "Начало поездки",
+        "description": "",
+        "method": "POST",
+        "body": {},
+        "parameters": [],
+        "headers": [],
+        "authentication": {
+          "type": "bearer",
+          "token": "{{ _.DRIVER_TOKEN }}"
+        },
+        "metaSortKey": -1681084780000,
+        "isPrivate": false,
+        "settingStoreCookies": true,
+        "settingSendCookies": true,
+        "settingDisableRenderRequestBody": false,
+        "settingEncodeUrl": true,
+        "settingRebuildPath": true,
+        "settingFollowRedirects": "global",
+        "_type": "request"
+      },
+      {
+        "_id": "req_ride_complete",
+        "parentId": "fld_ride_management",
+        "modified": 1681084800000,
+        "created": 1681084800000,
+        "url": "{{ _.API_URL }}/rides/123/complete",
+        "name": "Завершение поездки",
+        "description": "",
+        "method": "POST",
+        "body": {},
+        "parameters": [],
+        "headers": [],
+        "authentication": {
+          "type": "bearer",
+          "token": "{{ _.DRIVER_TOKEN }}"
+        },
+        "metaSortKey": -1681084770000,
+        "isPrivate": false,
+        "settingStoreCookies": true,
+        "settingSendCookies": true,
+        "settingDisableRenderRequestBody": false,
+        "settingEncodeUrl": true,
+        "settingRebuildPath": true,
+        "settingFollowRedirects": "global",
+        "_type": "request"
+      },
+      {
+        "_id": "req_ride_cancel",
+        "parentId": "fld_ride_management",
+        "modified": 1681084800000,
+        "created": 1681084800000,
+        "url": "{{ _.API_URL }}/rides/123/cancel",
+        "name": "Отмена поездки",
+        "description": "",
+        "method": "POST",
+        "body": {
+          "mimeType": "application/json",
+          "text": "{\n  \"cancellationReason\": \"Изменение планов\"\n}"
+        },
+        "parameters": [],
+        "headers": [
+          {
+            "name": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "authentication": {
+          "type": "bearer",
+          "token": "{{ _.PASSENGER_TOKEN }}"
+        },
+        "metaSortKey": -1681084760000,
+        "isPrivate": false,
+        "settingStoreCookies": true,
+        "settingSendCookies": true,
+        "settingDisableRenderRequestBody": false,
+        "settingEncodeUrl": true,
+        "settingRebuildPath": true,
+        "settingFollowRedirects": "global",
+        "_type": "request"
+      },
+      {
+        "_id": "fld_parking_management",
+        "parentId": "wrk_ride_api",
+        "modified": 1681084800000,
+        "created": 1681084800000,
+        "name": "Управление парковкой",
+        "description": "",
+        "environment": {},
+        "environmentPropertyOrder": null,
+        "metaSortKey": -1681084750000,
+        "_type": "request_group"
+      },
+      {
+        "_id": "req_parking_activate",
+        "parentId": "fld_parking_management",
+        "modified": 1681084800000,
+        "created": 1681084800000,
+        "url": "{{ _.API_URL }}/rides/parking/activate",
+        "name": "Активация режима парковки",
+        "description": "",
+        "method": "POST",
+        "body": {
+          "mimeType": "application/json",
+          "text": "{\n  \"driverId\": \"driver123\",\n  \"origin\": {\n    \"lat\": 55.753215,\n    \"lng\": 37.622504\n  }\n}"
+        },
+        "parameters": [],
+        "headers": [
+          {
+            "name": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "authentication": {
+          "type": "bearer",
+          "token": "{{ _.DRIVER_TOKEN }}"
+        },
+        "metaSortKey": -1681084800000,
+        "isPrivate": false,
+        "settingStoreCookies": true,
+        "settingSendCookies": true,
+        "settingDisableRenderRequestBody": false,
+        "settingEncodeUrl": true,
+        "settingRebuildPath": true,
+        "settingFollowRedirects": "global",
+        "_type": "request"
+      },
+      {
+        "_id": "req_parking_deactivate",
+        "parentId": "fld_parking_management",
+        "modified": 1681084800000,
+        "created": 1681084800000,
+        "url": "{{ _.API_URL }}/rides/parking/deactivate",
+        "name": "Деактивация режима парковки",
+        "description": "",
+        "method": "POST",
+        "body": {},
+        "parameters": [],
+        "headers": [],
+        "authentication": {
+          "type": "bearer",
+          "token": "{{ _.DRIVER_TOKEN }}"
+        },
+        "metaSortKey": -1681084790000,
+        "isPrivate": false,
+        "settingStoreCookies": true,
+        "settingSendCookies": true,
+        "settingDisableRenderRequestBody": false,
+        "settingEncodeUrl": true,
+        "settingRebuildPath": true,
+        "settingFollowRedirects": "global",
+        "_type": "request"
+      },
+      {
+        "_id": "req_parking_nearby",
+        "parentId": "fld_parking_management",
+        "modified": 1681084800000,
+        "created": 1681084800000,
+        "url": "{{ _.API_URL }}/rides/parking",
+        "name": "Получение ближайших водителей в режиме парковки",
+        "description": "",
+        "method": "GET",
+        "body": {},
+        "parameters": [
+          {
+            "name": "latitude",
+            "value": "55.753215",
+            "description": "Широта текущей точки"
+          },
+          {
+            "name": "longitude",
+            "value": "37.622504",
+            "description": "Долгота текущей точки"
+          },
+          {
+            "name": "radius",
+            "value": "5",
+            "description": "Радиус поиска в километрах"
+          }
+        ],
+        "headers": [],
+        "authentication": {
+          "type": "bearer",
+          "token": "{{ _.PASSENGER_TOKEN }}"
+        },
+        "metaSortKey": -1681084780000,
+        "isPrivate": false,
+        "settingStoreCookies": true,
+        "settingSendCookies": true,
+        "settingDisableRenderRequestBody": false,
+        "settingEncodeUrl": true,
+        "settingRebuildPath": true,
+        "settingFollowRedirects": "global",
+        "_type": "request"
+      },
+      {
+        "_id": "fld_line_management",
+        "parentId": "wrk_ride_api",
+        "modified": 1681084800000,
+        "created": 1681084800000,
+        "name": "Управление линией",
+        "description": "",
+        "environment": {},
+        "environmentPropertyOrder": null,
+        "metaSortKey": -1681084740000,
+        "_type": "request_group"
+      },
+      {
+        "_id": "req_line_activate",
+        "parentId": "fld_line_management",
+        "modified": 1681084800000,
+        "created": 1681084800000,
+        "url": "{{ _.API_URL }}/line/activate",
+        "name": "Вход на линию",
+        "description": "",
+        "method": "POST",
+        "body": {
+          "mimeType": "application/json",
+          "text": "{\n  \"latitude\": 55.753215,\n  \"longitude\": 37.622504\n}"
+        },
+        "parameters": [],
+        "headers": [
+          {
+            "name": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "authentication": {
+          "type": "bearer",
+          "token": "{{ _.DRIVER_TOKEN }}"
+        },
+        "metaSortKey": -1681084800000,
+        "isPrivate": false,
+        "settingStoreCookies": true,
+        "settingSendCookies": true,
+        "settingDisableRenderRequestBody": false,
+        "settingEncodeUrl": true,
+        "settingRebuildPath": true,
+        "settingFollowRedirects": "global",
+        "_type": "request"
+      },
+      {
+        "_id": "req_line_deactivate",
+        "parentId": "fld_line_management",
+        "modified": 1681084800000,
+        "created": 1681084800000,
+        "url": "{{ _.API_URL }}/line/deactivate",
+        "name": "Выход с линии",
+        "description": "",
+        "method": "POST",
+        "body": {},
+        "parameters": [],
+        "headers": [],
+        "authentication": {
+          "type": "bearer",
+          "token": "{{ _.DRIVER_TOKEN }}"
+        },
+        "metaSortKey": -1681084790000,
+        "isPrivate": false,
+        "settingStoreCookies": true,
+        "settingSendCookies": true,
+        "settingDisableRenderRequestBody": false,
+        "settingEncodeUrl": true,
+        "settingRebuildPath": true,
+        "settingFollowRedirects": "global",
+        "_type": "request"
+      },
+      {
+        "_id": "fld_ride_info",
+        "parentId": "wrk_ride_api",
+        "modified": 1681084800000,
+        "created": 1681084800000,
+        "name": "Информация о поездках",
+        "description": "",
+        "environment": {},
+        "environmentPropertyOrder": null,
+        "metaSortKey": -1681084730000,
+        "_type": "request_group"
+      },
+      {
+        "_id": "req_ride_details",
+        "parentId": "fld_ride_info",
+        "modified": 1681084800000,
+        "created": 1681084800000,
+        "url": "{{ _.API_URL }}/rides/123",
+        "name": "Получение деталей поездки",
+        "description": "",
+        "method": "GET",
+        "body": {},
+        "parameters": [],
+        "headers": [],
+        "authentication": {
+          "type": "bearer",
+          "token": "{{ _.DRIVER_TOKEN }}"
+        },
+        "metaSortKey": -1681084800000,
+        "isPrivate": false,
+        "settingStoreCookies": true,
+        "settingSendCookies": true,
+        "settingDisableRenderRequestBody": false,
+        "settingEncodeUrl": true,
+        "settingRebuildPath": true,
+        "settingFollowRedirects": "global",
+        "_type": "request"
+      },
+      {
+        "_id": "req_driver_rides",
+        "parentId": "fld_ride_info",
+        "modified": 1681084800000,
+        "created": 1681084800000,
+        "url": "{{ _.API_URL }}/driver/rides/my",
+        "name": "Получение поездок водителя",
+        "description": "",
+        "method": "GET",
+        "body": {},
+        "parameters": [],
+        "headers": [],
+        "authentication": {
+          "type": "bearer",
+          "token": "{{ _.DRIVER_TOKEN }}"
+        },
+        "metaSortKey": -1681084790000,
+        "isPrivate": false,
+        "settingStoreCookies": true,
+        "settingSendCookies": true,
+        "settingDisableRenderRequestBody": false,
+        "settingEncodeUrl": true,
+        "settingRebuildPath": true,
+        "settingFollowRedirects": "global",
+        "_type": "request"
+      },
+      {
+        "_id": "req_user_rides",
+        "parentId": "fld_ride_info",
+        "modified": 1681084800000,
+        "created": 1681084800000,
+        "url": "{{ _.API_URL }}/user/rides/my",
+        "name": "Получение поездок пассажира",
+        "description": "",
+        "method": "GET",
+        "body": {},
+        "parameters": [],
+        "headers": [],
+        "authentication": {
+          "type": "bearer",
+          "token": "{{ _.PASSENGER_TOKEN }}"
+        },
+        "metaSortKey": -1681084780000,
+        "isPrivate": false,
+        "settingStoreCookies": true,
+        "settingSendCookies": true,
+        "settingDisableRenderRequestBody": false,
+        "settingEncodeUrl": true,
+        "settingRebuildPath": true,
+        "settingFollowRedirects": "global",
+        "_type": "request"
+      },
+      {
+        "_id": "req_rides_time_range",
+        "parentId": "fld_ride_info",
+        "modified": 1681084800000,
+        "created": 1681084800000,
+        "url": "{{ _.API_URL }}/rides/time-range",
+        "name": "Получение поездок за период",
+        "description": "",
+        "method": "GET",
+        "body": {},
+        "parameters": [
+          {
+            "name": "startTime",
+            "value": "2023-01-01T00:00:00Z",
+            "description": "Начало периода"
+          },
+          {
+            "name": "endTime",
+            "value": "2023-01-31T23:59:59Z",
+            "description": "Конец периода"
+          }
+        ],
+        "headers": [],
+        "authentication": {
+          "type": "bearer",
+          "token": "{{ _.DRIVER_TOKEN }}"
+        },
+        "metaSortKey": -1681084770000,
+        "isPrivate": false,
+        "settingStoreCookies": true,
+        "settingSendCookies": true,
+        "settingDisableRenderRequestBody": false,
+        "settingEncodeUrl": true,
+        "settingRebuildPath": true,
+        "settingFollowRedirects": "global",
+        "_type": "request"
+      },
+      {
+        "_id": "env_base",
+        "parentId": "wrk_ride_api",
+        "modified": 1681084800000,
+        "created": 1681084800000,
+        "name": "Base Environment",
+        "data": {
+          "API_URL": "http://TAXI_DOCKER",
+          "DRIVER_TOKEN": "DRIVER_1",
+          "PASSENGER_TOKEN": "PASSANGER_1"
+        },
+        "dataPropertyOrder": {
+          "&": [
+            "API_URL",
+            "DRIVER_TOKEN",
+            "PASSENGER_TOKEN"
+          ]
+        },
+        "color": null,
+        "isPrivate": false,
+        "metaSortKey": 1681084800000,
+        "_type": "environment"
+      },
+      {
+        "_id": "env_driver",
+        "parentId": "env_base",
+        "modified": 1681084800000,
+        "created": 1681084800000,
+        "name": "Driver Environment",
+        "data": {
+          "API_URL": "http://TAXI_DOCKER",
+          "DRIVER_TOKEN": "DRIVER_1"
+        },
+        "dataPropertyOrder": {
+          "&": [
+            "API_URL",
+            "DRIVER_TOKEN"
+          ]
+        },
+        "color": "#7d69cb",
+        "isPrivate": false,
+        "metaSortKey": 1681084800000,
+        "_type": "environment"
+      },
+      {
+        "_id": "env_passenger",
+        "parentId": "env_base",
+        "modified": 1681084800000,
+        "created": 1681084800000,
+        "name": "Passenger Environment",
+        "data": {
+          "API_URL": "http://TAXI_DOCKER",
+          "PASSENGER_TOKEN": "PASSANGER_1"
+        },
+        "dataPropertyOrder": {
+          "&": [
+            "API_URL",
+            "PASSENGER_TOKEN"
+          ]
+        },
+        "color": "#fc0303",
+        "isPrivate": false,
+        "metaSortKey": 1681084800100,
+        "_type": "environment"
+      }
+    ]
+  }

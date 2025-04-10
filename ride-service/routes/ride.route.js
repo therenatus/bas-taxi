@@ -671,7 +671,7 @@ router.get('/ride/:rideId', getRideDetailsHandler);
 router.get(
     '/driver/rides/my',
     authMiddleware(['driver']),
-    (req, res) => getDriverRidesHandler({ params: { driverId: req.user.id } }, res)
+    (req, res) => getDriverRidesHandler({ params: { driverId: req.user.driverId } }, res)
 );
 
 /**
@@ -702,8 +702,8 @@ router.get(
  */
 router.get(
     '/user/rides/my',
-    authMiddleware(['user']),
-    (req, res) => getUserRidesHandler({ params: { userId: req.user.id } }, res)
+    authMiddleware(['passenger']),
+    (req, res) => getUserRidesHandler({ params: { userId: req.user.userId } }, res)
 );
 
 /**
@@ -833,7 +833,8 @@ router.get('/user/:userId/rides', authMiddleware(['admin']), getUserRidesHandler
  *       500:
  *         description: Ошибка сервера
  */
-router.get('/tariffs/:cityId/:carClassId', authMiddleware(['admin']), getTariffHandler);
+//router.get('/tariffs/:cityId/:carClassId', authMiddleware(['admin']), getTariffHandler);
+router.get('/tariffs/:cityId/:carClassId', getTariffHandler);
 
 /**
  * @swagger
@@ -876,7 +877,8 @@ router.get('/tariffs/:cityId/:carClassId', authMiddleware(['admin']), getTariffH
  *       500:
  *         description: Ошибка сервера
  */
-router.put('/tariffs/base', authMiddleware(['admin']), updateBaseTariffHandler);
+//router.put('/tariffs/base', authMiddleware(['admin']), updateBaseTariffHandler);
+router.put('/tariffs/base', updateBaseTariffHandler);
 
 /**
  * @swagger
@@ -918,7 +920,8 @@ router.put('/tariffs/base', authMiddleware(['admin']), updateBaseTariffHandler);
  *       500:
  *         description: Ошибка сервера
  */
-router.put('/tariffs/hour', authMiddleware(['admin']), updateHourAdjustmentHandler);
+//router.put('/tariffs/hour', authMiddleware(['admin']), updateHourAdjustmentHandler);
+router.put('/tariffs/hour', updateHourAdjustmentHandler);
 
 /**
  * @swagger
@@ -957,7 +960,8 @@ router.put('/tariffs/hour', authMiddleware(['admin']), updateHourAdjustmentHandl
  *       500:
  *         description: Ошибка сервера
  */
-router.delete('/tariffs/hour', authMiddleware(['admin']), deleteHourAdjustmentHandler);
+//router.delete('/tariffs/hour', authMiddleware(['admin']), deleteHourAdjustmentHandler);
+router.delete('/tariffs/hour', deleteHourAdjustmentHandler);
 
 /**
  * @swagger
@@ -999,7 +1003,8 @@ router.delete('/tariffs/hour', authMiddleware(['admin']), deleteHourAdjustmentHa
  *       500:
  *         description: Ошибка сервера
  */
-router.put('/tariffs/month', authMiddleware(['admin']), updateMonthAdjustmentHandler);
+//router.put('/tariffs/month', authMiddleware(['admin']), updateMonthAdjustmentHandler);
+router.put('/tariffs/month', updateMonthAdjustmentHandler);
 
 /**
  * @swagger
@@ -1038,7 +1043,8 @@ router.put('/tariffs/month', authMiddleware(['admin']), updateMonthAdjustmentHan
  *       500:
  *         description: Ошибка сервера
  */
-router.delete('/tariffs/month', authMiddleware(['admin']), deleteMonthAdjustmentHandler);
+//router.delete('/tariffs/month', authMiddleware(['admin']), deleteMonthAdjustmentHandler);
+router.delete('/tariffs/month', deleteMonthAdjustmentHandler);
 
 /**
  * @swagger
@@ -1087,7 +1093,8 @@ router.delete('/tariffs/month', authMiddleware(['admin']), deleteMonthAdjustment
  *       500:
  *         description: Ошибка сервера
  */
-router.post('/tariffs/holiday', authMiddleware(['admin']), addHolidayHandler);
+//router.post('/tariffs/holiday', authMiddleware(['admin']), addHolidayHandler);
+router.post('/tariffs/holiday', addHolidayHandler);
 
 /**
  * @swagger
@@ -1134,7 +1141,8 @@ router.post('/tariffs/holiday', authMiddleware(['admin']), addHolidayHandler);
  *       500:
  *         description: Ошибка сервера
  */
-router.put('/tariffs/holiday', authMiddleware(['admin']), updateHolidayHandler);
+//router.put('/tariffs/holiday', authMiddleware(['admin']), updateHolidayHandler);
+router.put('/tariffs/holiday', updateHolidayHandler);
 
 /**
  * @swagger
@@ -1178,7 +1186,8 @@ router.put('/tariffs/holiday', authMiddleware(['admin']), updateHolidayHandler);
  *       500:
  *         description: Ошибка сервера
  */
-router.delete('/tariffs/holiday', authMiddleware(['admin']), deleteHolidayHandler);
+//router.delete('/tariffs/holiday', authMiddleware(['admin']), deleteHolidayHandler);
+router.delete('/tariffs/holiday', deleteHolidayHandler);
 
 /**
  * @swagger
@@ -1215,7 +1224,8 @@ router.delete('/tariffs/holiday', authMiddleware(['admin']), deleteHolidayHandle
  *       500:
  *         description: Ошибка сервера
  */
-router.get('/time-range', authMiddleware(['admin', 'superadmin']), getRidesByTimeRange);
+//router.get('/time-range', authMiddleware(['admin', 'superadmin']), getRidesByTimeRange);
+router.get('/time-range', getRidesByTimeRange);
 
 /**
  * @swagger

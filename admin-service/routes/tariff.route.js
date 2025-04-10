@@ -39,7 +39,8 @@ const router = Router();
  *       500:
  *         description: Внутренняя ошибка сервера
  */
-router.get('/tariffs', authMiddleware, authorizeRoles(['superadmin', 'admin', 'moderator']), getTariffs);
+//router.get('/tariffs', authMiddleware, authorizeRoles(['superadmin', 'admin', 'moderator']), getTariffs);
+router.get('/tariffs', getTariffs);
 
 /**
  * @swagger
@@ -92,7 +93,8 @@ router.get('/tariffs', authMiddleware, authorizeRoles(['superadmin', 'admin', 'm
  *       500:
  *         description: Внутренняя ошибка сервера
  */
-router.post('/tariffs', authMiddleware, authorizeRoles(['superadmin', 'admin']), validateMiddleware(createTariffSchema), createTariff);
+//router.post('/tariffs', authMiddleware, authorizeRoles(['superadmin', 'admin']), validateMiddleware(createTariffSchema), createTariff);
+router.post('/tariffs', validateMiddleware(createTariffSchema), createTariff);
 
 /**
  * @swagger
@@ -127,7 +129,8 @@ router.post('/tariffs', authMiddleware, authorizeRoles(['superadmin', 'admin']),
  *       500:
  *         description: Внутренняя ошибка сервера
  */
-router.get('/tariffs/:cityId/:carClassId', authMiddleware, authorizeRoles(['superadmin', 'admin', 'moderator']), getTariffs);
+//router.get('/tariffs/:cityId/:carClassId', authMiddleware, authorizeRoles(['superadmin', 'admin', 'moderator']), getTariffs);
+router.get('/tariffs/:cityId/:carClassId', getTariffs);
 
 /**
  * @swagger
@@ -156,7 +159,8 @@ router.get('/tariffs/:cityId/:carClassId', authMiddleware, authorizeRoles(['supe
  *       500:
  *         description: Внутренняя ошибка сервера
  */
-router.delete('/tariffs/:id', authMiddleware, authorizeRoles(['superadmin', 'admin']), deleteTariff);
+//router.delete('/tariffs/:id', authMiddleware, authorizeRoles(['superadmin', 'admin']), deleteTariff);
+router.delete('/tariffs/:id', deleteTariff);
 
 /**
  * @swagger
@@ -204,7 +208,8 @@ router.delete('/tariffs/:id', authMiddleware, authorizeRoles(['superadmin', 'adm
  *       500:
  *         description: Внутренняя ошибка сервера
  */
-router.put('/tariffs/hour', authMiddleware, authorizeRoles(['superadmin', 'admin']), updateHourlyAdjustment);
+//router.put('/tariffs/hour', authMiddleware, authorizeRoles(['superadmin', 'admin']), updateHourlyAdjustment);
+router.put('/tariffs/hour', updateHourlyAdjustment);
 
 /**
  * @swagger
@@ -252,7 +257,8 @@ router.put('/tariffs/hour', authMiddleware, authorizeRoles(['superadmin', 'admin
  *       500:
  *         description: Внутренняя ошибка сервера
  */
-router.put('/tariffs/month', authMiddleware, authorizeRoles(['superadmin', 'admin']), updateMonthlyAdjustment);
+//router.put('/tariffs/month', authMiddleware, authorizeRoles(['superadmin', 'admin']), updateMonthlyAdjustment);
+router.put('/tariffs/month', updateMonthlyAdjustment);
 
 /**
  * @swagger
@@ -310,7 +316,8 @@ router.put('/tariffs/month', authMiddleware, authorizeRoles(['superadmin', 'admi
  *       500:
  *         description: Внутренняя ошибка сервера
  */
-router.post('/tariffs/holiday', authMiddleware, authorizeRoles(['superadmin', 'admin']), addHoliday);
+//router.post('/tariffs/holiday', authMiddleware, authorizeRoles(['superadmin', 'admin']), addHoliday);
+router.post('/tariffs/holiday', addHoliday);
 
 /**
  * @swagger
@@ -360,6 +367,7 @@ router.post('/tariffs/holiday', authMiddleware, authorizeRoles(['superadmin', 'a
  *       500:
  *         description: Внутренняя ошибка сервера
  */
-router.delete('/tariffs/holiday', authMiddleware, authorizeRoles(['superadmin', 'admin']), deleteHoliday);
+//router.delete('/tariffs/holiday', authMiddleware, authorizeRoles(['superadmin', 'admin']), deleteHoliday);
+router.delete('/tariffs/holiday',  deleteHoliday);
 
 export default router; 

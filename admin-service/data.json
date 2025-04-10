@@ -1,0 +1,737 @@
+{
+    "_type": "export",
+    "__export_format": 4,
+    "__export_date": "2023-04-10T00:00:00.000Z",
+    "__export_source": "insomnia.desktop.app:v2023.5.8",
+    "resources": [
+      {
+        "_id": "req_admin_create",
+        "parentId": "fld_admin_users",
+        "modified": 1681084800000,
+        "created": 1681084800000,
+        "url": "{{ _.API_URL }}/admin/create",
+        "name": "Создать администратора",
+        "description": "",
+        "method": "POST",
+        "body": {
+          "mimeType": "application/json",
+          "text": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"password123\",\n  \"role\": \"admin\",\n  \"city\": \"Москва\"\n}"
+        },
+        "parameters": [],
+        "headers": [
+          {
+            "name": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "authentication": {},
+        "metaSortKey": -1681084800000,
+        "isPrivate": false,
+        "settingStoreCookies": true,
+        "settingSendCookies": true,
+        "settingDisableRenderRequestBody": false,
+        "settingEncodeUrl": true,
+        "settingRebuildPath": true,
+        "settingFollowRedirects": "global",
+        "_type": "request"
+      },
+      {
+        "_id": "fld_admin_users",
+        "parentId": "wrk_admin_api",
+        "modified": 1681084800000,
+        "created": 1681084800000,
+        "name": "Администраторы и пользователи",
+        "description": "",
+        "environment": {},
+        "environmentPropertyOrder": null,
+        "metaSortKey": -1681084800000,
+        "_type": "request_group"
+      },
+      {
+        "_id": "wrk_admin_api",
+        "parentId": null,
+        "modified": 1681084800000,
+        "created": 1681084800000,
+        "name": "BAS-Taxi Admin API",
+        "description": "API для административной панели такси",
+        "scope": "collection",
+        "_type": "workspace"
+      },
+      {
+        "_id": "req_admin_get",
+        "parentId": "fld_admin_users",
+        "modified": 1681084800000,
+        "created": 1681084800000,
+        "url": "{{ _.API_URL }}/admin/1",
+        "name": "Получить администратора по ID",
+        "description": "",
+        "method": "GET",
+        "body": {},
+        "parameters": [],
+        "headers": [],
+        "authentication": {
+          "type": "bearer",
+          "token": "{{ _.JWT_TOKEN }}"
+        },
+        "metaSortKey": -1681084790000,
+        "isPrivate": false,
+        "settingStoreCookies": true,
+        "settingSendCookies": true,
+        "settingDisableRenderRequestBody": false,
+        "settingEncodeUrl": true,
+        "settingRebuildPath": true,
+        "settingFollowRedirects": "global",
+        "_type": "request"
+      },
+      {
+        "_id": "req_driver_block",
+        "parentId": "fld_driver_management",
+        "modified": 1681084800000,
+        "created": 1681084800000,
+        "url": "{{ _.API_URL }}/admin/driver/123/block",
+        "name": "Блокировка водителя",
+        "description": "",
+        "method": "POST",
+        "body": {
+          "mimeType": "application/json",
+          "text": "{\n  \"reason\": \"Нарушение правил платформы\"\n}"
+        },
+        "parameters": [],
+        "headers": [
+          {
+            "name": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "authentication": {
+          "type": "bearer",
+          "token": "{{ _.JWT_TOKEN }}"
+        },
+        "metaSortKey": -1681084800000,
+        "isPrivate": false,
+        "settingStoreCookies": true,
+        "settingSendCookies": true,
+        "settingDisableRenderRequestBody": false,
+        "settingEncodeUrl": true,
+        "settingRebuildPath": true,
+        "settingFollowRedirects": "global",
+        "_type": "request"
+      },
+      {
+        "_id": "fld_driver_management",
+        "parentId": "wrk_admin_api",
+        "modified": 1681084800000,
+        "created": 1681084800000,
+        "name": "Управление водителями",
+        "description": "",
+        "environment": {},
+        "environmentPropertyOrder": null,
+        "metaSortKey": -1681084790000,
+        "_type": "request_group"
+      },
+      {
+        "_id": "req_driver_unblock",
+        "parentId": "fld_driver_management",
+        "modified": 1681084800000,
+        "created": 1681084800000,
+        "url": "{{ _.API_URL }}/admin/driver/123/unblock",
+        "name": "Разблокировка водителя",
+        "description": "",
+        "method": "POST",
+        "body": {},
+        "parameters": [],
+        "headers": [],
+        "authentication": {
+          "type": "bearer",
+          "token": "{{ _.JWT_TOKEN }}"
+        },
+        "metaSortKey": -1681084790000,
+        "isPrivate": false,
+        "settingStoreCookies": true,
+        "settingSendCookies": true,
+        "settingDisableRenderRequestBody": false,
+        "settingEncodeUrl": true,
+        "settingRebuildPath": true,
+        "settingFollowRedirects": "global",
+        "_type": "request"
+      },
+      {
+        "_id": "req_driver_requests",
+        "parentId": "fld_driver_management",
+        "modified": 1681084800000,
+        "created": 1681084800000,
+        "url": "{{ _.API_URL }}/admin/driver-requests",
+        "name": "Получение заявок водителей",
+        "description": "",
+        "method": "GET",
+        "body": {},
+        "parameters": [],
+        "headers": [],
+        "authentication": {
+          "type": "bearer",
+          "token": "{{ _.JWT_TOKEN }}"
+        },
+        "metaSortKey": -1681084780000,
+        "isPrivate": false,
+        "settingStoreCookies": true,
+        "settingSendCookies": true,
+        "settingDisableRenderRequestBody": false,
+        "settingEncodeUrl": true,
+        "settingRebuildPath": true,
+        "settingFollowRedirects": "global",
+        "_type": "request"
+      },
+      {
+        "_id": "req_driver_approve",
+        "parentId": "fld_driver_management",
+        "modified": 1681084800000,
+        "created": 1681084800000,
+        "url": "{{ _.API_URL }}/admin/driver/789/approve",
+        "name": "Одобрение заявки водителя",
+        "description": "",
+        "method": "POST",
+        "body": {},
+        "parameters": [],
+        "headers": [],
+        "authentication": {
+          "type": "bearer",
+          "token": "{{ _.JWT_TOKEN }}"
+        },
+        "metaSortKey": -1681084770000,
+        "isPrivate": false,
+        "settingStoreCookies": true,
+        "settingSendCookies": true,
+        "settingDisableRenderRequestBody": false,
+        "settingEncodeUrl": true,
+        "settingRebuildPath": true,
+        "settingFollowRedirects": "global",
+        "_type": "request"
+      },
+      {
+        "_id": "req_driver_reject",
+        "parentId": "fld_driver_management",
+        "modified": 1681084800000,
+        "created": 1681084800000,
+        "url": "{{ _.API_URL }}/admin/driver/789/reject",
+        "name": "Отклонение заявки водителя",
+        "description": "",
+        "method": "POST",
+        "body": {
+          "mimeType": "application/json",
+          "text": "{\n  \"reason\": \"Невалидные документы\"\n}"
+        },
+        "parameters": [],
+        "headers": [
+          {
+            "name": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "authentication": {
+          "type": "bearer",
+          "token": "{{ _.JWT_TOKEN }}"
+        },
+        "metaSortKey": -1681084760000,
+        "isPrivate": false,
+        "settingStoreCookies": true,
+        "settingSendCookies": true,
+        "settingDisableRenderRequestBody": false,
+        "settingEncodeUrl": true,
+        "settingRebuildPath": true,
+        "settingFollowRedirects": "global",
+        "_type": "request"
+      },
+      {
+        "_id": "req_driver_rides",
+        "parentId": "fld_driver_management",
+        "modified": 1681084800000,
+        "created": 1681084800000,
+        "url": "{{ _.API_URL }}/admin/driver/123/rides",
+        "name": "Получение поездок водителя",
+        "description": "",
+        "method": "GET",
+        "body": {},
+        "parameters": [],
+        "headers": [],
+        "authentication": {
+          "type": "bearer",
+          "token": "{{ _.JWT_TOKEN }}"
+        },
+        "metaSortKey": -1681084750000,
+        "isPrivate": false,
+        "settingStoreCookies": true,
+        "settingSendCookies": true,
+        "settingDisableRenderRequestBody": false,
+        "settingEncodeUrl": true,
+        "settingRebuildPath": true,
+        "settingFollowRedirects": "global",
+        "_type": "request"
+      },
+      {
+        "_id": "req_user_block",
+        "parentId": "fld_passenger_management",
+        "modified": 1681084800000,
+        "created": 1681084800000,
+        "url": "{{ _.API_URL }}/admin/user/456/block",
+        "name": "Блокировка пассажира",
+        "description": "",
+        "method": "POST",
+        "body": {
+          "mimeType": "application/json",
+          "text": "{\n  \"reason\": \"Спам и неподобающее поведение\"\n}"
+        },
+        "parameters": [],
+        "headers": [
+          {
+            "name": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "authentication": {
+          "type": "bearer",
+          "token": "{{ _.JWT_TOKEN }}"
+        },
+        "metaSortKey": -1681084800000,
+        "isPrivate": false,
+        "settingStoreCookies": true,
+        "settingSendCookies": true,
+        "settingDisableRenderRequestBody": false,
+        "settingEncodeUrl": true,
+        "settingRebuildPath": true,
+        "settingFollowRedirects": "global",
+        "_type": "request"
+      },
+      {
+        "_id": "fld_passenger_management",
+        "parentId": "wrk_admin_api",
+        "modified": 1681084800000,
+        "created": 1681084800000,
+        "name": "Управление пассажирами",
+        "description": "",
+        "environment": {},
+        "environmentPropertyOrder": null,
+        "metaSortKey": -1681084780000,
+        "_type": "request_group"
+      },
+      {
+        "_id": "req_user_unblock",
+        "parentId": "fld_passenger_management",
+        "modified": 1681084800000,
+        "created": 1681084800000,
+        "url": "{{ _.API_URL }}/admin/user/456/unblock",
+        "name": "Разблокировка пассажира",
+        "description": "",
+        "method": "POST",
+        "body": {},
+        "parameters": [],
+        "headers": [],
+        "authentication": {
+          "type": "bearer",
+          "token": "{{ _.JWT_TOKEN }}"
+        },
+        "metaSortKey": -1681084790000,
+        "isPrivate": false,
+        "settingStoreCookies": true,
+        "settingSendCookies": true,
+        "settingDisableRenderRequestBody": false,
+        "settingEncodeUrl": true,
+        "settingRebuildPath": true,
+        "settingFollowRedirects": "global",
+        "_type": "request"
+      },
+      {
+        "_id": "req_user_rides",
+        "parentId": "fld_passenger_management",
+        "modified": 1681084800000,
+        "created": 1681084800000,
+        "url": "{{ _.API_URL }}/admin/user/456/rides",
+        "name": "Получение поездок пассажира",
+        "description": "",
+        "method": "GET",
+        "body": {},
+        "parameters": [],
+        "headers": [],
+        "authentication": {
+          "type": "bearer",
+          "token": "{{ _.JWT_TOKEN }}"
+        },
+        "metaSortKey": -1681084780000,
+        "isPrivate": false,
+        "settingStoreCookies": true,
+        "settingSendCookies": true,
+        "settingDisableRenderRequestBody": false,
+        "settingEncodeUrl": true,
+        "settingRebuildPath": true,
+        "settingFollowRedirects": "global",
+        "_type": "request"
+      },
+      {
+        "_id": "req_tariff_get_all",
+        "parentId": "fld_tariff_management",
+        "modified": 1681084800000,
+        "created": 1681084800000,
+        "url": "{{ _.API_URL }}/admin/tariffs",
+        "name": "Получение всех тарифов",
+        "description": "",
+        "method": "GET",
+        "body": {},
+        "parameters": [],
+        "headers": [],
+        "authentication": {
+          "type": "bearer",
+          "token": "{{ _.JWT_TOKEN }}"
+        },
+        "metaSortKey": -1681084800000,
+        "isPrivate": false,
+        "settingStoreCookies": true,
+        "settingSendCookies": true,
+        "settingDisableRenderRequestBody": false,
+        "settingEncodeUrl": true,
+        "settingRebuildPath": true,
+        "settingFollowRedirects": "global",
+        "_type": "request"
+      },
+      {
+        "_id": "fld_tariff_management",
+        "parentId": "wrk_admin_api",
+        "modified": 1681084800000,
+        "created": 1681084800000,
+        "name": "Управление тарифами",
+        "description": "",
+        "environment": {},
+        "environmentPropertyOrder": null,
+        "metaSortKey": -1681084770000,
+        "_type": "request_group"
+      },
+      {
+        "_id": "req_tariff_create",
+        "parentId": "fld_tariff_management",
+        "modified": 1681084800000,
+        "created": 1681084800000,
+        "url": "{{ _.API_URL }}/admin/tariffs",
+        "name": "Создание нового тарифа",
+        "description": "",
+        "method": "POST",
+        "body": {
+          "mimeType": "application/json",
+          "text": "{\n  \"cityId\": 1,\n  \"carClassId\": 2,\n  \"baseFare\": 150,\n  \"costPerKm\": 12,\n  \"costPerMinute\": 3,\n  \"seasonalMultiplier\": 1.1\n}"
+        },
+        "parameters": [],
+        "headers": [
+          {
+            "name": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "authentication": {
+          "type": "bearer",
+          "token": "{{ _.JWT_TOKEN }}"
+        },
+        "metaSortKey": -1681084790000,
+        "isPrivate": false,
+        "settingStoreCookies": true,
+        "settingSendCookies": true,
+        "settingDisableRenderRequestBody": false,
+        "settingEncodeUrl": true,
+        "settingRebuildPath": true,
+        "settingFollowRedirects": "global",
+        "_type": "request"
+      },
+      {
+        "_id": "req_tariff_get_by_city_class",
+        "parentId": "fld_tariff_management",
+        "modified": 1681084800000,
+        "created": 1681084800000,
+        "url": "{{ _.API_URL }}/admin/tariffs/1/2",
+        "name": "Получение тарифа по городу и классу",
+        "description": "",
+        "method": "GET",
+        "body": {},
+        "parameters": [],
+        "headers": [],
+        "authentication": {
+          "type": "bearer",
+          "token": "{{ _.JWT_TOKEN }}"
+        },
+        "metaSortKey": -1681084780000,
+        "isPrivate": false,
+        "settingStoreCookies": true,
+        "settingSendCookies": true,
+        "settingDisableRenderRequestBody": false,
+        "settingEncodeUrl": true,
+        "settingRebuildPath": true,
+        "settingFollowRedirects": "global",
+        "_type": "request"
+      },
+      {
+        "_id": "req_tariff_delete",
+        "parentId": "fld_tariff_management",
+        "modified": 1681084800000,
+        "created": 1681084800000,
+        "url": "{{ _.API_URL }}/admin/tariffs/5",
+        "name": "Удаление тарифа",
+        "description": "",
+        "method": "DELETE",
+        "body": {},
+        "parameters": [],
+        "headers": [],
+        "authentication": {
+          "type": "bearer",
+          "token": "{{ _.JWT_TOKEN }}"
+        },
+        "metaSortKey": -1681084770000,
+        "isPrivate": false,
+        "settingStoreCookies": true,
+        "settingSendCookies": true,
+        "settingDisableRenderRequestBody": false,
+        "settingEncodeUrl": true,
+        "settingRebuildPath": true,
+        "settingFollowRedirects": "global",
+        "_type": "request"
+      },
+      {
+        "_id": "req_tariff_hour_update",
+        "parentId": "fld_tariff_management",
+        "modified": 1681084800000,
+        "created": 1681084800000,
+        "url": "{{ _.API_URL }}/admin/tariffs/hour",
+        "name": "Обновление почасового коэффициента",
+        "description": "",
+        "method": "PUT",
+        "body": {
+          "mimeType": "application/json",
+          "text": "{\n  \"cityId\": 1,\n  \"carClassId\": 2,\n  \"hour\": 18,\n  \"multiplier\": 1.4\n}"
+        },
+        "parameters": [],
+        "headers": [
+          {
+            "name": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "authentication": {
+          "type": "bearer",
+          "token": "{{ _.JWT_TOKEN }}"
+        },
+        "metaSortKey": -1681084760000,
+        "isPrivate": false,
+        "settingStoreCookies": true,
+        "settingSendCookies": true,
+        "settingDisableRenderRequestBody": false,
+        "settingEncodeUrl": true,
+        "settingRebuildPath": true,
+        "settingFollowRedirects": "global",
+        "_type": "request"
+      },
+      {
+        "_id": "req_tariff_month_update",
+        "parentId": "fld_tariff_management",
+        "modified": 1681084800000,
+        "created": 1681084800000,
+        "url": "{{ _.API_URL }}/admin/tariffs/month",
+        "name": "Обновление месячного коэффициента",
+        "description": "",
+        "method": "PUT",
+        "body": {
+          "mimeType": "application/json",
+          "text": "{\n  \"cityId\": 1,\n  \"carClassId\": 2,\n  \"month\": 12,\n  \"multiplier\": 1.3\n}"
+        },
+        "parameters": [],
+        "headers": [
+          {
+            "name": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "authentication": {
+          "type": "bearer",
+          "token": "{{ _.JWT_TOKEN }}"
+        },
+        "metaSortKey": -1681084750000,
+        "isPrivate": false,
+        "settingStoreCookies": true,
+        "settingSendCookies": true,
+        "settingDisableRenderRequestBody": false,
+        "settingEncodeUrl": true,
+        "settingRebuildPath": true,
+        "settingFollowRedirects": "global",
+        "_type": "request"
+      },
+      {
+        "_id": "req_tariff_holiday_add",
+        "parentId": "fld_tariff_management",
+        "modified": 1681084800000,
+        "created": 1681084800000,
+        "url": "{{ _.API_URL }}/admin/tariffs/holiday",
+        "name": "Добавление праздничного дня",
+        "description": "",
+        "method": "POST",
+        "body": {
+          "mimeType": "application/json",
+          "text": "{\n  \"cityId\": 1,\n  \"carClassId\": 2,\n  \"month\": 1,\n  \"day\": 1,\n  \"multiplier\": 1.5,\n  \"name\": \"Новый год\"\n}"
+        },
+        "parameters": [],
+        "headers": [
+          {
+            "name": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "authentication": {
+          "type": "bearer",
+          "token": "{{ _.JWT_TOKEN }}"
+        },
+        "metaSortKey": -1681084740000,
+        "isPrivate": false,
+        "settingStoreCookies": true,
+        "settingSendCookies": true,
+        "settingDisableRenderRequestBody": false,
+        "settingEncodeUrl": true,
+        "settingRebuildPath": true,
+        "settingFollowRedirects": "global",
+        "_type": "request"
+      },
+      {
+        "_id": "req_tariff_holiday_delete",
+        "parentId": "fld_tariff_management",
+        "modified": 1681084800000,
+        "created": 1681084800000,
+        "url": "{{ _.API_URL }}/admin/tariffs/holiday",
+        "name": "Удаление праздничного дня",
+        "description": "",
+        "method": "DELETE",
+        "body": {
+          "mimeType": "application/json",
+          "text": "{\n  \"cityId\": 1,\n  \"carClassId\": 2,\n  \"month\": 1,\n  \"day\": 1\n}"
+        },
+        "parameters": [],
+        "headers": [
+          {
+            "name": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "authentication": {
+          "type": "bearer",
+          "token": "{{ _.JWT_TOKEN }}"
+        },
+        "metaSortKey": -1681084730000,
+        "isPrivate": false,
+        "settingStoreCookies": true,
+        "settingSendCookies": true,
+        "settingDisableRenderRequestBody": false,
+        "settingEncodeUrl": true,
+        "settingRebuildPath": true,
+        "settingFollowRedirects": "global",
+        "_type": "request"
+      },
+      {
+        "_id": "req_rides_period",
+        "parentId": "fld_rides",
+        "modified": 1681084800000,
+        "created": 1681084800000,
+        "url": "{{ _.API_URL }}/admin/rides",
+        "name": "Получение поездок за период",
+        "description": "",
+        "method": "GET",
+        "body": {},
+        "parameters": [
+          {
+            "name": "startDate",
+            "value": "2023-01-01",
+            "description": "Начальная дата"
+          },
+          {
+            "name": "endDate",
+            "value": "2023-01-31",
+            "description": "Конечная дата"
+          }
+        ],
+        "headers": [],
+        "authentication": {
+          "type": "bearer",
+          "token": "{{ _.JWT_TOKEN }}"
+        },
+        "metaSortKey": -1681084800000,
+        "isPrivate": false,
+        "settingStoreCookies": true,
+        "settingSendCookies": true,
+        "settingDisableRenderRequestBody": false,
+        "settingEncodeUrl": true,
+        "settingRebuildPath": true,
+        "settingFollowRedirects": "global",
+        "_type": "request"
+      },
+      {
+        "_id": "fld_rides",
+        "parentId": "wrk_admin_api",
+        "modified": 1681084800000,
+        "created": 1681084800000,
+        "name": "Поездки",
+        "description": "",
+        "environment": {},
+        "environmentPropertyOrder": null,
+        "metaSortKey": -1681084760000,
+        "_type": "request_group"
+      },
+      {
+        "_id": "env_base",
+        "parentId": "wrk_admin_api",
+        "modified": 1681084800000,
+        "created": 1681084800000,
+        "name": "Base Environment",
+        "data": {
+          "API_URL": "http://localhost:3008",
+          "JWT_TOKEN": "ЗАМЕНИТЕ_НА_ВАШ_JWT_ТОКЕН"
+        },
+        "dataPropertyOrder": {
+          "&": [
+            "API_URL",
+            "JWT_TOKEN"
+          ]
+        },
+        "color": null,
+        "isPrivate": false,
+        "metaSortKey": 1681084800000,
+        "_type": "environment"
+      },
+      {
+        "_id": "env_dev",
+        "parentId": "env_base",
+        "modified": 1681084800000,
+        "created": 1681084800000,
+        "name": "Development",
+        "data": {
+          "API_URL": "http://localhost:3008"
+        },
+        "dataPropertyOrder": {
+          "&": [
+            "API_URL"
+          ]
+        },
+        "color": "#7d69cb",
+        "isPrivate": false,
+        "metaSortKey": 1681084800000,
+        "_type": "environment"
+      },
+      {
+        "_id": "env_prod",
+        "parentId": "env_base",
+        "modified": 1681084800000,
+        "created": 1681084800000,
+        "name": "Production",
+        "data": {
+          "API_URL": "https://api.bas-taxi.com/admin"
+        },
+        "dataPropertyOrder": {
+          "&": [
+            "API_URL"
+          ]
+        },
+        "color": "#fc0303",
+        "isPrivate": false,
+        "metaSortKey": 1681084800100,
+        "_type": "environment"
+      }
+    ]
+  }
