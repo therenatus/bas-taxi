@@ -8,12 +8,12 @@ export const authMiddleware = (roles = []) => {
     return (req, res, next) => {
         const authHeader = req?.headers?.authorization;
         if (!authHeader) {
-            return res.status(401).json({ message: 'Token is missing' });
+            return res.status(401).json({ message: 'Token is missing 1' });
         }
 
         const token = authHeader.split(' ')[1];
         if (!token) {
-            return res.status(401).json({ message: 'Token is missing' });
+            return res.status(401).json({ message: 'Token is missing 1' });
         }
 
         try {

@@ -1,5 +1,5 @@
 import City from './city.model.js';
-import CarClass from './car-class.model.js';
+import {CarClass} from './car-class.model.js';
 import Tariff from './tarrif.model.js';
 import TariffHistory from './tariff-history.model.js';
 

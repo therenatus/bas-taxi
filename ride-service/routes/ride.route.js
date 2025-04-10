@@ -30,7 +30,8 @@ import {
     deleteHolidayHandler,
     getRidesByTimeRange,
     getAllUserRidesHandler,
-    cancelRideIfPassengerNotArrivedHandler
+    cancelRideIfPassengerNotArrivedHandler,
+    createTariffHandler,
 } from '../controllers/ride.controller.js';
 import { authMiddleware } from "../middlewares/auth.middleware.js";
 
@@ -170,6 +171,58 @@ const router = express.Router();
  *         description: Внутренняя ошибка сервера
  */
 router.post('/request', authMiddleware(['driver', 'passenger']), requestRideHandler);
+
+/**
+ * @swagger
+ * /tariffs:
+ *   post:
+ *     summary: Создание нового тарифа
+ *     tags: [Tariffs]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - cityId
+ *               - carClassId
+ *               - baseFare
+ *               - costPerKm
+ *               - costPerMinute
+ *             properties:
+ *               cityId:
+ *                 type: integer
+ *                 description: ID города
+ *               carClassId:
+ *                 type: integer
+ *                 description: ID класса автомобиля
+ *               baseFare:
+ *                 type: number
+ *                 description: Базовая стоимость поездки
+ *               costPerKm:
+ *                 type: number
+ *                 description: Стоимость за километр
+ *               costPerMinute:
+ *                 type: number
+ *                 description: Стоимость за минуту
+ *               seasonalMultiplier:
+ *                 type: number
+ *                 description: Сезонный множитель
+ *                 default: 1.0
+ *     responses:
+ *       201:
+ *         description: Тариф успешно создан
+ *       400:
+ *         description: Неверные параметры запроса
+ *       409:
+ *         description: Тариф уже существует
+ *       500:
+ *         description: Ошибка сервера
+ */
+router.post('/tariffs', createTariffHandler);
 
 router.get('/:rideId', getRideDetailsHandler);
 
@@ -1288,6 +1341,7 @@ router.get('/my-rides', authMiddleware(['driver', 'passenger']), getAllUserRides
  *       500:
  *         description: Ошибка сервера
  */
-router.post('/:rideId/cancel-passenger-no-show', authMiddleware(['driver']), cancelRideIfPassengerNotArrivedHandler);
+router.post('/:rideId/timeout-cancel', authMiddleware(['driver']), cancelRideIfPassengerNotArrivedHandler);
+
 
 export default router;

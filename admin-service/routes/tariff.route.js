@@ -94,7 +94,7 @@ router.get('/tariffs', getTariffs);
  *         description: Внутренняя ошибка сервера
  */
 //router.post('/tariffs', authMiddleware, authorizeRoles(['superadmin', 'admin']), validateMiddleware(createTariffSchema), createTariff);
-router.post('/tariffs', validateMiddleware(createTariffSchema), createTariff);
+router.post('/tariffs', createTariff);
 
 /**
  * @swagger

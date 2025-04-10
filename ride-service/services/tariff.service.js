@@ -1027,3 +1027,121 @@ export const updateBaseTariff = async (cityId, carClassId, baseFare, costPerKm, 
         throw error;
     }
 };
+
+export const createTariffInService = async (tariffData, correlationId, adminId) => {
+    const transaction = await Tariff.sequelize.transaction();
+    try {
+        const { cityId, carClassId } = tariffData;
+
+        // Проверяем существующий тариф
+        const existingTariff = await Tariff.findOne({
+            where: {
+                cityId,
+                carClassId,
+                isActive: true
+            },
+            transaction
+        });
+
+        if (existingTariff) {
+            throw new Error('Активный тариф для этих параметров уже существует');
+        }
+
+        // Создаем новый тариф
+        const tariff = await Tariff.create({
+            ...tariffData,
+            createdBy: adminId
+        }, { transaction });
+
+        // Создаем запись в истории
+        const { TariffHistory } = await import('./tariff-history.model.js');
+        await TariffHistory.create({
+            tariffId: tariff.id,
+            cityId,
+            carClassId,
+            newValues: JSON.stringify(tariff.dataValues),
+            changedBy: adminId,
+            changeReason: 'Создание нового тарифа'
+        }, { transaction });
+
+        // Инвалидируем кеш
+        const redisKey = getRedisKey(cityId, carClassId);
+        await redis.del(redisKey);
+
+        await transaction.commit();
+
+        logger.info('Новый тариф создан', {
+            tariffId: tariff.id,
+            cityId,
+            carClassId,
+            correlationId,
+            adminId
+        });
+
+        return tariff;
+    } catch (error) {
+        await transaction.rollback();
+        logger.error('Ошибка при создании тарифа', {
+            error: error.message,
+            tariffData,
+            correlationId,
+            adminId
+        });
+        throw error;
+    }
+};
+
+export const getTariffsFromService = async (cityId, carClassId) => {
+    try {
+        const redisKey = getRedisKey(cityId, carClassId);
+        
+        // Пробуем получить из кеша
+        let tariffs = await redis.get(redisKey);
+        if (tariffs) {
+            logger.info('Тарифы загружены из Redis', { cityId, carClassId });
+            return JSON.parse(tariffs);
+        }
+
+        // Получаем из БД
+        tariffs = await Tariff.findAll({
+            where: {
+                cityId,
+                carClassId,
+                isActive: true
+            },
+            order: [
+                ['month', 'ASC'],
+                ['hour', 'ASC']
+            ]
+        });
+
+        if (!tariffs.length) {
+            throw new Error('Тарифы не найдены');
+        }
+
+        // Преобразуем и добавляем effectivePrice
+        const processedTariffs = tariffs.map(tariff => ({
+            ...tariff.dataValues,
+            effectivePrice: calculateEffectivePrice(tariff)
+        }));
+
+        // Кешируем результат
+        await redis.set(redisKey, JSON.stringify(processedTariffs), { EX: 3600 });
+
+        return processedTariffs;
+    } catch (error) {
+        logger.error('Ошибка при получении тарифов', {
+            error: error.message,
+            cityId,
+            carClassId
+        });
+        throw error;
+    }
+};
+
+// Вспомогательная функция для расчета эффективной цены
+const calculateEffectivePrice = (tariff) => {
+    const basePrice = tariff.baseFare;
+    const seasonalMultiplier = tariff.seasonalMultiplier || 1.0;
+    return basePrice * seasonalMultiplier;
+};

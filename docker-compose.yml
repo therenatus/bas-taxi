@@ -223,6 +223,7 @@ services:
         condition: service_healthy
     networks:
       - taxi-net
+    command: sh -c "npm run init-data && npm start"
 
   payment-service:
     build: ./payment-service

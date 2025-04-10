@@ -74,6 +74,9 @@ const router = Router();
  *           format: date-time
  */
 
+
+router.use('/', tariffRouter);
+
 /**
  * @swagger
  * /admin/users:
@@ -848,7 +851,6 @@ router.post('/user/:userId/unblock', authMiddleware, authorizeRoles(['superadmin
 router.post('/driver/:driverId/unblock', authMiddleware, authorizeRoles(['superadmin', 'admin']), unblockDriverViaGateway);
 
 // Подключаем роутер для тарифов
-router.use('/', tariffRouter);
 
 /**
  * @swagger

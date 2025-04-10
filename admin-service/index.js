@@ -34,15 +34,15 @@ app.use((req, res, next) => {
 setupSwagger(app);
 app.use('/', adminRoutes);
 // Middleware для проверки авторизации для маршрутов API (кроме Swagger)
-app.use((req, res, next) => {
-    // Пропускаем запросы к Swagger
-    if (req.path.startsWith('/api-docs')) {
-        return next();
-    }
-    
-    // Для остальных маршрутов применяется авторизация через соответствующие middleware
-    next();
-});
+// app.use((req, res, next) => {
+//     // Пропускаем запросы к Swagger
+//     if (req.path.startsWith('/api-docs')) {
+//         return next();
+//     }
+//
+//     // Для остальных маршрутов применяется авторизация через соответствующие middleware
+//     next();
+// });
 
 // Подключаем маршруты API после настройки Swagger и авторизации
 

@@ -31,6 +31,7 @@ import {
     addHoliday,
     updateHoliday,
     deleteHoliday,
+    addTariff
 } from '../services/tariff.service.js';
 
 import logger from '../utils/logger.js';
@@ -909,3 +910,73 @@ export const cancelRideIfPassengerNotArrivedHandler = async (req, res) => {
         });
     }
 };
+
+/**
+ * Создание нового тарифа
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+export const createTariffHandler = async (req, res) => {
+    const correlationId = req.headers['x-correlation-id'] || 'none';
+    const adminId = req.headers['x-admin-id'];
+    
+    try {
+        // Валидация обязательных полей
+        const requiredFields = ['cityId', 'carClassId', 'baseFare', 'costPerKm', 'costPerMinute'];
+        for (const field of requiredFields) {
+            if (!req.body[field]) {
+                throw new Error(`Отсутствует обязательное поле: ${field}`);
+            }
+        }
+
+        const tariffData = {
+            ...req.body,
+            hourlyAdjustments: req.body.hourlyAdjustments || {},
+            monthlyAdjustments: req.body.monthlyAdjustments || {},
+            holidayAdjustments: req.body.holidayAdjustments || [],
+            isActive: true
+        };
+
+        logger.info('Создание нового тарифа', {
+            correlationId,
+            adminId,
+            cityId: tariffData.cityId,
+            carClassId: tariffData.carClassId
+        });
+
+        const newTariff = await addTariff(tariffData, adminId);
+
+        logger.info('Тариф успешно создан', {
+            correlationId,
+            adminId,
+            tariffId: newTariff.id,
+            cityId: newTariff.cityId,
+            carClassId: newTariff.carClassId
+        });
+
+        res.status(201).json({
+            message: 'Тариф успешно создан',
+            data: newTariff
+        });
+    } catch (error) {
+        logger.error('Ошибка при создании тарифа', {
+            error: error.message,
+            correlationId,
+            adminId,
+            body: req.body
+        });
+
+        if (error.message.includes('уже существует')) {
+            return res.status(409).json({
+                error: 'Тариф с такими параметрами уже существует',
+                details: error.message
+            });
+        }
+
+        res.status(500).json({
+            error: 'Ошибка при создании тарифа',
+            details: error.message
+        });
+    }
+};
+
