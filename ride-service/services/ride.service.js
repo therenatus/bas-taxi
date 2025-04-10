@@ -836,13 +836,13 @@ export const getUserRides = async (userId, correlationId) => {
     try {
         const rides = await  Ride.findAll({
             where: {
-                userId: userId,
-                status: ['requested', 'accepted', 'in_progress']
+                passengerId: userId,
+                status: ['requested', 'accepted', 'in_progress', 'completed', 'cancelled', 'pending']
             }
         });
 
         logger.info('Данные успешно получены', { userId, correlationId });
-
+        console.log(rides);
         return rides;
     } catch (error) {
         logger.error('Ошибка при получении списка поездок пассажира', { error: error.message, userId });

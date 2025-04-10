@@ -6,8 +6,7 @@
   "type": "module",
   "scripts": {
     "start": "node index.js",
-    "dev": "nodemon index.js",
-    "init-data": "node scripts/initBaseData.js"
+    "dev": "nodemon index.js"
   },
   "dependencies": {
     "@googlemaps/google-maps-services-js": "^3.4.0",

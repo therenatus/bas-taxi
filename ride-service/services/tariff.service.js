@@ -2,6 +2,7 @@ import { getChannel } from '../utils/rabbitmq.js';
 import logger from '../utils/logger.js';
 import redis from '../utils/redis.js';
 import Tariff from '../models/tarrif.model.js';
+import City from '../models/city.model.js';
 
 const getRedisKey = (cityId, carClassId) => `tariff:${cityId}:${carClassId}`;
 
@@ -85,14 +86,35 @@ export const getCityTariff = async (city) => {
 
 const getTariffFromDB = async (city) => {
     try {
-        const tariffRecord = await Tariff.findOne({ where: { city } });
+        // Сначала находим город по названию
+        const cityRecord = await City.findOne({ where: { name: city } });
+        
+        if (!cityRecord) {
+            logger.warn('tariff.service: город не найден в базе данных', { city });
+            return null;
+        }
+        
+        // Используем cityId для поиска тарифа
+        const tariffRecord = await Tariff.findOne({ 
+            where: { 
+                cityId: cityRecord.id,
+                carClassId: 1, // Используем базовый класс автомобиля по умолчанию
+                isActive: true 
+            } 
+        });
+        
         if (tariffRecord) {
             return {
                 baseFare: tariffRecord.baseFare,
                 costPerKm: tariffRecord.costPerKm,
                 costPerMinute: tariffRecord.costPerMinute,
+                monthlyAdjustments: tariffRecord.monthlyAdjustments,
+                hourlyAdjustments: tariffRecord.hourlyAdjustments,
+                holidayAdjustments: tariffRecord.holidayAdjustments,
+                serviceFeePercent: tariffRecord.serviceFeePercent
             };
         }
+        
         return null;
     } catch (error) {
         logger.error('tariff.service: ошибка при обращении к базе данных', { city, error: error.message });
