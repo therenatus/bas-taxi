@@ -46,25 +46,25 @@ const startServer = async () => {
         process.exit(1);
     }
 
-    app.get('/send-test-notification', (req, res) => {
-        const driverId = 1; // Пример ID водителя
-        const passengerId = 1; // Пример ID пассажира
+    // app.get('/send-test-notification', (req, res) => {
+    //     const driverId = 1; // Пример ID водителя
+    //     const passengerId = 1; // Пример ID пассажира
 
-        emitToDriver(driverId, {
-            event: 'tst',
-            data: {
-                message: 'тестовое уведомление водителю!!!'
-            }
-        });
+    //     emitToDriver(driverId, {
+    //         event: 'tst',
+    //         data: {
+    //             message: 'тестовое уведомление водителю!!!'
+    //         }
+    //     });
 
-        emitToPassenger(passengerId, {
-            event: 'ride_accepted',
-            data: {
-                message: 'тестовое уведомление пассажиру!!!'
-            }
-        });
-        res.send('Тестовые уведомления отправлены!');
-    });
+    //     emitToPassenger(passengerId, {
+    //         event: 'ride_accepted',
+    //         data: {
+    //             message: 'тестовое уведомление пассажиру!!!'
+    //         }
+    //     });
+    //     res.send('Тестовые уведомления отправлены!');
+    // });
     setupSwagger(app);
     app.use('/', rideRoute);
 

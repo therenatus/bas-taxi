@@ -1308,7 +1308,7 @@ router.get('/my-rides', authMiddleware(['driver', 'passenger']), getAllUserRides
 
 /**
  * @swagger
- * /rides/{rideId}/cancel-passenger-no-show:
+ * /rides/{rideId}/timeout-cancel:
  *   post:
  *     summary: Отмена поездки из-за неявки пассажира (доступно если водитель на месте более 10 минут)
  *     tags: [Rides]
