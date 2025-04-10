@@ -515,7 +515,7 @@ router.post('/parking/deactivate', authMiddleware(['driver']), deactivateParking
  *       500:
  *         description: Внутренняя ошибка сервера
  */
-router.get('/parking', authMiddleware(['passenger']), getNearbyParkedDriversHandler);
+router.get('/parking/list', authMiddleware(['passenger']), getNearbyParkedDriversHandler);
 
 /**
  * @swagger
@@ -730,6 +730,8 @@ router.get(
  *         description: Не удалось получить данные о поездке
  */
 router.get('/rides/:rideId', authMiddleware(['driver', 'passenger', 'admin', ' moderator']), getRideDetailsHandler);
+
+router.get('/:rideId', getRideDetailsHandler);
 
 // /**
 //  * @swagger
