@@ -313,7 +313,7 @@ export const blockUserViaGateway = async (req, res) => {
 
 export const createAdmin = async (req, res) => {
     try {
-        const response = await axios.post(`${API_GATEWAY_URL}/admin/create`, req.body, {
+        const response = await axios.post(`${API_GATEWAY_URL}/auth/admin/create`, req.body, {
             headers: {
                 Authorization: req.headers.authorization,
                 'X-Correlation-ID': req.headers['x-correlation-id']
@@ -335,12 +335,13 @@ export const createAdmin = async (req, res) => {
 export const getAdminById = async (req, res) => {
     const { id } = req.params;
     try {
-        const response = await axios.get(`${API_GATEWAY_URL}/admin/${id}`, {
+        const response = await axios.get(`${API_GATEWAY_URL}/auth/admin/${id}`, {
             headers: {
                 Authorization: req.headers.authorization,
                 'X-Correlation-ID': req.headers['x-correlation-id']
             }
         });
+        console.log({response});
         res.status(200).json(response.data);
     } catch (error) {
         logger.error('Ошибка при получении администратора через API Gateway', { 

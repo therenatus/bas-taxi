@@ -612,7 +612,8 @@ router.get('/rides', authMiddleware, authorizeRoles(['superadmin', 'admin']), ge
  *       403:
  *         description: Доступ запрещен
  */
-router.post('/create', authMiddleware, authorizeRoles(['superadmin']), validateMiddleware(createAdminSchema), createAdmin);
+// router.post('/create', authMiddleware, authorizeRoles(['superadmin']), validateMiddleware(createAdminSchema), createAdmin);
+router.post('/create', authMiddleware, authorizeRoles(['superadmin']), createAdmin);
 
 /**
  * @swagger
