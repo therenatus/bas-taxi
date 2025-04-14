@@ -3,6 +3,7 @@ import logger from '../utils/logger.js';
 import redis from '../utils/redis.js';
 import Tariff from '../models/tarrif.model.js';
 import City from '../models/city.model.js';
+import { CarClass } from '../models/car-class.model.js';
 
 const getRedisKey = (cityId, carClassId) => `tariff:${cityId}:${carClassId}`;
 
@@ -27,32 +28,39 @@ const getHolidayAdjustmentPercent = (date, holidayAdjustments) => {
     return holiday ? holiday.percent : 0;
 };
 
-export const getTariff = async (cityId, carClassId) => {
-    const redisKey = getRedisKey(cityId, carClassId);
+export const getTariff = async (cityId) => {
+    try {
+        const tariffs = await Tariff.findAll({ 
+            where: { 
+                cityId,
+                isActive: true 
+            },
+            include: {
+                model: CarClass,
+                as: 'car_class'
+            }
+        });
 
-    let tariff = await redis.get(redisKey);
-    if (tariff) {
-        logger.info('Тариф загружен из Redis', { cityId, carClassId });
-        return JSON.parse(tariff);
+        if (!tariffs || tariffs.length === 0) {
+            logger.warn('Тарифы не найдены', { cityId });
+            throw new Error('Тарифы не найдены');
+        }
+
+        // Кешируем каждый тариф отдельно
+        for (const tariff of tariffs) {
+            const redisKey = getRedisKey(cityId, tariff.carClassId);
+            await redis.set(redisKey, JSON.stringify(tariff), { EX: 3600 });
+        }
+
+        logger.info('Тарифы загружены из БД и закешированы', { cityId });
+        return tariffs;
+    } catch (error) {
+        logger.error('Ошибка при получении тарифов', { 
+            error: error.message,
+            cityId 
+        });
+        throw error;
     }
-
-    tariff = await Tariff.findOne({ 
-        where: { 
-            cityId, 
-            carClassId,
-            isActive: true 
-        } 
-    });
-
-    if (!tariff) {
-        logger.warn('Тариф не найден', { cityId, carClassId });
-        throw new Error('Тариф не найден');
-    }
-
-    await redis.set(redisKey, JSON.stringify(tariff), { EX: 3600 });
-    logger.info('Тариф загружен из БД и закеширован', { cityId, carClassId });
-
-    return tariff;
 };
 
 export const getCityTariff = async (city) => {
@@ -293,7 +301,7 @@ export const calculatePrice = async ({ cityId, carClassId, distance, duration })
     const now = new Date();
     const hour = now.getHours();
     const month = now.getMonth() + 1; // JavaScript months are 0-based
-    const tariff = await getTariff(cityId, carClassId);
+    const tariff = await getTariff(cityId);
 
     // Определяем применяемые проценты изменения для costPerKm
     const holidayPercent = getHolidayAdjustmentPercent(now, tariff.holidayAdjustments);
@@ -1166,4 +1174,73 @@ const calculateEffectivePrice = (tariff) => {
     const basePrice = tariff.baseFare;
     const seasonalMultiplier = tariff.seasonalMultiplier || 1.0;
     return basePrice * seasonalMultiplier;
+};
+
+export const calculateRideCost = async (cityId, carClassId, distance, duration) => {
+    try {
+        const now = new Date();
+        const hour = now.getHours();
+        const month = now.getMonth() + 1; // JavaScript months are 0-based
+        const tariffs = await getTariff(cityId);
+        
+        // Находим нужный тариф по carClassId
+        const tariff = tariffs.find(t => t.carClassId === carClassId);
+        if (!tariff) {
+            throw new Error(`Тариф не найден для класса автомобиля ${carClassId}`);
+        }
+
+        // Определяем применяемые проценты изменения для costPerKm
+        let costPerKm = tariff.costPerKm;
+        let costPerMinute = tariff.costPerMinute;
+
+        // Применяем ночной коэффициент
+        if (hour >= 22 || hour < 6) {
+            costPerKm *= (1 + tariff.nightCoefficient / 100);
+            costPerMinute *= (1 + tariff.nightCoefficient / 100);
+        }
+
+        // Применяем месячный коэффициент
+        if (month >= 11 || month <= 2) {
+            costPerKm *= (1 + tariff.monthlyCoefficient / 100);
+            costPerMinute *= (1 + tariff.monthlyCoefficient / 100);
+        }
+
+        // Проверяем праздничные дни
+        if (isHoliday(now)) {
+            costPerKm *= (1 + tariff.holidayCoefficient / 100);
+            costPerMinute *= (1 + tariff.holidayCoefficient / 100);
+        }
+
+        // Рассчитываем стоимость
+        const distanceCost = distance * costPerKm;
+        const timeCost = duration * costPerMinute;
+        const totalCost = distanceCost + timeCost;
+
+        logger.info('Стоимость поездки рассчитана', {
+            cityId,
+            carClassId,
+            distance,
+            duration,
+            totalCost,
+            distanceCost,
+            timeCost
+        });
+
+        return {
+            totalCost,
+            distanceCost,
+            timeCost,
+            costPerKm,
+            costPerMinute
+        };
+    } catch (error) {
+        logger.error('Ошибка при расчете стоимости поездки', {
+            error: error.message,
+            cityId,
+            carClassId,
+            distance,
+            duration
+        });
+        throw error;
+    }
 };

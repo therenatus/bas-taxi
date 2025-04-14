@@ -323,14 +323,98 @@ router.post('/:userId/block', roleMiddleware(['admin', 'superadmin']), blockUser
 router.post('/:userId/unblock', roleMiddleware(['admin', 'superadmin']), unblockUser);
 
 router.post('/delete', deleteUser);
-router.post('/change-name', changeUserName);
+
+/**
+ * @swagger
+ * /auth/passenger/change-name:
+ *   post:
+ *     summary: Изменение имени пассажира
+ *     tags: [Passenger]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - fullName
+ *             properties:
+ *               fullName:
+ *                 type: string
+ *                 description: Новое полное имя пассажира
+ *                 example: "Иван Петров"
+ *     responses:
+ *       200:
+ *         description: Имя успешно изменено
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Имя успешно изменено"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: integer
+ *                       example: 1
+ *                     fullName:
+ *                       type: string
+ *                       example: "Иван Петров"
+ *       400:
+ *         description: Неверный запрос
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Имя не может быть пустым"
+ *       401:
+ *         description: Не авторизован
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Требуется авторизация"
+ *       404:
+ *         description: Пассажир не найден
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Пассажир не найден"
+ *       500:
+ *         description: Внутренняя ошибка сервера
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   example: "Ошибка при изменении имени"
+ */
+router.post('/change-name',roleMiddleware(['passenger']), changeUserName);
+
 router.post('/find-by-id', findUserById);
 router.post('/find-by-name', findUserByName);
 router.post('/find-by-phone', findUserByPhone);
 
 /**
  * @swagger
- * /auth/passenger/delete-self:
+ * /auth/passenger/delete:
  *   delete:
  *     summary: Удалить свой аккаунт
  *     tags: [Passenger]
@@ -360,7 +444,7 @@ router.post('/find-by-phone', findUserByPhone);
  *       401:
  *         description: Не авторизован
  */
-router.delete('/delete-self', roleMiddleware(['passenger']), deleteSelf);
+router.delete('/delete', roleMiddleware(['passenger']), deleteSelf);
 
 // router.get('/:id', getDriverById);
 // router.get('/data/:id', getDriverData);

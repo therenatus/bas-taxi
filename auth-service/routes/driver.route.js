@@ -479,7 +479,7 @@ router.get('/verify-token', verifyTokenController);
  *                   type: string
  *                   example: "Ошибка при удалении профиля"
  */
-router.delete('/delete', verifyTokenController, deleteDriverProfile);
+router.delete('/delete', authenticate, deleteDriverProfile);
 
 /**
  * @swagger

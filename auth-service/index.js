@@ -77,7 +77,7 @@ const startServer = async () => {
     try {
         await sequelize.authenticate();
         logger.info('Successfully connected to the database');
-        await sequelize.sync();
+        await sequelize.sync({ alter: true });
         logger.info('Database models synchronized');
 
         await connectRabbitMQ();

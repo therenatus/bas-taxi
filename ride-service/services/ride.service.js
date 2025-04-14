@@ -119,15 +119,30 @@ const startDriverSearch = async (rideId, latitude, longitude, correlationId) => 
     try {
         const ride = await Ride.findByPk(rideId);
         if (!ride || ride.status !== 'pending') {
+            logger.info('Прекращение поиска водителя: поездка не найдена или не в статусе pending', 
+                { rideId, status: ride?.status, correlationId });
             return;
         }
 
         const searchDuration = Date.now() - ride.searchStartTime;
-        if (searchDuration >= 180000) {
-            ride.status = 'cancelled';
-            ride.cancellationReason = 'Превышено время ожидания поиска водителя';
-            await ride.save();
+        if (searchDuration >= 180000) { // 3 минуты истекли
+            logger.info('Поиск водителя превысил таймаут в 3 минуты, отмена поездки', 
+                { rideId, searchDuration, correlationId });
             
+            // Обновляем статус поездки на cancelled
+            await ride.update({ 
+                status: 'cancelled', 
+                cancellationReason: 'Превышено время ожидания поиска водителя' 
+            });
+            
+            // Публикуем событие отмены
+            await publishRideEvent('ride_cancelled', {
+                rideId,
+                reason: 'Не найдено доступных водителей',
+                searchDuration
+            }, correlationId);
+            
+            // Уведомляем пассажира
             emitToPassenger(ride.passengerId, {
                 event: 'ride_cancelled',
                 data: {
@@ -146,6 +161,9 @@ const startDriverSearch = async (rideId, latitude, longitude, correlationId) => 
         );
 
         if (availableDrivers.length === 0) {
+            logger.info('Не найдено доступных водителей, повторный поиск через 5 секунд', 
+                { rideId, correlationId, searchDuration });
+                
             setTimeout(() => {
                 startDriverSearch(rideId, latitude, longitude, correlationId);
             }, 5000);
@@ -159,12 +177,15 @@ const startDriverSearch = async (rideId, latitude, longitude, correlationId) => 
         setTimeout(async () => {
             const updatedRide = await Ride.findByPk(rideId);
             if (updatedRide && updatedRide.status === 'pending') {
+                logger.info('Водитель не ответил в течение 5 секунд, добавляем в список отклонивших', 
+                    { rideId, driverId: nextDriver.member, correlationId });
+                    
                 updatedRide.rejectedDrivers = [...updatedRide.rejectedDrivers, nextDriver.member];
                 await updatedRide.save();
                 
                 startDriverSearch(rideId, latitude, longitude, correlationId);
             }
-        }, 5000);
+        }, 5000); // Уменьшаем таймаут ожидания ответа водителя обратно на 5 секунд
 
     } catch (error) {
         logger.error('Ошибка в процессе поиска водителей', { error: error.message, rideId, correlationId });
@@ -869,6 +890,9 @@ export const getDriverRides = async (driverId, correlationId) => {
 };
 
 export const getAllUserRides = async (userId, userType, correlationId) => {
+    console.log('userId', userId);
+    console.log('userType', userType);
+    console.log('correlationId', correlationId);
     try {
         let rides = [];
         

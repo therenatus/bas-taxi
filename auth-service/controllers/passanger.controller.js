@@ -158,7 +158,7 @@ export const blockUser = async (req, res) => {
     try {
         const { userId } = req.params;
         const { reason } = req.body;
-        const adminId = req.user?.id;
+        const adminId = req.adminId;
         const correlationId = req.headers['x-correlation-id'] || req.headers['correlationid'];
         
         logger.info('blockUser: Начало обработки запроса на блокировку пассажира', {
@@ -200,7 +200,7 @@ export const blockUser = async (req, res) => {
 export const unblockUser = async (req, res) => {
     try {
         const { userId } = req.params;
-        const adminId = req.user?.id;
+        const adminId = req.user.adminId;
         const correlationId = req.headers['x-correlation-id'] || req.headers['correlationid'];
         
         logger.info('unblockUser: Начало обработки запроса на разблокировку пассажира', {
@@ -250,15 +250,45 @@ export const deleteUser = async (req, res) => {
 
 export const changeUserName = async (req, res) => {
     const correlationId = req.headers['x-correlation-id'] || req.headers['correlationid'];
-    logger.info('changeUserName: Начало обработки запроса', { correlationId });
+    const userId = req.user.userId || req.user.id;
+    
+    logger.info('changeUserName: Начало обработки запроса', { correlationId, userId });
+    
     try {
-        const { id, reason } = req.body;
-        const user = await changeNameService({ id, reason, correlationId });
-        logger.info('changeUserName: Имя пользователя изменено', { correlationId, id, reason });
-        res.status(200).json(user);
+        const { fullName } = req.body;
+        
+        if (!fullName || fullName.trim() === '') {
+            logger.warn('changeUserName: Пустое имя', { correlationId, userId });
+            return res.status(400).json({ error: 'Имя не может быть пустым' });
+        }
+        
+        const user = await changeNameService({ id: userId, fullName, correlationId });
+        
+        logger.info('changeUserName: Имя пользователя изменено', { 
+            correlationId, 
+            userId, 
+            fullName 
+        });
+        
+        res.status(200).json({
+            message: 'Имя успешно изменено',
+            data: {
+                id: user.id,
+                fullName: user.fullName
+            }
+        });
     } catch (error) {
-        logger.error('changeUserName: Ошибка при изменении имени пользователя', { error: error.message, correlationId });
-        res.status(400).json({ error: error.message });
+        logger.error('changeUserName: Ошибка при изменении имени пользователя', { 
+            error: error.message, 
+            correlationId,
+            userId
+        });
+        
+        if (error.message.includes('не найден')) {
+            return res.status(404).json({ error: error.message });
+        }
+        
+        res.status(500).json({ error: 'Ошибка при изменении имени' });
     }
 };
 

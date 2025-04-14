@@ -184,8 +184,14 @@ export const getDriverData = async (req, res) => {
 };
 
 export const deleteDriverProfile = async (req, res) => {
-    const driverId = req.user.driverId;
+    // Получаем ID водителя из запроса или из токена
+    const driverId = req.user.driverId || req.user.userId;
     logger.info('deleteDriverProfile: Начало обработки запроса на удаление профиля', { driverId });
+
+    if (!driverId) {
+        logger.error('deleteDriverProfile: ID водителя не найден', { user: req.user });
+        return res.status(400).json({ error: 'ID водителя не найден' });
+    }
 
     try {
         const result = await deleteDriverProfileService(driverId);
@@ -211,7 +217,7 @@ export const deleteDriverProfile = async (req, res) => {
 export const blockDriver = async (req, res) => {
     const { driverId } = req.params;
     const { reason } = req.body;
-    const adminId = req.user.adminId || req.user.id;
+    const adminId = req.user.adminId;
     const correlationId = req.headers['x-correlation-id'] || req.headers['correlationid'];
     
     logger.info('blockDriver: Начало обработки запроса на блокировку водителя', { 
@@ -278,7 +284,7 @@ export const blockDriver = async (req, res) => {
 export const unblockDriver = async (req, res) => {
     const correlationId = req.headers['x-correlation-id'] || uuidv4();
     const { driverId } = req.params;
-    const adminId = req.user.id;
+    const adminId = req.user.adminId;
 
     try {
         logger.info('unblockDriver controller: Запрос на разблокировку водителя', { driverId, adminId, correlationId });

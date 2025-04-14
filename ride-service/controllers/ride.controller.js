@@ -399,22 +399,22 @@ export const getDriverRidesHandler = async (req, res) => {
 
 export const getTariffHandler = async (req, res) => {
     try {
-        const { cityId, carClassId } = req.params;
+        const { cityId } = req.params;
         const correlationId = req.correlationId;
 
-        const tariff = await getTariff(parseInt(cityId), parseInt(carClassId));
+        const tariffs = await getTariff(parseInt(cityId));
 
         res.status(200).json({ 
-            message: 'Тариф успешно получен', 
-            tariff 
+            message: 'Тарифы успешно получены', 
+            tariffs 
         });
     } catch (error) {
-        logger.error('Ошибка при получении тарифа', { 
+        logger.error('Ошибка при получении тарифов', { 
             error: error.message, 
             correlationId: req.correlationId 
         });
         
-        if (error.message === 'Тариф не найден') {
+        if (error.message === 'Тарифы не найдены') {
             return res.status(404).json({ 
                 error: error.message, 
                 correlationId: req.correlationId 
@@ -422,7 +422,7 @@ export const getTariffHandler = async (req, res) => {
         }
         
         res.status(500).json({ 
-            error: 'Ошибка при получении тарифа', 
+            error: 'Ошибка при получении тарифов', 
             correlationId: req.correlationId 
         });
     }
@@ -844,11 +844,16 @@ export const getRidesByTimeRange = async (req, res) => {
 };
 
 export const getAllUserRidesHandler = async (req, res) => {
-    const userId = req.user.id;
+    const userId = req.user.userId ? req.user.userId : req.user.driverId;
     const userType = req.user.role === 'driver' ? 'driver' : 'passenger';
     const correlationId = req.headers['x-correlation-id'] || req.correlationId;
 
     try {
+        if (!userId) {
+            logger.error('ID пользователя не найден в токене', { userType, correlationId });
+            return res.status(400).json({ error: 'ID пользователя не найден' });
+        }
+
         const rides = await getAllUserRides(userId, userType, correlationId);
         
         if (rides.length === 0) {

@@ -147,6 +147,7 @@ export const confirmLoginService = async ({ phoneNumber, verificationCode, corre
 
 export const verifyTokenService = async (token, correlationId) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret');
+    console.log('decode', decoded);
 
     logger.info('verifyTokenService: Токен расшифрован', { userId: decoded.userId, correlationId });
 
@@ -353,7 +354,7 @@ export const deleteUserService = async ({ id, reason, correlationId }) => {
     }
 };
 
-export const changeNameService = async ({id, fullName, correlationId }) => {
+export const changeNameService = async ({ id, fullName, correlationId }) => {
     try {
         logger.info('changeNameService: Начало изменения имени', { id, fullName, correlationId });
         const user = await User.findByPk(id);
@@ -363,6 +364,10 @@ export const changeNameService = async ({id, fullName, correlationId }) => {
             throw new Error('Пользователь не найден');
         }
 
+        if (!fullName || fullName.trim() === '') {
+            return res.status(400).json({ error: 'Имя не может быть пустым' });
+        }
+
         user.fullName = fullName;
         await user.save();
 
@@ -370,6 +375,9 @@ export const changeNameService = async ({id, fullName, correlationId }) => {
         return user;
     } catch (error) {
         logger.error('changeNameService: Ошибка при изменении имени', { error, correlationId });
+        if (error.message.includes('не найден')) {
+            return res.status(404).json({ error: error.message });
+        }
         throw error;
     }
 };

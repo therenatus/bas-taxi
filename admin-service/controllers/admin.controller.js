@@ -156,7 +156,7 @@ export const getReviews = async (req, res) => {
 export const updateSettings = async (req, res) => {
     const { cityId, carClassId, hour, month, updates } = req.body;
     const correlationId = req.headers['x-correlation-id'];
-    const adminId = req.user.id;
+    const adminId = req.user.adminId;
 
     try {
         const message = await updateSettingsInService({

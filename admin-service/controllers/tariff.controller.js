@@ -6,7 +6,7 @@ const API_GATEWAY_URL = process.env.API_GATEWAY_URL;
 export const createTariff = async (req, res) => {
     const tariffData = req.body;
     const correlationId = req.headers['x-correlation-id'];
-    const adminId = req.user?.id || 1;
+    const adminId = req.user.adminId;
 
     try {
         // Валидация обязательных полей
@@ -100,12 +100,12 @@ export const createTariff = async (req, res) => {
 };
 
 export const getTariffs = async (req, res) => {
-    const { cityId, carClassId } = req.params;
+    const { cityId } = req.params;
     const correlationId = req.headers['x-correlation-id'];
 
     try {
         const response = await axios.get(
-            `${API_GATEWAY_URL}/rides/tariffs/${cityId}/${carClassId}`, // Путь уже был верным
+            `${API_GATEWAY_URL}/rides/tariffs/${cityId}`,
             {
                 headers: {
                     'Authorization': req.headers.authorization,
@@ -114,15 +114,21 @@ export const getTariffs = async (req, res) => {
             }
         );
 
-        const tariffs = response.data;
+        const tariffs = response.data.tariffs;
 
-        // Группируем тарифы по месяцам для удобства
+        // Группируем тарифы по месяцам и классам автомобилей для удобства
         const groupedTariffs = tariffs.reduce((acc, tariff) => {
             const month = tariff.month || 'base';
+            const carClass = tariff.carClassId || 'all';
+            
             if (!acc[month]) {
-                acc[month] = [];
+                acc[month] = {};
             }
-            acc[month].push({
+            if (!acc[month][carClass]) {
+                acc[month][carClass] = [];
+            }
+            
+            acc[month][carClass].push({
                 ...tariff,
                 effectivePrice: parseFloat(tariff.effectivePrice).toFixed(2)
             });
@@ -130,8 +136,7 @@ export const getTariffs = async (req, res) => {
         }, {});
 
         logger.info('Получены тарифы', { 
-            cityId, 
-            carClassId,
+            cityId,
             monthsCount: Object.keys(groupedTariffs).length,
             totalTariffs: tariffs.length,
             correlationId 
@@ -142,8 +147,7 @@ export const getTariffs = async (req, res) => {
             summary: {
                 totalTariffs: tariffs.length,
                 monthsCount: Object.keys(groupedTariffs).length,
-                cityId,
-                carClassId
+                cityId
             }
         });
     } catch (error) {
@@ -154,7 +158,8 @@ export const getTariffs = async (req, res) => {
 export const deleteTariff = async (req, res) => {
     const { id } = req.params;
     const correlationId = req.headers['x-correlation-id'];
-    const adminId = req.user.id;
+    console.log('req user', req.user);
+    const adminId = req.user.adminId;
 
     try {
         await axios.delete(
@@ -199,7 +204,7 @@ export const deleteTariff = async (req, res) => {
 export const updateHourlyAdjustment = async (req, res) => {
     const { cityId, carClassId, hour, multiplier } = req.body;
     const correlationId = req.headers['x-correlation-id'];
-    const adminId = req.user?.id;
+    const adminId = req.user.adminId;
 
     try {
         const response = await axios.put(
@@ -232,7 +237,7 @@ export const updateHourlyAdjustment = async (req, res) => {
 export const updateMonthlyAdjustment = async (req, res) => {
     const { cityId, carClassId, month, multiplier } = req.body;
     const correlationId = req.headers['x-correlation-id'];
-    const adminId = req.user.id;
+    const adminId = req.user.adminId;
 
     try {
         const response = await axios.put(
@@ -284,7 +289,7 @@ export const updateMonthlyAdjustment = async (req, res) => {
 export const addHoliday = async (req, res) => {
     const { cityId, carClassId, month, day, multiplier, name } = req.body;
     const correlationId = req.headers['x-correlation-id'];
-    const adminId = req.user.id;
+    const adminId = req.user.adminId;
 
     try {
         const response = await axios.post(
@@ -346,7 +351,7 @@ export const addHoliday = async (req, res) => {
 export const deleteHoliday = async (req, res) => {
     const { cityId, carClassId, month, day } = req.body;
     const correlationId = req.headers['x-correlation-id'];
-    const adminId = req.user.id;
+    const adminId = req.user.adminId;
 
     try {
         const response = await axios.delete(

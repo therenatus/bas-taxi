@@ -9,7 +9,7 @@ export const connectDB = async () => {
 
         initModels();
 
-        await sequelize.sync({ force: true });
+        await sequelize.sync();
         logger.info('Таблицы синхронизированы');
     } catch (error) {
         logger.error('Ошибка подключения к базе данных', { error: error.message });

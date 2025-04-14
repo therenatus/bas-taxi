@@ -112,18 +112,19 @@ export const confirmLoginService = async ({ phoneNumber, verificationCode }) => 
 
 export const verifyTokenService = async (token, correlationId) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret');
+    console.log('decoded', decoded);
 
-    logger.info('verifyTokenService: Токен расшифрован', { userId: decoded.userId, correlationId });
+    logger.info('verifyTokenService: Токен расшифрован', { userId: decoded.driverId, correlationId });
 
-    const user = await Driver.findByPk(decoded.userId);
+    const user = await Driver.findByPk(decoded.driverId);
 
     if (!user) {
-        logger.warn('verifyTokenService: Пользователь не найден', { userId: decoded.userId, correlationId });
+        logger.warn('verifyTokenService: Пользователь не найден', { userId: decoded.driverId, correlationId });
         throw new Error('Пользователь не найден');
     }
 
     return {
-        driverId: user.id,
+        driverId: user.driverId,
         phoneNumber: user.phoneNumber,
         role: 'driver',
         isPhoneVerified: user.isPhoneVerified,
@@ -172,6 +173,8 @@ export const deleteDriverProfileService = async (driverId) => {
     logger.info('deleteDriverProfileService: Начало удаления профиля водителя', { driverId });
     
     const driver = await Driver.findByPk(driverId);
+
+    console.log('driver', driver);
     
     if (!driver) {
         logger.warn('deleteDriverProfileService: Водитель не найден', { driverId });
