@@ -13,7 +13,7 @@ const PORT = process.env.PORT || 8000;
 const corsOptions = {
   origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Correlation-ID', 'x-correlation-id', 'x-admin-id'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Correlation-ID', 'x-correlation-id', 'x-admin-id', 'user-agent'],
   credentials: true,
   preflightContinue: false,
   optionsSuccessStatus: 204
