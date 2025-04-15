@@ -238,7 +238,7 @@ const startDriverSearch = async (rideId, latitude, longitude, correlationId) => 
         
         logger.info('Подготовленные данные водителя', { 
             rideId, 
-            driver: JSON.stringify(nextDriver),
+            driver: nextDriver,
             correlationId 
         });
         
@@ -318,7 +318,7 @@ const notifyDriver = async (rideId, driver, correlationId) => {
         if (!driver || !driver.driverId) {
             logger.error('Некорректные данные водителя для уведомления', { 
                 rideId, 
-                driver: JSON.stringify(driver), 
+                driver, 
                 correlationId 
             });
             return;
