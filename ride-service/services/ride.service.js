@@ -1,19 +1,15 @@
 // src/services/ride.service.js
+import axios from "axios";
 import Ride from '../models/ride.model.js';
-import sequelize from '../utils/sequelize.js';
-import { initiatePayment, cancelPayment } from './payment.service.js';
-import {assertExchange, getChannel} from '../utils/rabbitmq.js';
 import logger from '../utils/logger.js';
-import { v4 as uuidv4 } from 'uuid';
+import { assertExchange, getChannel } from '../utils/rabbitmq.js';
+import sequelize from '../utils/sequelize.js';
 import {
     getCityFromCoordinates,
     getDistanceAndDurationFromGeoService,
     reverseGeocode,
-    sendRideRequestToGeoService,
-    updateDriverLocationInGeoService
+    sendRideRequestToGeoService
 } from './geo.service.js';
-import { validateCitySupported, calculatePriceForCity } from './tariff.service.js';
-import {emitParkingStatus, emitRideUpdate, emitToDriver, emitToPassenger} from './websoket.service.js';
 import {
     addParkedDriverLocation,
     findNearbyDrivers,
@@ -21,9 +17,10 @@ import {
     removeParkedDriverLocation,
     updateDriverLocation
 } from "./location.serrvice.js";
-import {cancelRideNotifications, notifyNearbyDrivers} from "./notification.service.js";
-import Driver from "../models/driver.model.js";
-import axios from "axios";
+import { cancelRideNotifications } from "./notification.service.js";
+import { initiatePayment } from './payment.service.js';
+import { calculatePriceForCity, validateCitySupported } from './tariff.service.js';
+import { emitParkingStatus, emitRideUpdate, emitToDriver, emitToPassenger } from './websoket.service.js';
 
 
 const ensureCitySupportedAndGetPrice = async (city, distance, duration) => {
@@ -124,7 +121,10 @@ const startDriverSearch = async (rideId, latitude, longitude, correlationId) => 
             return;
         }
 
-        const searchDuration = Date.now() - ride.searchStartTime;
+        // Убедимся, что searchStartTime существует, иначе используем текущее время
+        const searchStartTime = ride.searchStartTime || Date.now();
+        const searchDuration = Date.now() - searchStartTime;
+        
         if (searchDuration >= 180000) { // 3 минуты истекли
             logger.info('Поиск водителя превысил таймаут в 3 минуты, отмена поездки', 
                 { rideId, searchDuration, correlationId });
@@ -156,11 +156,43 @@ const startDriverSearch = async (rideId, latitude, longitude, correlationId) => 
 
         const nearbyDrivers = await findNearbyDrivers(latitude, longitude, 10, 10);
         
-        const availableDrivers = nearbyDrivers.filter(driver => 
-            !ride.rejectedDrivers.includes(driver.member)
-        );
-
-        if (availableDrivers.length === 0) {
+        // Подробное логирование для отладки структуры данных
+        logger.info('Результат findNearbyDrivers', { 
+            rideId, 
+            nearbyDrivers: JSON.stringify(nearbyDrivers),
+            correlationId 
+        });
+        
+        // Убедимся, что rejectedDrivers существует и является массивом
+        const rejectedDrivers = Array.isArray(ride.rejectedDrivers) ? ride.rejectedDrivers : [];
+        
+        // Отфильтруем водителей, которые уже отклонили поездку
+        // Адаптируем код для работы с форматом объектов {driverId, distance, coordinates}
+        const filteredDrivers = nearbyDrivers.filter(driver => {
+            // Проверяем формат данных
+            if (Array.isArray(driver)) {
+                // Если это массив [id, distance, coordinates]
+                const driverId = String(driver[0]);
+                return !rejectedDrivers.includes(driverId);
+            } else if (driver && typeof driver === 'object' && driver.driverId) {
+                // Если это объект {driverId, distance, coordinates}
+                const driverId = String(driver.driverId);
+                return !rejectedDrivers.includes(driverId);
+            }
+            return false; // Неизвестный формат, пропускаем
+        });
+        
+        logger.info('Данные о водителях', {
+            rideId,
+            nearbyDriversCount: nearbyDrivers.length,
+            nearbyDriversFormat: typeof nearbyDrivers[0],
+            filteredDriversCount: filteredDrivers.length,
+            rejectedDriversCount: rejectedDrivers.length,
+            rejectedDrivers: JSON.stringify(rejectedDrivers),
+            correlationId
+        });
+        
+        if (!filteredDrivers || filteredDrivers.length === 0) {
             logger.info('Не найдено доступных водителей, повторный поиск через 5 секунд', 
                 { rideId, correlationId, searchDuration });
                 
@@ -170,37 +202,142 @@ const startDriverSearch = async (rideId, latitude, longitude, correlationId) => 
             return;
         }
 
-        const nextDriver = availableDrivers[0];
+        // Получаем данные ближайшего водителя
+        const nextDriverData = filteredDrivers[0];
+        
+        // Создаем объект nextDriver из nextDriverData в зависимости от формата
+        let nextDriver;
+        
+        if (Array.isArray(nextDriverData)) {
+            // Если это массив [id, distance, coordinates]
+            nextDriver = {
+                driverId: String(nextDriverData[0]), 
+                distance: nextDriverData[1],
+                coordinates: nextDriverData[2]
+            };
+        } else if (typeof nextDriverData === 'object' && nextDriverData.driverId) {
+            // Если это объект {driverId, distance, coordinates}
+            nextDriver = {
+                driverId: String(nextDriverData.driverId),
+                distance: nextDriverData.distance,
+                coordinates: nextDriverData.coordinates
+            };
+        } else {
+            logger.error('Некорректный формат данных водителя', {
+                rideId,
+                nextDriverData: JSON.stringify(nextDriverData),
+                correlationId
+            });
+            
+            // Повторяем поиск через 5 секунд
+            setTimeout(() => {
+                startDriverSearch(rideId, latitude, longitude, correlationId);
+            }, 5000);
+            return;
+        }
+        
+        logger.info('Подготовленные данные водителя', { 
+            rideId, 
+            driver: JSON.stringify(nextDriver),
+            correlationId 
+        });
         
         await notifyDriver(rideId, nextDriver, correlationId);
 
         setTimeout(async () => {
-            const updatedRide = await Ride.findByPk(rideId);
-            if (updatedRide && updatedRide.status === 'pending') {
-                logger.info('Водитель не ответил в течение 5 секунд, добавляем в список отклонивших', 
-                    { rideId, driverId: nextDriver.member, correlationId });
+            try {
+                const updatedRide = await Ride.findByPk(rideId);
+                if (updatedRide && updatedRide.status === 'pending') {
+                    logger.info('Водитель не ответил в течение 5 секунд, добавляем в список отклонивших', 
+                        { rideId, driverId: nextDriver.driverId, correlationId });
+                        
+                    // Логируем текущее состояние rejected водителей
+                    logger.info('Текущий список отклонивших водителей', {
+                        rideId,
+                        rejectedDrivers: JSON.stringify(updatedRide.rejectedDrivers),
+                        correlationId
+                    });
                     
-                updatedRide.rejectedDrivers = [...updatedRide.rejectedDrivers, nextDriver.member];
-                await updatedRide.save();
+                    // Безопасно обновляем массив rejectedDrivers
+                    const currentRejected = Array.isArray(updatedRide.rejectedDrivers) 
+                        ? updatedRide.rejectedDrivers 
+                        : [];
+                    
+                    // Проверяем, есть ли уже этот водитель в списке
+                    if (!currentRejected.includes(nextDriver.driverId)) {
+                        // Создаем новый массив с добавленным водителем
+                        const newRejectedDrivers = [...currentRejected, nextDriver.driverId];
+                        
+                        logger.info('Обновленный список отклонивших водителей', {
+                            rideId,
+                            newRejectedDrivers: JSON.stringify(newRejectedDrivers),
+                            correlationId
+                        });
+                        
+                        // Обновляем поле напрямую и сохраняем
+                        await Ride.update(
+                            { rejectedDrivers: newRejectedDrivers },
+                            { where: { id: rideId } }
+                        );
+                        
+                        // Проверяем, сохранились ли данные
+                        const checkRide = await Ride.findByPk(rideId);
+                        logger.info('Проверка сохранения списка отклонивших', {
+                            rideId,
+                            savedRejectedDrivers: JSON.stringify(checkRide.rejectedDrivers),
+                            correlationId
+                        });
+                    } else {
+                        logger.info('Водитель уже в списке отклонивших', {
+                            rideId,
+                            driverId: nextDriver.driverId,
+                            correlationId
+                        });
+                    }
+                    
+                    // Продолжаем поиск водителей
+                    startDriverSearch(rideId, latitude, longitude, correlationId);
+                }
+            } catch (error) {
+                logger.error('Ошибка при обработке таймаута ответа водителя', 
+                    { error: error.message, stack: error.stack, rideId, driverId: nextDriver.driverId, correlationId });
                 
+                // Всё равно продолжаем поиск
                 startDriverSearch(rideId, latitude, longitude, correlationId);
             }
-        }, 5000); // Уменьшаем таймаут ожидания ответа водителя обратно на 5 секунд
+        }, 5000);
 
     } catch (error) {
-        logger.error('Ошибка в процессе поиска водителей', { error: error.message, rideId, correlationId });
+        logger.error('Ошибка в процессе поиска водителей', 
+            { error: error.message, stack: error.stack, rideId, correlationId });
     }
 };
 
 const notifyDriver = async (rideId, driver, correlationId) => {
     try {
+        if (!driver || !driver.driverId) {
+            logger.error('Некорректные данные водителя для уведомления', { 
+                rideId, 
+                driver: JSON.stringify(driver), 
+                correlationId 
+            });
+            return;
+        }
+
+        const driverId = driver.driverId;
+        
         const message = {
             event: 'new_ride_request',
-            data: { rideId, distance: driver.distance },
+            data: { 
+                rideId, 
+                distance: driver.distance,
+                driverId // Добавляем ID водителя в сообщение
+            },
             timestamp: new Date().toISOString(),
         };
 
-        emitToDriver(driver.member, message);
+        // Отправляем уведомление через WebSocket
+        emitToDriver(driverId, message);
 
         const channel = await getChannel();
         const exchangeName = 'driver_notifications_exchange';
@@ -210,19 +347,19 @@ const notifyDriver = async (rideId, driver, correlationId) => {
             contentType: 'application/json',
             headers: { 
                 'x-correlation-id': correlationId,
-                driverId: driver.member 
+                driverId: driverId
             },
         });
 
-        logger.info('Уведомление отправлено водителю', { 
-            driverId: driver.member,
+        logger.info('Уведомление отправлено водителю', {
+            driverId,
             rideId,
-            correlationId 
+            correlationId
         });
     } catch (error) {
         logger.error('Ошибка при отправке уведомления водителю', {
             error: error.message,
-            driverId: driver.member,
+            driverId: driver?.driverId || 'unknown',
             rideId,
             correlationId
         });
@@ -514,6 +651,17 @@ export const acceptRide = async (rideId, driverId, correlationId) => {
         }
         if (ride.status !== 'pending') {
             throw new Error(`Поездка недоступна для принятия`);
+        }
+        
+        // Проверяем, не находится ли водитель в списке отклонивших
+        const rejectedDrivers = Array.isArray(ride.rejectedDrivers) ? ride.rejectedDrivers : [];
+        if (rejectedDrivers.includes(String(driverId))) {
+            logger.warn('Попытка принятия поездки водителем из черного списка', {
+                rideId,
+                driverId,
+                correlationId
+            });
+            throw new Error('Вы не можете принять эту поездку');
         }
 
         // Получаем тариф для города поездки
@@ -922,6 +1070,15 @@ export const getAllUserRides = async (userId, userType, correlationId) => {
     }
 };
 
+/**
+ * Отменяет поездку в случае, если пассажир не пришел в течение 10 минут с момента прибытия водителя
+ * 
+ * @param {string|number} rideId - Идентификатор поездки
+ * @returns {Object} - Результат операции с сообщением об успешной отмене
+ * 
+ * @throws {Error} - Если поездка не найдена
+ * @throws {Error} - Если поездка не соответствует критериям для отмены (статус не 'driver_arrived' или прошло менее 10 минут)
+ */
 export const cancelRideIfPassengerNotArrived = async (rideId) => {
     const ride = await Ride.findByPk(rideId);
     if (!ride) {

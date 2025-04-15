@@ -1,43 +1,43 @@
 import {
-    requestRide,
-    createRideWithoutPassenger,
-    startRideByQR,
-    updateRideStatus,
-    getRideInfo,
-    activateParkingMode,
     acceptRide,
-    cancelRideByPassenger,
-    deactivateParkingMode,
-    deactivateDriverLine,
     activateDriverLine,
+    activateParkingMode,
+    cancelRideByPassenger,
+    cancelRideIfPassengerNotArrived,
     completeRide,
-    startRide,
-    onsiteRide,
-    getDriverDetails,
-    getUserRides,
-    getRideDetails,
-    getDriverRides,
+    createRideWithoutPassenger,
+    deactivateDriverLine,
+    deactivateParkingMode,
     getAllUserRides,
-    cancelRideIfPassengerNotArrived
+    getDriverDetails,
+    getDriverRides,
+    getRideDetails,
+    getRideInfo,
+    getUserRides,
+    onsiteRide,
+    requestRide,
+    startRide,
+    startRideByQR,
+    updateRideStatus
 } from '../services/ride.service.js';
 
 import {
+    addHoliday,
+    addTariff,
+    deleteHoliday,
+    deleteHourAdjustment,
+    deleteMonthAdjustment,
     getTariff,
     updateBaseTariff,
-    updateHourAdjustment,
-    deleteHourAdjustment,
-    updateMonthAdjustment,
-    deleteMonthAdjustment,
-    addHoliday,
     updateHoliday,
-    deleteHoliday,
-    addTariff
+    updateHourAdjustment,
+    updateMonthAdjustment
 } from '../services/tariff.service.js';
 
-import logger from '../utils/logger.js';
-import {findNearbyDrivers, findNearbyParkedDrivers} from "../services/location.serrvice.js";
-import Ride from '../models/ride.model.js';
 import { Op } from 'sequelize';
+import Ride from '../models/ride.model.js';
+import { findNearbyParkedDrivers } from "../services/location.serrvice.js";
+import logger from '../utils/logger.js';
 
 export const requestRideHandler = async (req, res) => {
     try {
@@ -843,6 +843,25 @@ export const getRidesByTimeRange = async (req, res) => {
     }
 };
 
+/**
+ * Обработчик запроса на получение всех поездок текущего пользователя (водителя или пассажира)
+ * 
+ * @route GET /rides/driver/rides/my
+ * @route GET /rides/user/rides/my
+ * @route GET /rides/my
+ * @route GET /rides/my-rides
+ * 
+ * @param {Object} req - Express request object
+ * @param {Object} req.user - Информация о пользователе из middleware аутентификации
+ * @param {string} req.user.userId - ID пассажира (если запрос от пассажира)
+ * @param {string} req.user.driverId - ID водителя (если запрос от водителя)
+ * @param {string} req.user.role - Роль пользователя ('driver' или 'passenger')
+ * @param {Object} res - Express response object
+ * 
+ * @returns {Object} 200 - Массив поездок пользователя
+ * @returns {Object} 400 - Ошибка валидации ID пользователя
+ * @returns {Object} 500 - Ошибка сервера
+ */
 export const getAllUserRidesHandler = async (req, res) => {
     const userId = req.user.userId ? req.user.userId : req.user.driverId;
     const userType = req.user.role === 'driver' ? 'driver' : 'passenger';

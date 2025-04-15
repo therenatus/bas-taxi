@@ -3,35 +3,35 @@ import {
     acceptRideHandler,
     activateLineHandler,
     activateParkingModeHandler,
+    addHolidayHandler,
     cancelRideHandler,
+    cancelRideIfPassengerNotArrivedHandler,
     completeRideHandler,
     createRideWithoutPassengerHandler,
+    createTariffHandler,
     deactivateLineHandler,
     deactivateParkingModeHandler,
+    deleteHolidayHandler,
+    deleteHourAdjustmentHandler,
+    deleteMonthAdjustmentHandler,
+    getAllUserRidesHandler,
+    getDriverDetailsHandler,
+    getDriverRidesHandler,
     getNearbyParkedDriversHandler,
+    getRideDetailsHandler,
     getRideInfoHandler,
+    getRidesByTimeRange,
+    getTariffHandler,
+    getUserRidesHandler,
     onsiteRideHandler,
     requestRideHandler,
     startRideByQRHandler,
     startRideHandler,
-    updateRideStatusHandler,
-    getDriverDetailsHandler,
-    getDriverRidesHandler,
-    getUserRidesHandler,
-    getRideDetailsHandler,
-    getTariffHandler,
     updateBaseTariffHandler,
-    updateHourAdjustmentHandler,
-    deleteHourAdjustmentHandler,
-    updateMonthAdjustmentHandler,
-    deleteMonthAdjustmentHandler,
-    addHolidayHandler,
     updateHolidayHandler,
-    deleteHolidayHandler,
-    getRidesByTimeRange,
-    getAllUserRidesHandler,
-    cancelRideIfPassengerNotArrivedHandler,
-    createTariffHandler,
+    updateHourAdjustmentHandler,
+    updateMonthAdjustmentHandler,
+    updateRideStatusHandler,
 } from '../controllers/ride.controller.js';
 import { authMiddleware } from "../middlewares/auth.middleware.js";
 
@@ -1072,7 +1072,54 @@ router.post('/without-passenger', authMiddleware(['driver']), createRideWithoutP
 router.post('/start-by-qr', authMiddleware(['passenger']), startRideByQRHandler);
 
 // Дополнительные маршруты для совместимости с клиентскими приложениями
+/**
+ * @swagger
+ * /rides/driver/rides/my:
+ *   get:
+ *     summary: Получение списка всех поездок текущего водителя
+ *     tags: [Rides]
+ *     description: Возвращает список всех поездок, в которых участвовал текущий авторизованный водитель
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Успешное получение списка поездок
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Ride'
+ *       401:
+ *         description: Не авторизован или недостаточно прав (только для водителей)
+ *       500:
+ *         description: Внутренняя ошибка сервера
+ */
 router.get('/driver/rides/my', authMiddleware(['driver']), getAllUserRidesHandler);
+
+/**
+ * @swagger
+ * /rides/user/rides/my:
+ *   get:
+ *     summary: Получение списка всех поездок текущего пассажира
+ *     tags: [Rides]
+ *     description: Возвращает список всех поездок, в которых участвовал текущий авторизованный пассажир
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Успешное получение списка поездок
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Ride'
+ *       401:
+ *         description: Не авторизован или недостаточно прав (только для пассажиров)
+ *       500:
+ *         description: Внутренняя ошибка сервера
+ */
 router.get('/user/rides/my', authMiddleware(['passenger']), getAllUserRidesHandler);
 
 export default router;
