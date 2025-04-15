@@ -1074,7 +1074,7 @@ router.post('/start-by-qr', authMiddleware(['passenger']), startRideByQRHandler)
 // Дополнительные маршруты для совместимости с клиентскими приложениями
 /**
  * @swagger
- * /rides/driver/rides/my:
+ * /rides/driver/my:
  *   get:
  *     summary: Получение списка всех поездок текущего водителя
  *     tags: [Rides]
@@ -1095,11 +1095,11 @@ router.post('/start-by-qr', authMiddleware(['passenger']), startRideByQRHandler)
  *       500:
  *         description: Внутренняя ошибка сервера
  */
-router.get('/driver/rides/my', authMiddleware(['driver']), getAllUserRidesHandler);
+router.get('/driver/my', authMiddleware(['driver']), getAllUserRidesHandler);
 
 /**
  * @swagger
- * /rides/user/rides/my:
+ * /rides/user/my:
  *   get:
  *     summary: Получение списка всех поездок текущего пассажира
  *     tags: [Rides]
@@ -1120,6 +1120,6 @@ router.get('/driver/rides/my', authMiddleware(['driver']), getAllUserRidesHandle
  *       500:
  *         description: Внутренняя ошибка сервера
  */
-router.get('/user/rides/my', authMiddleware(['passenger']), getAllUserRidesHandler);
+router.get('/user/my', authMiddleware(['passenger']), getAllUserRidesHandler);
 
 export default router;
