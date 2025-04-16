@@ -12,18 +12,45 @@ dotenv.config();
 const API_GATEWAY_URL = process.env.API_GATEWAY_URL;
 
 export const getUsers = async (req, res) => {
-    console.log("START");
+    // Получаем параметры пагинации из запроса
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    
+    // Валидация параметров пагинации
+    if (page < 1 || limit < 1 || limit > 100) {
+        return res.status(400).json({ 
+            error: 'Некорректные параметры пагинации. Страница должна быть >= 1, лимит должен быть от 1 до 100' 
+        });
+    }
+    
+    logger.info('Запрос списка пользователей с пагинацией', { page, limit });
+    
     try {
         const response = await axios.get(`${API_GATEWAY_URL}/auth/passenger`, {
             headers: {
                 Authorization: req.headers.authorization,
             },
+            // Передаем параметры пагинации в запрос
+            params: {
+                page,
+                limit
+            },
             timeout: 5000,
         });
-        console.log({response});
+        
+        logger.info('Успешно получен список пользователей', { 
+            totalItems: response.data.meta?.total || 'unknown',
+            page,
+            limit 
+        });
+        
         res.json(response.data);
     } catch (error) {
-        logger.error('Ошибка при получении списка пользователей', { error: error.message });
+        logger.error('Ошибка при получении списка пользователей', { 
+            error: error.message,
+            page,
+            limit
+        });
         res.status(500).json({ error: 'Ошибка при получении списка пользователей' });
     }
 };
@@ -476,5 +503,54 @@ export const unblockDriverViaGateway = async (req, res) => {
         res.status(error.response?.status || 500).json({ 
             error: error.response?.data?.error || 'Не удалось разблокировать водителя' 
         });
+    }
+};
+
+/**
+ * Получение списка всех водителей с пагинацией
+ * @param {Object} req - Express request объект
+ * @param {Object} res - Express response объект
+ */
+export const getDrivers = async (req, res) => {
+    // Получаем параметры пагинации из запроса
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    
+    // Валидация параметров пагинации
+    if (page < 1 || limit < 1 || limit > 100) {
+        return res.status(400).json({ 
+            error: 'Некорректные параметры пагинации. Страница должна быть >= 1, лимит должен быть от 1 до 100' 
+        });
+    }
+    
+    logger.info('Запрос списка водителей с пагинацией', { page, limit });
+    
+    try {
+        const response = await axios.get(`${API_GATEWAY_URL}/auth/driver`, {
+            headers: {
+                Authorization: req.headers.authorization,
+            },
+            // Передаем параметры пагинации в запрос
+            params: {
+                page,
+                limit
+            },
+            timeout: 5000,
+        });
+        
+        logger.info('Успешно получен список водителей', { 
+            totalItems: response.data.meta?.total || 'unknown',
+            page,
+            limit 
+        });
+        
+        res.json(response.data);
+    } catch (error) {
+        logger.error('Ошибка при получении списка водителей', { 
+            error: error.message,
+            page,
+            limit
+        });
+        res.status(500).json({ error: 'Ошибка при получении списка водителей' });
     }
 };

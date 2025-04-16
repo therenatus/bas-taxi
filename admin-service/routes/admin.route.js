@@ -8,6 +8,7 @@ import {
     getDriverDetails,
     getDriverRequests,
     getDriverRidesViaGateway,
+    getDrivers,
     getReviews,
     getRides,
     getRidesByTimeRange,
@@ -85,36 +86,103 @@ const router = Router();
  *     tags: [Admin]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Номер страницы для пагинации
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *         description: Количество пользователей на странице
  *     responses:
  *       200:
  *         description: Список пользователей успешно получен
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/User'
+ *               type: object
+ *               properties:
+ *                 passengers:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/User'
+ *                 meta:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: integer
+ *                     page:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     totalPages:
+ *                       type: integer
  *       401:
  *         description: Неавторизованный доступ
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
  *       403:
  *         description: Доступ запрещен
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
  *       500:
  *         description: Внутренняя ошибка сервера
+ */
+router.get('/users', authMiddleware, authorizeRoles(['superadmin', 'admin', 'moderator']) , getUsers);
+
+/**
+ * @swagger
+ * /admin/drivers:
+ *   get:
+ *     summary: Получить список водителей
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Номер страницы для пагинации
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *         description: Количество водителей на странице
+ *     responses:
+ *       200:
+ *         description: Список водителей успешно получен
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
+ *               type: object
+ *               properties:
+ *                 drivers:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Driver'
+ *                 meta:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: integer
+ *                     page:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     totalPages:
+ *                       type: integer
+ *       401:
+ *         description: Неавторизованный доступ
+ *       403:
+ *         description: Доступ запрещен
+ *       500:
+ *         description: Внутренняя ошибка сервера
  */
-router.get('/users', authMiddleware, authorizeRoles(['superadmin', 'admin', 'moderator']) , getUsers);
-//router.get('/users', authMiddleware, authorizeRoles('admin', 'moderator'), getUsers);
+router.get('/drivers', authMiddleware, authorizeRoles(['superadmin', 'admin', 'moderator']) , getDrivers);
 
 /**
  * @swagger
