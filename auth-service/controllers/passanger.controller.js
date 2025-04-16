@@ -1,22 +1,21 @@
-import logger from '../utils/logger.js';
-import validateMiddleware from '../middlewares/validate.middleware.js';
-import {passengerRegisterSchema} from "../validators/register-passenger.validator.js";
 import {
     blockUserService, changeNameService,
     changePhoneService,
     confirmLoginService,
     confirmPhoneService,
+    deleteSelfService,
     deleteUserService,
     findUserByIdService,
     findUserByNameService,
     findUserByPhoneService,
+    getAllPassengersService,
     loginPassengerService,
     loginPassengerWebService,
-    registerPassengerService, verifyTokenService,
-    deleteSelfService,
-    unblockUserService
+    registerPassengerService,
+    unblockUserService,
+    verifyTokenService
 } from "../services/passanger.service.js";
-import {confirmLoginSchema, loginSchema} from "../validators/login.validator.js";
+import logger from '../utils/logger.js';
 
 export const registerPassenger = async (req, res) => {
     const correlationId = req.headers['x-correlation-id'] || req.headers['correlationid'];
@@ -357,5 +356,50 @@ export const deleteSelf = async (req, res) => {
     } catch (error) {
         logger.error('deleteSelf: Ошибка при самоудалении пользователя', { error: error.message, correlationId });
         res.status(400).json({ error: error.message });
+    }
+};
+
+/**
+ * Получение списка всех пассажиров с пагинацией
+ * @param {Object} req - Express request объект
+ * @param {Object} res - Express response объект
+ */
+export const getAllPassengers = async (req, res) => {
+    const correlationId = req.headers['x-correlation-id'] || req.headers['correlationid'];
+    logger.info('getAllPassengers: Начало обработки запроса на получение всех пассажиров', { correlationId });
+    
+    try {
+        // Извлекаем параметры пагинации из запроса
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 50;
+        
+        // Проверяем корректность параметров пагинации
+        if (page < 1 || limit < 1 || limit > 100) {
+            logger.warn('getAllPassengers: Некорректные параметры пагинации', { 
+                page, limit, correlationId 
+            });
+            return res.status(400).json({ 
+                error: 'Некорректные параметры пагинации. Страница должна быть >= 1, лимит должен быть от 1 до 100' 
+            });
+        }
+        
+        // Получаем данные из сервиса
+        const result = await getAllPassengersService({ page, limit, correlationId });
+        
+        logger.info('getAllPassengers: Успешно получен список пассажиров', { 
+            total: result.meta.total,
+            page,
+            limit,
+            correlationId 
+        });
+        
+        // Возвращаем успешный ответ
+        res.status(200).json(result);
+    } catch (error) {
+        logger.error('getAllPassengers: Ошибка при получении списка пассажиров', { 
+            error: error.message, 
+            correlationId 
+        });
+        res.status(500).json({ error: 'Ошибка при получении списка пассажиров' });
     }
 };

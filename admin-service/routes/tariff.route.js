@@ -1,23 +1,21 @@
 import { Router } from 'express';
-import { authMiddleware } from '../middlewares/auth.middleware.js';
-import { validateMiddleware } from '../middlewares/validate.middleware.js';
-import { authorizeRoles } from '../middlewares/role.middleware.js';
-import { createTariffSchema } from '../validators/create-tariff.validator.js';
 import {
-    createTariff,
-    getTariffs,
-    deleteTariff,
-    updateHourlyAdjustment,
-    updateMonthlyAdjustment,
     addHoliday,
-    deleteHoliday
+    createTariff,
+    deleteHoliday,
+    deleteTariff,
+    getTariffs,
+    updateHourlyAdjustment,
+    updateMonthlyAdjustment
 } from '../controllers/tariff.controller.js';
+import { authMiddleware } from '../middlewares/auth.middleware.js';
+import { authorizeRoles } from '../middlewares/role.middleware.js';
 
 const router = Router();
 
 /**
  * @swagger
- * /admin/tariffs:
+ * /admin/tariffs/{cityId}:
  *   get:
  *     summary: Получить все тарифы
  *     tags: [Admin, Tariff]
@@ -95,40 +93,40 @@ router.get('/tariffs/:cityId', authMiddleware, authorizeRoles(['superadmin', 'ad
 //router.post('/tariffs', authMiddleware, authorizeRoles(['superadmin', 'admin']), validateMiddleware(createTariffSchema), createTariff);
 router.post('/tariffs', authMiddleware, authorizeRoles(['superadmin', 'admin']), createTariff);
 
-/**
- * @swagger
- * /admin/tariffs/{cityId}/{carClassId}:
- *   get:
- *     summary: Получить тариф по городу и классу автомобиля
- *     tags: [Admin, Tariff]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: cityId
- *         required: true
- *         schema:
- *           type: integer
- *         description: ID города
- *       - in: path
- *         name: carClassId
- *         required: true
- *         schema:
- *           type: integer
- *         description: ID класса автомобиля
- *     responses:
- *       200:
- *         description: Тариф успешно получен
- *       404:
- *         description: Тариф не найден
- *       401:
- *         description: Неавторизованный доступ
- *       403:
- *         description: Доступ запрещен
- *       500:
- *         description: Внутренняя ошибка сервера
- */
-router.get('/tariffs/:cityId/:carClassId', authMiddleware, authorizeRoles(['superadmin', 'admin', 'moderator']), getTariffs);
+// /**
+//  * @swagger
+//  * /admin/tariffs/{cityId}/{carClassId}:
+//  *   get:
+//  *     summary: Получить тариф по городу и классу автомобиля
+//  *     tags: [Admin, Tariff]
+//  *     security:
+//  *       - bearerAuth: []
+//  *     parameters:
+//  *       - in: path
+//  *         name: cityId
+//  *         required: true
+//  *         schema:
+//  *           type: integer
+//  *         description: ID города
+//  *       - in: path
+//  *         name: carClassId
+//  *         required: true
+//  *         schema:
+//  *           type: integer
+//  *         description: ID класса автомобиля
+//  *     responses:
+//  *       200:
+//  *         description: Тариф успешно получен
+//  *       404:
+//  *         description: Тариф не найден
+//  *       401:
+//  *         description: Неавторизованный доступ
+//  *       403:
+//  *         description: Доступ запрещен
+//  *       500:
+//  *         description: Внутренняя ошибка сервера
+//  */
+// router.get('/tariffs/:cityId/:carClassId', authMiddleware, authorizeRoles(['superadmin', 'admin', 'moderator']), getTariffs);
 
 /**
  * @swagger

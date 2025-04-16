@@ -1074,7 +1074,7 @@ router.post('/start-by-qr', authMiddleware(['passenger']), startRideByQRHandler)
 // Дополнительные маршруты для совместимости с клиентскими приложениями
 /**
  * @swagger
- * /rides/driver/rides/my:
+ * /driver/rides/my:
  *   get:
  *     summary: Получение списка всех поездок текущего водителя
  *     tags: [Rides]
@@ -1099,7 +1099,7 @@ router.get('/driver/rides/my', authMiddleware(['driver']), getAllUserRidesHandle
 
 /**
  * @swagger
- * /rides/user/rides/my:
+ * /user/rides/my:
  *   get:
  *     summary: Получение списка всех поездок текущего пассажира
  *     tags: [Rides]

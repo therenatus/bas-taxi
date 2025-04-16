@@ -1,21 +1,22 @@
 import express from 'express';
 import {
-    loginOrRegister,
-    confirmLogin,
-    loginOrRegisterWeb,
-    confirmPhone,
-    changePhone,
-    findUserByPhone,
-    findUserByName,
-    findUserById,
-    changeUserName,
-    deleteUser,
     blockUser,
-    verifyTokenController,
+    changePhone,
+    changeUserName,
+    confirmLogin,
+    confirmPhone,
     deleteSelf,
-    unblockUser
+    deleteUser,
+    findUserById,
+    findUserByName,
+    findUserByPhone,
+    getAllPassengers,
+    loginOrRegister,
+    loginOrRegisterWeb,
+    unblockUser,
+    verifyTokenController
 } from '../controllers/passanger.controller.js';
-import {roleMiddleware} from "../middlewares/role.middleware.js";
+import { roleMiddleware } from "../middlewares/role.middleware.js";
 
 const router = express.Router();
 
@@ -446,15 +447,6 @@ router.post('/find-by-phone', findUserByPhone);
  */
 router.delete('/delete', roleMiddleware(['passenger']), deleteSelf);
 
-// router.get('/:id', getDriverById);
-// router.get('/data/:id', getDriverData);
-//
-// router.post('/block', blockUser);
-// router.post('/delete', deleteUser);
-// router.post('/change-name', changeUserName);
-// router.post('/find-by-id', findUserById);
-// router.post('/find-by-name', findUserByName);
-// router.post('/find-by-phone', findUserByPhone);
-
+router.get('/', getAllPassengers);
 
 export default router;

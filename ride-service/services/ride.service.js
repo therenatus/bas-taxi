@@ -172,11 +172,11 @@ const startDriverSearch = async (rideId, latitude, longitude, correlationId) => 
             // Проверяем формат данных
             if (Array.isArray(driver)) {
                 // Если это массив [id, distance, coordinates]
-                const driverId = String(driver[0]);
+                const driverId = Number(driver[0]);
                 return !rejectedDrivers.includes(driverId);
             } else if (driver && typeof driver === 'object' && driver.driverId) {
                 // Если это объект {driverId, distance, coordinates}
-                const driverId = String(driver.driverId);
+                const driverId = Number(driver.driverId);
                 return !rejectedDrivers.includes(driverId);
             }
             return false; // Неизвестный формат, пропускаем
@@ -211,14 +211,14 @@ const startDriverSearch = async (rideId, latitude, longitude, correlationId) => 
         if (Array.isArray(nextDriverData)) {
             // Если это массив [id, distance, coordinates]
             nextDriver = {
-                driverId: String(nextDriverData[0]), 
+                driverId: Number(nextDriverData[0]), 
                 distance: nextDriverData[1],
                 coordinates: nextDriverData[2]
             };
         } else if (typeof nextDriverData === 'object' && nextDriverData.driverId) {
             // Если это объект {driverId, distance, coordinates}
             nextDriver = {
-                driverId: String(nextDriverData.driverId),
+                driverId: Number(nextDriverData.driverId),
                 distance: nextDriverData.distance,
                 coordinates: nextDriverData.coordinates
             };
@@ -324,7 +324,7 @@ const notifyDriver = async (rideId, driver, correlationId) => {
             return;
         }
 
-        const driverId = driver.driverId;
+        const driverId = Number(driver.driverId);
         
         const message = {
             event: 'new_ride_request',
@@ -655,7 +655,7 @@ export const acceptRide = async (rideId, driverId, correlationId) => {
         
         // Проверяем, не находится ли водитель в списке отклонивших
         const rejectedDrivers = Array.isArray(ride.rejectedDrivers) ? ride.rejectedDrivers : [];
-        if (rejectedDrivers.includes(String(driverId))) {
+        if (rejectedDrivers.includes(Number(driverId))) {
             logger.warn('Попытка принятия поездки водителем из черного списка', {
                 rideId,
                 driverId,

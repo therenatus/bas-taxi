@@ -2,23 +2,25 @@
 
 import axios from 'axios';
 import dotenv from 'dotenv';
-import logger from '../utils/logger.js';
-import { updateSettingsInService, createTariffInService } from '../services/admin.service.js';
-import { getChannel, publishToRabbitMQ } from '../utils/rabbitmq.js';
 import DriverRequest from "../models/driver-request.model.js";
+import { updateSettingsInService } from '../services/admin.service.js';
+import logger from '../utils/logger.js';
+import { getChannel } from '../utils/rabbitmq.js';
 
 dotenv.config();
 
 const API_GATEWAY_URL = process.env.API_GATEWAY_URL;
 
 export const getUsers = async (req, res) => {
+    console.log("START");
     try {
-        const response = await axios.get(`${API_GATEWAY_URL}/auth/users`, {
+        const response = await axios.get(`${API_GATEWAY_URL}/auth/passenger`, {
             headers: {
                 Authorization: req.headers.authorization,
             },
             timeout: 5000,
         });
+        console.log({response});
         res.json(response.data);
     } catch (error) {
         logger.error('Ошибка при получении списка пользователей', { error: error.message });

@@ -1,10 +1,9 @@
-import logger from '../utils/logger.js';
-import User from '../models/user.model.js';
-import { generateVerificationCode } from '../utils/generate-code.js';
-import { sendVerificationCode } from "../utils/sms.service.js";
 import jwt from "jsonwebtoken";
 import ChangePhone from "../models/change-phone.model.js";
-import { sendUserToExchange } from "../utils/rabbitmq.js";
+import User from '../models/user.model.js';
+import { generateVerificationCode } from '../utils/generate-code.js';
+import logger from '../utils/logger.js';
+import { sendVerificationCode } from "../utils/sms.service.js";
 
 const SMS_SEND_INTERVAL_MS = 60 * 1000;
 
@@ -434,6 +433,60 @@ export const deleteSelfService = async ({ userId, correlationId }) => {
         return user;
     } catch (error) {
         logger.error('deleteSelfService: Ошибка при самоудалении пользователя', { error, correlationId });
+        throw error;
+    }
+};
+
+/**
+ * Получение списка всех пассажиров
+ * @param {Object} params - Параметры запроса
+ * @param {string} params.correlationId - Идентификатор корреляции
+ * @param {number} params.page - Номер страницы (опционально)
+ * @param {number} params.limit - Количество записей на страницу (опционально)
+ * @returns {Promise<Object>} - Объект с данными пассажиров и метаданными пагинации
+ */
+export const getAllPassengersService = async ({ page = 1, limit = 50, correlationId }) => {
+    try {
+        logger.info('getAllPassengersService: Получение списка всех пассажиров', { page, limit, correlationId });
+        const offset = (page - 1) * limit;
+        
+        const { count, rows } = await User.findAndCountAll({
+            where: { 
+                isDeleted: false 
+            },
+            attributes: [
+                'id', 
+                'phoneNumber', 
+                'fullName', 
+                'createdAt',
+                'updatedAt'
+            ],
+            limit,
+            offset,
+            order: [['createdAt', 'DESC']]
+        });
+        
+        logger.info('getAllPassengersService: Получены данные пассажиров', { 
+            count, 
+            page, 
+            limit, 
+            correlationId 
+        });
+        
+        return {
+            passengers: rows,
+            meta: {
+                total: count,
+                page,
+                limit,
+                totalPages: Math.ceil(count / limit)
+            }
+        };
+    } catch (error) {
+        logger.error('getAllPassengersService: Ошибка при получении списка пассажиров', { 
+            error: error.message, 
+            correlationId 
+        });
         throw error;
     }
 };

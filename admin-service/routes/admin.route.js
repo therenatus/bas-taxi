@@ -1,26 +1,29 @@
 import { Router } from 'express';
-import { authMiddleware } from '../middlewares/auth.middleware.js';
-import { validateMiddleware } from '../middlewares/validate.middleware.js';
 import {
-    getUsers,
     approveDriver,
-    getRides,
-    getReviews,
-    updateSettings, getDriverRequests, rejectDriver, getDriverDetails, getUserRidesViaGateway, getDriverRidesViaGateway,
+    blockDriverViaGateway,
+    blockUserViaGateway,
     createAdmin,
     getAdminById,
+    getDriverDetails,
+    getDriverRequests,
+    getDriverRidesViaGateway,
+    getReviews,
+    getRides,
     getRidesByTimeRange,
-    blockUserViaGateway,
-    blockDriverViaGateway,
+    getUserRidesViaGateway,
+    getUsers,
+    rejectDriver,
+    unblockDriverViaGateway,
     unblockUserViaGateway,
-    unblockDriverViaGateway
+    updateSettings
 } from '../controllers/admin.controller.js';
-import {rejectDriverSchema} from "../validators/reject-driver.js";
-import {updateCostSchema} from "../validators/update-cost.validator.js";
-import {authorizeRoles} from "../middlewares/role.middleware.js";
-import DriverRequest from "../models/driver-request.model.js";
+import { authMiddleware } from '../middlewares/auth.middleware.js';
+import { authorizeRoles } from "../middlewares/role.middleware.js";
+import { validateMiddleware } from '../middlewares/validate.middleware.js';
+import { rejectDriverSchema } from "../validators/reject-driver.js";
+import { updateCostSchema } from "../validators/update-cost.validator.js";
 import tariffRouter from './tariff.route.js';
-import { createAdminSchema } from '../validators/admin.validator.js';
 
 const router = Router();
 
@@ -73,9 +76,6 @@ const router = Router();
  *           type: string
  *           format: date-time
  */
-
-
-router.use('/', tariffRouter);
 
 /**
  * @swagger
@@ -852,6 +852,7 @@ router.post('/user/:userId/unblock', authMiddleware, authorizeRoles(['superadmin
 router.post('/driver/:driverId/unblock', authMiddleware, authorizeRoles(['superadmin', 'admin']), unblockDriverViaGateway);
 
 // Подключаем роутер для тарифов
+router.use('/tariff', tariffRouter);
 
 /**
  * @swagger
