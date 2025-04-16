@@ -1,15 +1,31 @@
 import express from 'express';
-import { 
-    initiatePayment,
-    topUpBalance,
+import {
     deductBalance,
-    getBalanceHistory,
     getBalance,
-    getStatistics
+    getBalanceHistory,
+    getDriverBalanceById,
+    getStatistics,
+    initiatePayment,
+    topUpBalance
 } from '../controllers/balance.controller.js';
-import { authMiddleware } from '../middlewares/auth.middleware.js';
+import authMiddleware from '../middlewares/auth.middleware.js';
 
 const router = express.Router();
+
+/**
+ * @swagger
+ * /health:
+ *   get:
+ *     tags:
+ *       - Health
+ *     summary: Проверка доступности сервиса
+ *     responses:
+ *       200:
+ *         description: Сервис доступен
+ */
+router.get('/health', (req, res) => {
+    res.status(200).json({ status: 'ok', service: 'balance-service' });
+});
 
 /**
  * @swagger
@@ -130,7 +146,42 @@ router.post('/top-up', authMiddleware(['driver']), topUpBalance);
  *       500:
  *         description: Ошибка сервера
  */
+// Маршрут для авторизованных водителей, выполняющих списание средств со своего баланса
 router.post('/deduct', authMiddleware(['driver']), deductBalance);
+
+/**
+ * @swagger
+ * /api/balance/internal/deduct:
+ *   post:
+ *     tags:
+ *       - Balance
+ *     summary: Списать средства с баланса (внутренний API)
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - driverId
+ *               - amount
+ *             properties:
+ *               driverId:
+ *                 type: number
+ *                 description: ID водителя
+ *               amount:
+ *                 type: number
+ *                 description: Сумма списания
+ *     responses:
+ *       200:
+ *         description: Средства успешно списаны
+ *       400:
+ *         description: Недостаточно средств
+ *       500:
+ *         description: Ошибка сервера
+ */
+// Маршрут для внутренних запросов от других сервисов (без требования авторизации)
+router.post('/internal/deduct', deductBalance);
 
 /**
  * @swagger
@@ -225,5 +276,29 @@ router.get('/', authMiddleware(['driver']), getBalance);
  *         description: Ошибка сервера
  */
 router.get('/statistics', authMiddleware(['driver']), getStatistics);
+
+/**
+ * @swagger
+ * /api/balance/:driverId:
+ *   get:
+ *     tags:
+ *       - Balance
+ *     summary: Получить баланс водителя по ID
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Баланс водителя
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 balance:
+ *                   type: number
+ *       500:
+ *         description: Ошибка сервера
+ */
+router.get('/:driverId', getDriverBalanceById);
 
 export default router; 

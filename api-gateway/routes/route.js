@@ -1,6 +1,6 @@
+import dotenv from 'dotenv';
 import { Router } from 'express';
 import { createProxyMiddleware } from 'http-proxy-middleware';
-import dotenv from 'dotenv';
 
 dotenv.config();
 
@@ -92,13 +92,23 @@ router.use('/admin', createProxyMiddleware({
     }
 }));
 
-// router.use('/balance', createProxyMiddleware({
-//     target: process.env.BALANCE_SERVICE_URL,
-//     changeOrigin: true,
-//     pathRewrite: {
-//         '^/balance': '',
-//     },
-// }));
+router.use('/balance', createProxyMiddleware({
+    target: process.env.BALANCE_SERVICE_URL,
+    changeOrigin: true,
+    pathRewrite: {
+        '^/balance': '',
+    },
+    onProxyReq: (proxyReq, req, res) => {
+        console.log(`Проксируем запрос к balance-service: ${req.method} ${req.originalUrl}`);
+    },
+    onProxyRes: (proxyRes, req, res) => {
+        console.log(`Получен ответ от balance-service: ${proxyRes.statusCode}`);
+    },
+    onError: (err, req, res) => {
+        console.error('Ошибка проксирования запроса к balance-service:', err);
+        res.status(502).json({ error: 'Не удалось проксировать запрос к balance-service' });
+    }
+}));
 //
 // router.use('/geo', createProxyMiddleware({
 //     target: process.env.GEO_SERVICE_URL,

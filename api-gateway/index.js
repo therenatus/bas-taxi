@@ -1,9 +1,9 @@
-import express from 'express';
 import cors from 'cors';
+import dotenv from "dotenv";
+import express from 'express';
 import morgan from 'morgan';
 import routes from './routes/route.js';
 import logger from './utils/logger.js';
-import dotenv from "dotenv";
 
 dotenv.config();
 

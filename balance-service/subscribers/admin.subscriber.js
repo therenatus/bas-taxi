@@ -1,23 +1,23 @@
 // subscribers/admin.subscriber.js
-import { getChannel } from '../utils/rabbitmq.js';
-import Tariff from '../models/tariff.model.js';
 import ProcessedMessage from '../models/processed-message.model.js';
+import Tariff from '../models/tariff.model.js';
 import logger from '../utils/logger.js';
+import { getChannel } from '../utils/rabbitmq.js';
 
 export const subscribeToAdminEvents = async () => {
     try {
         const channel = await getChannel();
         const exchangeName = 'admin_events';
-        await channel.assertExchange(exchangeName, 'fanout', { durable: true });
+        await channel.assertExchange(exchangeName, 'topic', { durable: true });
 
         const q = await channel.assertQueue('', { exclusive: true });
-        await channel.bindQueue(q.queue, exchangeName, '');
+        await channel.bindQueue(q.queue, exchangeName, '#');
 
         channel.consume(q.queue, async (msg) => {
             if (msg.content) {
                 const message = JSON.parse(msg.content.toString());
                 const messageId = msg.properties.messageId;
-                const correlationId = msg.properties.headers['x-correlation-id'];
+                const correlationId = msg.properties.headers?.['x-correlation-id'];
 
                 const alreadyProcessed = await ProcessedMessage.findOne({
                     where: { messageId },

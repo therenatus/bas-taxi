@@ -15,6 +15,7 @@ import {
     deleteHourAdjustmentHandler,
     deleteMonthAdjustmentHandler,
     getAllUserRidesHandler,
+    getDriverBalanceHandler,
     getDriverDetailsHandler,
     getDriverRidesHandler,
     getNearbyParkedDriversHandler,
@@ -1121,5 +1122,64 @@ router.get('/driver/rides/my', authMiddleware(['driver']), getAllUserRidesHandle
  *         description: Внутренняя ошибка сервера
  */
 router.get('/user/rides/my', authMiddleware(['passenger']), getAllUserRidesHandler);
+
+/**
+ * @swagger
+ * /driver/balance:
+ *   get:
+ *     summary: Получить текущий баланс водителя
+ *     tags: [Driver]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Баланс водителя успешно получен
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 driverId:
+ *                   type: integer
+ *                 balance:
+ *                   type: number
+ *       400:
+ *         description: Некорректный запрос
+ *       500:
+ *         description: Внутренняя ошибка сервера
+ */
+router.get('/driver/balance', authMiddleware(['driver']), getDriverBalanceHandler);
+
+/**
+ * @swagger
+ * /driver/balance/{driverId}:
+ *   get:
+ *     summary: Получить баланс водителя по ID (для административных целей)
+ *     tags: [Driver]
+ *     parameters:
+ *       - in: path
+ *         name: driverId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: ID водителя
+ *     responses:
+ *       200:
+ *         description: Баланс водителя успешно получен
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 driverId:
+ *                   type: integer
+ *                 balance:
+ *                   type: number
+ *       400:
+ *         description: Некорректный запрос
+ *       500:
+ *         description: Внутренняя ошибка сервера
+ */
+router.get('/driver/balance/:driverId', getDriverBalanceHandler);
 
 export default router;

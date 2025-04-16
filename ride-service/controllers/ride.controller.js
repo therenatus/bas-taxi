@@ -9,6 +9,7 @@ import {
     deactivateDriverLine,
     deactivateParkingMode,
     getAllUserRides,
+    getDriverBalance,
     getDriverDetails,
     getDriverRides,
     getRideDetails,
@@ -1000,6 +1001,41 @@ export const createTariffHandler = async (req, res) => {
         res.status(500).json({
             error: 'Ошибка при создании тарифа',
             details: error.message
+        });
+    }
+};
+
+/**
+ * Обработчик для получения баланса водителя
+ * Если запрос от авторизованного водителя - возвращает его баланс
+ * Если запрос с параметром driverId - возвращает баланс указанного водителя
+ */
+export const getDriverBalanceHandler = async (req, res) => {
+    try {
+        // Определяем ID водителя: либо из параметров URL, либо из токена авторизации
+        const driverId = req.params.driverId || req.user?.driverId;
+        const correlationId = req.correlationId;
+
+        if (!driverId) {
+            return res.status(400).json({ 
+                error: 'Не указан ID водителя', 
+                correlationId 
+            });
+        }
+
+        // Получаем баланс водителя через сервисную функцию
+        const balanceData = await getDriverBalance(driverId, correlationId);
+
+        res.status(200).json(balanceData);
+    } catch (error) {
+        logger.error('Ошибка при получении баланса водителя', { 
+            error: error.message, 
+            correlationId: req.correlationId 
+        });
+        res.status(500).json({ 
+            error: 'Не удалось получить баланс водителя', 
+            details: error.message,
+            correlationId: req.correlationId 
         });
     }
 };

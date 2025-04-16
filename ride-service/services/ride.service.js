@@ -1,6 +1,8 @@
 // src/services/ride.service.js
 import axios from "axios";
+import City from '../models/city.model.js';
 import Ride from '../models/ride.model.js';
+import Tariff from '../models/tarrif.model.js';
 import logger from '../utils/logger.js';
 import { assertExchange, getChannel } from '../utils/rabbitmq.js';
 import sequelize from '../utils/sequelize.js';
@@ -665,26 +667,38 @@ export const acceptRide = async (rideId, driverId, correlationId) => {
         }
 
         // Получаем тариф для города поездки
-        const tariff = await Tariff.findOne({ where: { city: ride.city } });
+        const city = await City.findOne({ where: { name: ride.city } });
+        if (!city) {
+            throw new Error(`Город ${ride.city} не найден в системе`);
+        }
+
+        const tariff = await Tariff.findOne({ where: { cityId: city.id } });
         if (!tariff) {
             throw new Error(`Тариф для города ${ride.city} не найден`);
         }
-        const serviceFeePercentage = tariff.serviceFeePercentage;
+        const serviceFeePercentage = tariff.serviceFeePercent;
+
         // Вычисляем сумму списания: процент от полной цены поездки
         const amountToDeduct = ride.price * serviceFeePercentage / 100;
 
-        // Запрашиваем баланс водителя через balance‑service
-        const balanceServiceUrl = process.env.BALANCE_SERVICE_URL || 'http://localhost:3005';
-        const balanceResponse = await axios.get(`${balanceServiceUrl}/balance/${driverId}`);
-        const driverBalance = balanceResponse.data.balance;
+        console.log({ amountToDeduct })
+
+        // Запрашиваем баланс водителя через функцию getDriverBalance
+        const balanceData = await getDriverBalance(driverId, correlationId);
+        console.log({ balanceData })
+        const driverBalance = balanceData.balance;
 
         // Если средств недостаточно – возвращаем ошибку
         if (driverBalance < amountToDeduct) {
             throw new Error('Недостаточно средств на балансе водителя для принятия поездки');
         }
 
-        // Списываем деньги с баланса водителя через balance‑service
-        await axios.post(`${balanceServiceUrl}/balance/deduct`, { driverId, amount: amountToDeduct });
+        // Списываем деньги с баланса водителя через balance‑service (используем internal API)
+        const balanceServiceUrl = process.env.API_GATEWAY_URL || 'http://localhost:3055';
+        await axios.post(`${balanceServiceUrl}/balance/internal/deduct`, { 
+            driverId, 
+            amount: amountToDeduct 
+        });
 
         // Обновляем статус поездки и назначаем водителя
         ride.driverId = driverId;
@@ -729,13 +743,14 @@ export const acceptRide = async (rideId, driverId, correlationId) => {
         });
 
         // Отменяем поиск других водителей
-        await cancelRideNotifications(rideId);
+        await cancelRideNotifications(ride.id);
         
         await transaction.commit();
 
         logger.info('Поездка успешно принята водителем', { rideId, driverId, correlationId });
         return ride;
     } catch (error) {
+        console.log({ error })
         await transaction.rollback();
         logger.error('Ошибка при принятии поездки водителем', { error: error.message, correlationId });
         throw error;
@@ -1067,6 +1082,35 @@ export const getAllUserRides = async (userId, userType, correlationId) => {
             correlationId 
         });
         return [];
+    }
+};
+
+
+export const getDriverBalance = async (driverId, correlationId) => {
+    try {
+        const balanceServiceUrl = process.env.API_GATEWAY_URL || 'http://localhost:3005';
+        logger.info('Запрос баланса водителя', { driverId, balanceServiceUrl, correlationId });
+        
+        const balanceResponse = await axios.get(`${balanceServiceUrl}/balance/${driverId}`);
+        
+        if (balanceResponse.status !== 200 || !balanceResponse.data) {
+            throw new Error('Не удалось получить данные о балансе водителя');
+        }
+        
+        logger.info('Данные о балансе водителя успешно получены', { 
+            driverId, 
+            balance: balanceResponse.data.balance,
+            correlationId 
+        });
+        
+        return balanceResponse.data;
+    } catch (error) {
+        logger.error('Ошибка при получении баланса водителя', { 
+            error: error.message, 
+            driverId, 
+            correlationId 
+        });
+        throw new Error(`Не удалось получить баланс водителя: ${error.message}`);
     }
 };
 

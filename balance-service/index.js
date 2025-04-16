@@ -1,27 +1,31 @@
 // index.js
 import express from 'express';
-import logger from './utils/logger.js';
-import sequelize from './utils/database.js';
-import balanceRoutes from './routes/balance.routes.js';
-import errorHandler from './middlewares/error.js';
-import {subscribeToAdminEvents} from './subscribers/admin.subscriber.js';
-import {subscribeToRideEvents} from './subscribers/ride.subscriber.js';
-import {randomUUID} from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import client from 'prom-client';
-import {subscribeToDriverApproval} from "./subscribers/driver-approval.subscriber.js";
 import swaggerUi from 'swagger-ui-express';
 import swaggerSpec from './config/swagger.js';
+import errorHandler from './middlewares/error.js';
+import balanceRoutes from './routes/balance.routes.js';
+import { subscribeToAdminEvents } from './subscribers/admin.subscriber.js';
+import { subscribeToDriverApproval } from "./subscribers/driver-approval.subscriber.js";
+import { subscribeToRideEvents } from './subscribers/ride.subscriber.js';
+import sequelize from './utils/database.js';
+import logger from './utils/logger.js';
 
-const uuidv4 = randomUUID();
 const app = express();
 
 app.use(express.json());
 
 app.use((req, res, next) => {
-    req.correlationId = req.headers['x-correlation-id'] || uuidv4();
+    req.correlationId = req.headers['x-correlation-id'] || randomUUID();
     res.setHeader('X-Correlation-ID', req.correlationId);
     next();
 });
+
+app.get('/health', (req, res) => {
+    res.status(200).json({ status: 'ok', service: 'balance-service' });
+});
+
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use('/', balanceRoutes);
 

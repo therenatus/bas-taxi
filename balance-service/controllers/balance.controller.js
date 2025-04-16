@@ -1,12 +1,12 @@
 // controller/balance.controller.js
-import { initiatePaymentSaga } from '../services/sagaOrchestrator.js';
-import { 
-    topUpBalanceService, 
-    getBalanceHistoryService, 
+import {
+    deductBalanceService,
+    getBalanceHistoryService,
     getBalanceService,
     getStatisticsService,
-    deductBalanceService
+    topUpBalanceService
 } from '../services/balance.service.js';
+import { initiatePaymentSaga } from '../services/sagaOrchestrator.js';
 import logger from '../utils/logger.js';
 
 export const initiatePayment = async (req, res) => {
@@ -36,7 +36,7 @@ export const topUpBalance = async (req, res) => {
 
 export const deductBalance = async (req, res) => {
     const { amount } = req.body;
-    const userId = req.user.userId;
+    const userId = req.user?.userId || req.body.driverId; // Поддержка как для авторизованных запросов, так и для внутренних API
 
     try {
         const balance = await deductBalanceService(userId, amount);
@@ -79,5 +79,23 @@ export const getStatistics = async (req, res) => {
         res.json(statistics);
     } catch (error) {
         res.status(500).json({ error: 'Ошибка получения статистики дохода' });
+    }
+};
+
+/**
+ * Получить баланс водителя по его ID (для внутренних запросов между сервисами)
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ */
+export const getDriverBalanceById = async (req, res) => {
+    const driverId = req.params.driverId;
+    
+    try {
+        logger.info(`Запрос баланса для водителя с ID: ${driverId}`);
+        const balance = await getBalanceService(driverId);
+        res.json({ balance });
+    } catch (error) {
+        logger.error(`Ошибка при получении баланса водителя ${driverId}`, { error: error.message });
+        res.status(500).json({ error: 'Ошибка при получении баланса водителя' });
     }
 };

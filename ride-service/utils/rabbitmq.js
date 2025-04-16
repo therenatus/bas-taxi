@@ -10,7 +10,12 @@ export const connectRabbitMQ = async () => {
     try {
         const connection = await amqp.connect(process.env.RABBITMQ_URL);
         channel = await connection.createChannel();
-        logger.info('Успешно подключились к RabbitMQ');
+        
+        // Инициализация всех используемых exchange при запуске сервиса
+        await channel.assertExchange('driver_notifications_exchange', 'fanout', { durable: true });
+        await channel.assertExchange('ride_events_exchange', 'fanout', { durable: true });
+        
+        logger.info('Успешно подключились к RabbitMQ и инициализировали обмены');
     } catch (error) {
         logger.error('Ошибка подключения к RabbitMQ:', error.message);
         throw error;

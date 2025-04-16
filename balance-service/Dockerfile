@@ -1,5 +1,5 @@
 # Используем Node.js LTS версию
-FROM node:14
+FROM node:20
 
 # Устанавливаем рабочую директорию
 WORKDIR /usr/src/app
@@ -11,7 +11,7 @@ RUN npm install
 COPY . .
 
 # Открываем порт
-EXPOSE 3003
+EXPOSE 3055
 
 # Запускаем приложение
 CMD ["npm", "start"]
