@@ -1,47 +1,27 @@
-import { Router } from 'express';
+import { Router } from "express";
 import {
-    addHoliday,
-    createTariff,
-    deleteHoliday,
-    deleteTariff,
-    getTariffs,
-    updateHourlyAdjustment,
-    updateMonthlyAdjustment
-} from '../controllers/tariff.controller.js';
-import { authMiddleware } from '../middlewares/auth.middleware.js';
-import { authorizeRoles } from '../middlewares/role.middleware.js';
+  addHoliday,
+  createHourlyAdjustment,
+  createTariff,
+  deleteHoliday,
+  deleteTariff,
+  getCarClasses,
+  getCities,
+  getTariffs,
+  updateHourlyAdjustment,
+  updateMonthlyAdjustment,
+  updateSettings,
+} from "../controllers/tariff.controller.js";
+import { authMiddleware } from "../middlewares/auth.middleware.js";
+import { authorizeRoles } from "../middlewares/role.middleware.js";
+import { validateMiddleware } from "../middlewares/validate.middleware.js";
+import { updateCostSchema } from "../validators/update-cost.validator.js";
 
 const router = Router();
 
 /**
  * @swagger
- * /admin/tariffs/{cityId}:
- *   get:
- *     summary: Получить все тарифы
- *     tags: [Admin, Tariff]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Список тарифов успешно получен
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Tariff'
- *       401:
- *         description: Неавторизованный доступ
- *       403:
- *         description: Доступ запрещен
- *       500:
- *         description: Внутренняя ошибка сервера
- */
-router.get('/tariffs/:cityId', authMiddleware, authorizeRoles(['superadmin', 'admin', 'moderator']), getTariffs);
-
-/**
- * @swagger
- * /admin/tariffs:
+ * /admin/tariff:
  *   post:
  *     summary: Создать новый тариф
  *     tags: [Admin, Tariff]
@@ -91,46 +71,50 @@ router.get('/tariffs/:cityId', authMiddleware, authorizeRoles(['superadmin', 'ad
  *         description: Внутренняя ошибка сервера
  */
 //router.post('/tariffs', authMiddleware, authorizeRoles(['superadmin', 'admin']), validateMiddleware(createTariffSchema), createTariff);
-router.post('/tariffs', authMiddleware, authorizeRoles(['superadmin', 'admin']), createTariff);
-
-// /**
-//  * @swagger
-//  * /admin/tariffs/{cityId}/{carClassId}:
-//  *   get:
-//  *     summary: Получить тариф по городу и классу автомобиля
-//  *     tags: [Admin, Tariff]
-//  *     security:
-//  *       - bearerAuth: []
-//  *     parameters:
-//  *       - in: path
-//  *         name: cityId
-//  *         required: true
-//  *         schema:
-//  *           type: integer
-//  *         description: ID города
-//  *       - in: path
-//  *         name: carClassId
-//  *         required: true
-//  *         schema:
-//  *           type: integer
-//  *         description: ID класса автомобиля
-//  *     responses:
-//  *       200:
-//  *         description: Тариф успешно получен
-//  *       404:
-//  *         description: Тариф не найден
-//  *       401:
-//  *         description: Неавторизованный доступ
-//  *       403:
-//  *         description: Доступ запрещен
-//  *       500:
-//  *         description: Внутренняя ошибка сервера
-//  */
-// router.get('/tariffs/:cityId/:carClassId', authMiddleware, authorizeRoles(['superadmin', 'admin', 'moderator']), getTariffs);
+router.post(
+  "/",
+  authMiddleware,
+  authorizeRoles(["superadmin", "admin"]),
+  createTariff
+);
 
 /**
  * @swagger
- * /admin/tariffs/{id}:
+ * /admin/tariff:
+ *   post:
+ *     summary: Обновить тарифы
+ *     tags: [Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/UpdateSettingsRequest'
+ *     responses:
+ *       200:
+ *         description: Тарифы успешно обновлены
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Тарифы успешно обновлены"
+ */
+router.put(
+  "/tariff",
+  authMiddleware,
+  authorizeRoles(["superadmin", "admin", "moderator"]),
+  validateMiddleware(updateCostSchema),
+  updateSettings
+);
+
+/**
+ * @swagger
+ * /admin/tariff/{id}:
  *   delete:
  *     summary: Удалить тариф
  *     tags: [Admin, Tariff]
@@ -155,11 +139,16 @@ router.post('/tariffs', authMiddleware, authorizeRoles(['superadmin', 'admin']),
  *       500:
  *         description: Внутренняя ошибка сервера
  */
-router.delete('/tariffs/:id', authMiddleware, authorizeRoles(['superadmin', 'admin']), deleteTariff);
+router.delete(
+  "/:id",
+  authMiddleware,
+  authorizeRoles(["superadmin", "admin"]),
+  deleteTariff
+);
 
 /**
  * @swagger
- * /admin/tariffs/hour:
+ * /admin/tariff/hour:
  *   put:
  *     summary: Обновить почасовой коэффициент для тарифа
  *     tags: [Admin, Tariff]
@@ -203,11 +192,69 @@ router.delete('/tariffs/:id', authMiddleware, authorizeRoles(['superadmin', 'adm
  *       500:
  *         description: Внутренняя ошибка сервера
  */
-router.put('/tariffs/hour', authMiddleware, authorizeRoles(['superadmin', 'admin']), updateHourlyAdjustment);
+router.put(
+  "/hour",
+  authMiddleware,
+  authorizeRoles(["superadmin", "admin"]),
+  updateHourlyAdjustment
+);
 
 /**
  * @swagger
- * /admin/tariffs/month:
+ * /admin/tariff/hour:
+ *   post:
+ *     summary: Создать почасовой коэффициент для тарифа
+ *     tags: [Admin, Tariff]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - cityId
+ *               - carClassId
+ *               - hour
+ *               - multiplier
+ *             properties:
+ *               cityId:
+ *                 type: integer
+ *                 description: ID города
+ *               carClassId:
+ *                 type: integer
+ *                 description: ID класса автомобиля
+ *               hour:
+ *                 type: integer
+ *                 description: Час (0-23)
+ *                 minimum: 0
+ *                 maximum: 23
+ *               multiplier:
+ *                 type: number
+ *                 description: Коэффициент для указанного часа
+ *     responses:
+ *       201:
+ *         description: Почасовой коэффициент успешно создан
+ *       400:
+ *         description: Неверные данные запроса
+ *       401:
+ *         description: Неавторизованный доступ
+ *       403:
+ *         description: Доступ запрещен
+ *       500:
+ *         description: Внутренняя ошибка сервера
+ */
+router.post(
+  "/hour",
+  authMiddleware,
+  authorizeRoles(["superadmin", "admin"]),
+  createHourlyAdjustment
+);
+
+/**
+ * @swagger
+ * /admin/tariff/month:
  *   put:
  *     summary: Обновить сезонный коэффициент для тарифа
  *     tags: [Admin, Tariff]
@@ -251,11 +298,16 @@ router.put('/tariffs/hour', authMiddleware, authorizeRoles(['superadmin', 'admin
  *       500:
  *         description: Внутренняя ошибка сервера
  */
-router.put('/tariffs/month', authMiddleware, authorizeRoles(['superadmin', 'admin']), updateMonthlyAdjustment);
+router.put(
+  "/month",
+  authMiddleware,
+  authorizeRoles(["superadmin", "admin"]),
+  updateMonthlyAdjustment
+);
 
 /**
  * @swagger
- * /admin/tariffs/holiday:
+ * /admin/tariff/holiday:
  *   post:
  *     summary: Добавить праздничный день с коэффициентом
  *     tags: [Admin, Tariff]
@@ -309,11 +361,16 @@ router.put('/tariffs/month', authMiddleware, authorizeRoles(['superadmin', 'admi
  *       500:
  *         description: Внутренняя ошибка сервера
  */
-router.post('/tariffs/holiday', authMiddleware, authorizeRoles(['superadmin', 'admin']), addHoliday);
+router.post(
+  "/holiday",
+  authMiddleware,
+  authorizeRoles(["superadmin", "admin"]),
+  addHoliday
+);
 
 /**
  * @swagger
- * /admin/tariffs/holiday:
+ * /admin/tariff/holiday:
  *   delete:
  *     summary: Удалить праздничный день
  *     tags: [Admin, Tariff]
@@ -359,29 +416,118 @@ router.post('/tariffs/holiday', authMiddleware, authorizeRoles(['superadmin', 'a
  *       500:
  *         description: Внутренняя ошибка сервера
  */
-router.delete('/tariffs/holiday', authMiddleware, authorizeRoles(['superadmin', 'admin']), deleteHoliday);
+router.delete(
+  "/holiday",
+  authMiddleware,
+  authorizeRoles(["superadmin", "admin"]),
+  deleteHoliday
+);
 
 /**
  * @swagger
- * /tariffs/{cityId}:
+ * /admin/tariff/cities:
  *   get:
- *     summary: Получение тарифов для города
- *     tags: [Tariffs]
- *     parameters:
- *       - in: path
- *         name: cityId
- *         required: true
- *         schema:
- *           type: integer
- *         description: ID города
+ *     summary: Получить список городов
+ *     tags: [Admin, Tariff]
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Информация о тарифах
- *       404:
- *         description: Тарифы не найдены
+ *         description: Список городов успешно получен
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 cities:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                       name:
+ *                         type: string
+ *       401:
+ *         description: Неавторизованный доступ
  *       500:
- *         description: Ошибка сервера
+ *         description: Внутренняя ошибка сервера
  */
-router.get('/:cityId', authMiddleware, authorizeRoles(['admin', 'superadmin']), getTariffs);
+router.get(
+  "/cities",
+  authMiddleware,
+  authorizeRoles(["superadmin", "admin", "moderator"]),
+  getCities
+);
 
-export default router; 
+/**
+ * @swagger
+ * /admin/tariff/car-classes:
+ *   get:
+ *     summary: Получить список классов автомобилей
+ *     tags: [Admin, Tariff]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Список классов автомобилей успешно получен
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 carClasses:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                       name:
+ *                         type: string
+ *                       description:
+ *                         type: string
+ *       401:
+ *         description: Неавторизованный доступ
+ *       500:
+ *         description: Внутренняя ошибка сервера
+ */
+router.get(
+  "/car-classes",
+  authMiddleware,
+  authorizeRoles(["superadmin", "admin", "moderator"]),
+  getCarClasses
+);
+
+/**
+ * @swagger
+ * /admin/tariff/{cityId}:
+ *   get:
+ *     summary: Получить все тарифы
+ *     tags: [Admin, Tariff]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Список тарифов успешно получен
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Tariff'
+ *       401:
+ *         description: Неавторизованный доступ
+ *       403:
+ *         description: Доступ запрещен
+ *       500:
+ *         description: Внутренняя ошибка сервера
+ */
+router.get(
+  "/:cityId",
+  authMiddleware,
+  authorizeRoles(["superadmin", "admin", "moderator"]),
+  getTariffs
+);
+
+export default router;

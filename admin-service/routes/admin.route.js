@@ -1,30 +1,28 @@
-import { Router } from 'express';
+import { Router } from "express";
 import {
-    approveDriver,
-    blockDriverViaGateway,
-    blockUserViaGateway,
-    createAdmin,
-    getAdminById,
-    getDriverDetails,
-    getDriverRequests,
-    getDriverRidesViaGateway,
-    getDrivers,
-    getReviews,
-    getRides,
-    getRidesByTimeRange,
-    getUserRidesViaGateway,
-    getUsers,
-    rejectDriver,
-    unblockDriverViaGateway,
-    unblockUserViaGateway,
-    updateSettings
-} from '../controllers/admin.controller.js';
-import { authMiddleware } from '../middlewares/auth.middleware.js';
+  approveDriver,
+  blockDriverViaGateway,
+  blockUserViaGateway,
+  createAdmin,
+  getAdminById,
+  getDriverDetails,
+  getDriverRequests,
+  getDriverRidesViaGateway,
+  getDrivers,
+  getReviews,
+  getRides,
+  getRidesByTimeRange,
+  getUserRidesViaGateway,
+  getUsers,
+  rejectDriver,
+  unblockDriverViaGateway,
+  unblockUserViaGateway,
+} from "../controllers/admin.controller.js";
+import { authMiddleware } from "../middlewares/auth.middleware.js";
 import { authorizeRoles } from "../middlewares/role.middleware.js";
-import { validateMiddleware } from '../middlewares/validate.middleware.js';
+import { validateMiddleware } from "../middlewares/validate.middleware.js";
 import { rejectDriverSchema } from "../validators/reject-driver.js";
-import { updateCostSchema } from "../validators/update-cost.validator.js";
-import tariffRouter from './tariff.route.js';
+import tariffRouter from "./tariff.route.js";
 
 const router = Router();
 
@@ -129,7 +127,12 @@ const router = Router();
  *       500:
  *         description: Внутренняя ошибка сервера
  */
-router.get('/users', authMiddleware, authorizeRoles(['superadmin', 'admin', 'moderator']) , getUsers);
+router.get(
+  "/users",
+  authMiddleware,
+  authorizeRoles(["superadmin", "admin", "moderator"]),
+  getUsers
+);
 
 /**
  * @swagger
@@ -182,7 +185,12 @@ router.get('/users', authMiddleware, authorizeRoles(['superadmin', 'admin', 'mod
  *       500:
  *         description: Внутренняя ошибка сервера
  */
-router.get('/drivers', authMiddleware, authorizeRoles(['superadmin', 'admin', 'moderator']) , getDrivers);
+router.get(
+  "/drivers",
+  authMiddleware,
+  authorizeRoles(["superadmin", "admin", "moderator"]),
+  getDrivers
+);
 
 /**
  * @swagger
@@ -220,7 +228,12 @@ router.get('/drivers', authMiddleware, authorizeRoles(['superadmin', 'admin', 'm
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.get('/driver-requests',authMiddleware, authorizeRoles(['superadmin', 'admin', 'moderator']), getDriverRequests);
+router.get(
+  "/driver-requests",
+  authMiddleware,
+  authorizeRoles(["superadmin", "admin", "moderator"]),
+  getDriverRequests
+);
 //router.get('/driver-requests', authMiddleware, authorizeRoles('admin', 'moderator'), getDriverRequests);
 
 /**
@@ -268,8 +281,12 @@ router.get('/driver-requests',authMiddleware, authorizeRoles(['superadmin', 'adm
  *                   example: "Ошибка при получении данных водителя"
  */
 
-
-router.get('/driver/:id', authMiddleware, authorizeRoles(['superadmin', 'admin', 'moderator']), getDriverDetails);
+router.get(
+  "/driver/:id",
+  authMiddleware,
+  authorizeRoles(["superadmin", "admin", "moderator"]),
+  getDriverDetails
+);
 // router.get('/driver/:id', authMiddleware, authorizeRoles('admin', 'moderator'), getDriverDetails);
 
 /**
@@ -317,7 +334,12 @@ router.get('/driver/:id', authMiddleware, authorizeRoles(['superadmin', 'admin',
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.post('/approve-driver/:requestId', authMiddleware, authorizeRoles(['superadmin', 'admin', 'moderator']), approveDriver);
+router.post(
+  "/approve-driver/:requestId",
+  authMiddleware,
+  authorizeRoles(["superadmin", "admin", "moderator"]),
+  approveDriver
+);
 //router.post('/approve-driver/:requestId', authMiddleware, authorizeRoles('admin', 'moderator'), approveDriver);
 
 /**
@@ -359,7 +381,10 @@ router.post('/approve-driver/:requestId', authMiddleware, authorizeRoles(['super
  *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.post(
-    '/approve-driver',authMiddleware, authorizeRoles(['superadmin', 'admin', 'moderator']), approveDriver
+  "/approve-driver",
+  authMiddleware,
+  authorizeRoles(["superadmin", "admin", "moderator"]),
+  approveDriver
 );
 
 // router.post(
@@ -420,7 +445,13 @@ router.post(
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.post('/reject-driver/:requestId',authMiddleware, authorizeRoles(['superadmin', 'admin', 'moderator']),  validateMiddleware(rejectDriverSchema), rejectDriver);
+router.post(
+  "/reject-driver/:requestId",
+  authMiddleware,
+  authorizeRoles(["superadmin", "admin", "moderator"]),
+  validateMiddleware(rejectDriverSchema),
+  rejectDriver
+);
 //router.post('/reject-driver/:requestId', authMiddleware, authorizeRoles('admin', 'moderator'), validateMiddleware(rejectDriverSchema), rejectDriver);
 
 /**
@@ -459,7 +490,12 @@ router.post('/reject-driver/:requestId',authMiddleware, authorizeRoles(['superad
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.get('/rides',authMiddleware, authorizeRoles(['superadmin', 'admin', 'moderator']), getRides);
+router.get(
+  "/rides",
+  authMiddleware,
+  authorizeRoles(["superadmin", "admin", "moderator"]),
+  getRides
+);
 //router.get('/rides', authMiddleware, authorizeRoles('admin', 'moderator'), getRides);
 
 /**
@@ -498,41 +534,13 @@ router.get('/rides',authMiddleware, authorizeRoles(['superadmin', 'admin', 'mode
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.get('/reviews',authMiddleware, authorizeRoles(['superadmin', 'admin', 'moderator']), getReviews);
-//router.get('/reviews', authMiddleware, authorizeRoles('admin', 'moderator'), getReviews);
-
-/**
- * @swagger
- * /admin/tariff:
- *   post:
- *     summary: Обновить тарифы
- *     tags: [Admin]
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/UpdateSettingsRequest'
- *     responses:
- *       200:
- *         description: Тарифы успешно обновлены
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Тарифы успешно обновлены"
- */
-router.post(
-    '/tariff',
-    authMiddleware, authorizeRoles(['superadmin', 'admin', 'moderator']),
-    validateMiddleware(updateCostSchema),
-    updateSettings
+router.get(
+  "/reviews",
+  authMiddleware,
+  authorizeRoles(["superadmin", "admin", "moderator"]),
+  getReviews
 );
+//router.get('/reviews', authMiddleware, authorizeRoles('admin', 'moderator'), getReviews);
 
 /**
  * @swagger
@@ -565,7 +573,12 @@ router.post(
  *       500:
  *         description: Не удалось получить данные о поездках
  */
-router.get('/user/:userId/rides', authMiddleware, authorizeRoles(['superadmin', 'admin', 'moderator']), getUserRidesViaGateway);
+router.get(
+  "/user/:userId/rides",
+  authMiddleware,
+  authorizeRoles(["superadmin", "admin", "moderator"]),
+  getUserRidesViaGateway
+);
 
 /**
  * @swagger
@@ -598,7 +611,12 @@ router.get('/user/:userId/rides', authMiddleware, authorizeRoles(['superadmin', 
  *       500:
  *         description: Не удалось получить данные о поездках
  */
-router.get('/driver/:driverId/rides', authMiddleware, authorizeRoles(['superadmin', 'admin', 'moderator']), getDriverRidesViaGateway);
+router.get(
+  "/driver/:driverId/rides",
+  authMiddleware,
+  authorizeRoles(["superadmin", "admin", "moderator"]),
+  getDriverRidesViaGateway
+);
 
 /**
  * @swagger
@@ -635,7 +653,12 @@ router.get('/driver/:driverId/rides', authMiddleware, authorizeRoles(['superadmi
  *       500:
  *         description: Ошибка сервера
  */
-router.get('/rides', authMiddleware, authorizeRoles(['superadmin', 'admin']), getRidesByTimeRange);
+router.get(
+  "/rides",
+  authMiddleware,
+  authorizeRoles(["superadmin", "admin"]),
+  getRidesByTimeRange
+);
 
 /**
  * @swagger
@@ -681,7 +704,12 @@ router.get('/rides', authMiddleware, authorizeRoles(['superadmin', 'admin']), ge
  *         description: Доступ запрещен
  */
 // router.post('/create', authMiddleware, authorizeRoles(['superadmin']), validateMiddleware(createAdminSchema), createAdmin);
-router.post('/create', authMiddleware, authorizeRoles(['superadmin']), createAdmin);
+router.post(
+  "/create",
+  authMiddleware,
+  authorizeRoles(["superadmin"]),
+  createAdmin
+);
 
 /**
  * @swagger
@@ -706,7 +734,12 @@ router.post('/create', authMiddleware, authorizeRoles(['superadmin']), createAdm
  *       403:
  *         description: Доступ запрещен
  */
-router.get('/:id', authMiddleware, authorizeRoles(['superadmin', 'admin']), getAdminById);
+router.get(
+  "/:id",
+  authMiddleware,
+  authorizeRoles(["superadmin", "admin"]),
+  getAdminById
+);
 
 /**
  * @swagger
@@ -760,7 +793,12 @@ router.get('/:id', authMiddleware, authorizeRoles(['superadmin', 'admin']), getA
  *       500:
  *         description: Ошибка сервера
  */
-router.post('/user/:userId/block', authMiddleware, authorizeRoles(['superadmin', 'admin']), blockUserViaGateway);
+router.post(
+  "/user/:userId/block",
+  authMiddleware,
+  authorizeRoles(["superadmin", "admin"]),
+  blockUserViaGateway
+);
 
 /**
  * @swagger
@@ -814,7 +852,12 @@ router.post('/user/:userId/block', authMiddleware, authorizeRoles(['superadmin',
  *       500:
  *         description: Ошибка сервера
  */
-router.post('/driver/:driverId/block', authMiddleware, authorizeRoles(['superadmin', 'admin']), blockDriverViaGateway);
+router.post(
+  "/driver/:driverId/block",
+  authMiddleware,
+  authorizeRoles(["superadmin", "admin"]),
+  blockDriverViaGateway
+);
 
 /**
  * @swagger
@@ -865,7 +908,12 @@ router.post('/driver/:driverId/block', authMiddleware, authorizeRoles(['superadm
  *       500:
  *         description: Ошибка сервера
  */
-router.post('/user/:userId/unblock', authMiddleware, authorizeRoles(['superadmin', 'admin']), unblockUserViaGateway);
+router.post(
+  "/user/:userId/unblock",
+  authMiddleware,
+  authorizeRoles(["superadmin", "admin"]),
+  unblockUserViaGateway
+);
 
 /**
  * @swagger
@@ -917,10 +965,15 @@ router.post('/user/:userId/unblock', authMiddleware, authorizeRoles(['superadmin
  *       500:
  *         description: Ошибка сервера
  */
-router.post('/driver/:driverId/unblock', authMiddleware, authorizeRoles(['superadmin', 'admin']), unblockDriverViaGateway);
+router.post(
+  "/driver/:driverId/unblock",
+  authMiddleware,
+  authorizeRoles(["superadmin", "admin"]),
+  unblockDriverViaGateway
+);
 
 // Подключаем роутер для тарифов
-router.use('/tariff', tariffRouter);
+router.use("/tariff", tariffRouter);
 
 /**
  * @swagger
@@ -981,5 +1034,30 @@ router.use('/tariff', tariffRouter);
  *           type: string
  *           format: date-time
  */
+
+/**
+ * @swagger
+ * /admin/health:
+ *   get:
+ *     summary: Проверка работоспособности сервиса
+ *     tags: [Admin]
+ *     responses:
+ *       200:
+ *         description: Сервис работает нормально
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: ok
+ *                 service:
+ *                   type: string
+ *                   example: admin-service
+ */
+router.get("/health", (req, res) => {
+  res.status(200).json({ status: "ok", service: "admin-service" });
+});
 
 export default router;

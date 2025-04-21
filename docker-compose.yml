@@ -41,7 +41,11 @@ services:
     volumes:
       - mysql-auth-data:/var/lib/mysql
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h localhost -p${MYSQL_ROOT_PASSWORD} || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "mysqladmin ping -h localhost -p${MYSQL_ROOT_PASSWORD} || exit 1",
+        ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -60,7 +64,11 @@ services:
     volumes:
       - mysql-admin-data:/var/lib/mysql
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h localhost -p${MYSQL_ROOT_PASSWORD} || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "mysqladmin ping -h localhost -p${MYSQL_ROOT_PASSWORD} || exit 1",
+        ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -79,7 +87,11 @@ services:
     volumes:
       - mysql-ride-data:/var/lib/mysql
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h localhost -p${MYSQL_ROOT_PASSWORD} || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "mysqladmin ping -h localhost -p${MYSQL_ROOT_PASSWORD} || exit 1",
+        ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -98,7 +110,11 @@ services:
     volumes:
       - mysql-payment-data:/var/lib/mysql
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h localhost -p${MYSQL_ROOT_PASSWORD} || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "mysqladmin ping -h localhost -p${MYSQL_ROOT_PASSWORD} || exit 1",
+        ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -117,7 +133,11 @@ services:
     volumes:
       - mysql-review-data:/var/lib/mysql
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h localhost -p${MYSQL_ROOT_PASSWORD} || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "mysqladmin ping -h localhost -p${MYSQL_ROOT_PASSWORD} || exit 1",
+        ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -136,7 +156,11 @@ services:
     volumes:
       - mysql-geo-data:/var/lib/mysql
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h localhost -p${MYSQL_ROOT_PASSWORD} || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "mysqladmin ping -h localhost -p${MYSQL_ROOT_PASSWORD} || exit 1",
+        ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -161,7 +185,11 @@ services:
       --max-connections=200
       --innodb-buffer-pool-size=512M
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -prootpassword || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "mysqladmin ping -h localhost -uroot -prootpassword || exit 1",
+        ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -185,7 +213,11 @@ services:
       --max-connections=200
       --innodb-buffer-pool-size=512M
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h localhost -p${MYSQL_ROOT_PASSWORD} || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "mysqladmin ping -h localhost -p${MYSQL_ROOT_PASSWORD} || exit 1",
+        ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -247,6 +279,12 @@ services:
         condition: service_healthy
     networks:
       - taxi-net
+    healthcheck:
+      test:
+        ["CMD-SHELL", "curl -f http://localhost:3013/rides/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
   balance-service:
     build: ./balance-service
@@ -353,7 +391,6 @@ services:
     networks:
       - taxi-net
 
-
   admin-service:
     build: ./admin-service
     ports:
@@ -375,7 +412,8 @@ services:
     networks:
       - taxi-net
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3001/auth/health"]
+      test:
+        ["CMD-SHELL", "curl -f http://localhost:3008/admin/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -404,7 +442,7 @@ services:
     networks:
       - taxi-net
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:3012/auth/health" ]
+      test: ["CMD", "curl", "-f", "http://localhost:3012/auth/health"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -434,7 +472,7 @@ services:
     networks:
       - taxi-net
     healthcheck:
-      test: [ "CMD-SHELL", "curl -f http://localhost:3010/health || exit 1" ]
+      test: ["CMD-SHELL", "curl -f http://localhost:3010/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -442,7 +480,7 @@ services:
   api-gateway:
     build: ./api-gateway
     ports:
-      - '8000:8000'
+      - "8000:8000"
     environment:
       - AUTH_SERVICE_URL=http://auth-service:3001
       - SMS_SERVICE_URL=http://sms-service:3000
@@ -455,15 +493,31 @@ services:
       - BALANCE_SERVICE_URL=http://balance-service:3055
       - PORT=8000
     depends_on:
-      - auth-service
-      - ride-service
-      - admin-service
-      - payment-service
-      - review-service
-      - geo-service
-      - balance-service
+      auth-service:
+        condition: service_healthy
+      ride-service:
+        condition: service_healthy
+      admin-service:
+        condition: service_healthy
+      payment-service:
+        condition: service_healthy
+      review-service:
+        condition: service_healthy
+      geo-service:
+        condition: service_healthy
+      balance-service:
+        condition: service_healthy
+      chat-service:
+        condition: service_healthy
+      sms-service:
+        condition: service_healthy
     networks:
       - taxi-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
 
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:7.15.0

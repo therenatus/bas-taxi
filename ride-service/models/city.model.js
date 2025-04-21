@@ -1,9 +1,13 @@
-import { DataTypes } from 'sequelize';
-import sequelize from '../utils/sequelize.js';
+import { DataTypes } from "sequelize";
+import sequelize from "../utils/sequelize.js";
 
-const City = sequelize.define('City', {
+const City = sequelize.define(
+  "City",
+  {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     name: { type: DataTypes.STRING, unique: true, allowNull: false },
-}, { tableName: 'cities', timestamps: false });
+  },
+  { tableName: "cities", timestamps: false }
+);
 
 export default City;

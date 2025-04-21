@@ -1,39 +1,41 @@
-import express from 'express';
+import express from "express";
 import {
-    acceptRideHandler,
-    activateLineHandler,
-    activateParkingModeHandler,
-    addHolidayHandler,
-    cancelRideHandler,
-    cancelRideIfPassengerNotArrivedHandler,
-    completeRideHandler,
-    createRideWithoutPassengerHandler,
-    createTariffHandler,
-    deactivateLineHandler,
-    deactivateParkingModeHandler,
-    deleteHolidayHandler,
-    deleteHourAdjustmentHandler,
-    deleteMonthAdjustmentHandler,
-    getAllUserRidesHandler,
-    getDriverBalanceHandler,
-    getDriverDetailsHandler,
-    getDriverRidesHandler,
-    getNearbyParkedDriversHandler,
-    getRideDetailsHandler,
-    getRideInfoHandler,
-    getRidesByTimeRange,
-    getTariffHandler,
-    getUserRidesHandler,
-    onsiteRideHandler,
-    requestRideHandler,
-    startRideByQRHandler,
-    startRideHandler,
-    updateBaseTariffHandler,
-    updateHolidayHandler,
-    updateHourAdjustmentHandler,
-    updateMonthAdjustmentHandler,
-    updateRideStatusHandler,
-} from '../controllers/ride.controller.js';
+  acceptRideHandler,
+  activateLineHandler,
+  activateParkingModeHandler,
+  addHolidayHandler,
+  cancelRideHandler,
+  cancelRideIfPassengerNotArrivedHandler,
+  completeRideHandler,
+  createRideWithoutPassengerHandler,
+  createTariffHandler,
+  deactivateLineHandler,
+  deactivateParkingModeHandler,
+  deleteHolidayHandler,
+  deleteHourAdjustmentHandler,
+  deleteMonthAdjustmentHandler,
+  getAllUserRidesHandler,
+  getCarClassesHandler,
+  getCitiesHandler,
+  getDriverBalanceHandler,
+  getDriverDetailsHandler,
+  getDriverRidesHandler,
+  getNearbyParkedDriversHandler,
+  getRideDetailsHandler,
+  getRideInfoHandler,
+  getRidesByTimeRange,
+  getTariffHandler,
+  getUserRidesHandler,
+  onsiteRideHandler,
+  requestRideHandler,
+  startRideByQRHandler,
+  startRideHandler,
+  updateBaseTariffHandler,
+  updateHolidayHandler,
+  updateHourAdjustmentHandler,
+  updateMonthAdjustmentHandler,
+  updateRideStatusHandler,
+} from "../controllers/ride.controller.js";
 import { authMiddleware } from "../middlewares/auth.middleware.js";
 
 const router = express.Router();
@@ -95,6 +97,31 @@ const router = express.Router();
  *           format: date-time
  */
 
+/**
+ * @swagger
+ * /rides/health:
+ *   get:
+ *     summary: Проверка работоспособности сервиса
+ *     tags: [Rides]
+ *     responses:
+ *       200:
+ *         description: Сервис работает нормально
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: ok
+ *                 service:
+ *                   type: string
+ *                   example: ride-service
+ */
+router.get("/health", (req, res) => {
+  res.status(200).json({ status: "ok", service: "ride-service" });
+});
+
 // ==================== Основные операции с поездками ====================
 
 /**
@@ -124,7 +151,11 @@ const router = express.Router();
  *       500:
  *         description: Внутренняя ошибка сервера
  */
-router.post('/request', authMiddleware(['driver', 'passenger']), requestRideHandler);
+router.post(
+  "/request",
+  authMiddleware(["driver", "passenger"]),
+  requestRideHandler
+);
 
 /**
  * @swagger
@@ -148,7 +179,7 @@ router.post('/request', authMiddleware(['driver', 'passenger']), requestRideHand
  *       400:
  *         description: Ошибка при принятии поездки
  */
-router.post('/accept', authMiddleware(['driver']), acceptRideHandler);
+router.post("/accept", authMiddleware(["driver"]), acceptRideHandler);
 
 /**
  * @swagger
@@ -171,7 +202,7 @@ router.post('/accept', authMiddleware(['driver']), acceptRideHandler);
  *       500:
  *         description: Внутренняя ошибка сервера
  */
-router.post('/:rideId/start', authMiddleware(['driver']), startRideHandler);
+router.post("/:rideId/start", authMiddleware(["driver"]), startRideHandler);
 
 /**
  * @swagger
@@ -194,7 +225,11 @@ router.post('/:rideId/start', authMiddleware(['driver']), startRideHandler);
  *       500:
  *         description: Внутренняя ошибка сервера
  */
-router.post('/:rideId/complete', authMiddleware(['driver']), completeRideHandler);
+router.post(
+  "/:rideId/complete",
+  authMiddleware(["driver"]),
+  completeRideHandler
+);
 
 /**
  * @swagger
@@ -227,7 +262,11 @@ router.post('/:rideId/complete', authMiddleware(['driver']), completeRideHandler
  *       400:
  *         description: Ошибка запроса
  */
-router.post('/:rideId/cancel', authMiddleware(['passenger']), cancelRideHandler);
+router.post(
+  "/:rideId/cancel",
+  authMiddleware(["passenger"]),
+  cancelRideHandler
+);
 
 /**
  * @swagger
@@ -250,7 +289,7 @@ router.post('/:rideId/cancel', authMiddleware(['passenger']), cancelRideHandler)
  *       500:
  *         description: Внутренняя ошибка сервера
  */
-router.post('/:rideId/onsite', authMiddleware(['driver']), onsiteRideHandler);
+router.post("/:rideId/onsite", authMiddleware(["driver"]), onsiteRideHandler);
 
 /**
  * @swagger
@@ -273,7 +312,11 @@ router.post('/:rideId/onsite', authMiddleware(['driver']), onsiteRideHandler);
  *       500:
  *         description: Внутренняя ошибка сервера
  */
-router.post('/:rideId/timeout-cancel', authMiddleware(['driver']), cancelRideIfPassengerNotArrivedHandler);
+router.post(
+  "/:rideId/timeout-cancel",
+  authMiddleware(["driver"]),
+  cancelRideIfPassengerNotArrivedHandler
+);
 
 /**
  * @swagger
@@ -300,7 +343,11 @@ router.post('/:rideId/timeout-cancel', authMiddleware(['driver']), cancelRideIfP
  *       500:
  *         description: Внутренняя ошибка сервера
  */
-router.put('/update-status', authMiddleware(['driver', 'passenger']), updateRideStatusHandler);
+router.put(
+  "/update-status",
+  authMiddleware(["driver", "passenger"]),
+  updateRideStatusHandler
+);
 
 // ==================== Управление парковкой ====================
 
@@ -334,7 +381,11 @@ router.put('/update-status', authMiddleware(['driver', 'passenger']), updateRide
  *       500:
  *         description: Внутренняя ошибка сервера
  */
-router.post('/parking/activate', authMiddleware(['driver']), activateParkingModeHandler);
+router.post(
+  "/parking/activate",
+  authMiddleware(["driver"]),
+  activateParkingModeHandler
+);
 
 /**
  * @swagger
@@ -350,7 +401,11 @@ router.post('/parking/activate', authMiddleware(['driver']), activateParkingMode
  *       500:
  *         description: Внутренняя ошибка сервера
  */
-router.post('/parking/deactivate', authMiddleware(['driver']), deactivateParkingModeHandler);
+router.post(
+  "/parking/deactivate",
+  authMiddleware(["driver"]),
+  deactivateParkingModeHandler
+);
 
 /**
  * @swagger
@@ -385,7 +440,11 @@ router.post('/parking/deactivate', authMiddleware(['driver']), deactivateParking
  *       500:
  *         description: Внутренняя ошибка сервера
  */
-router.get('/parking/list', authMiddleware(['passenger']), getNearbyParkedDriversHandler);
+router.get(
+  "/parking/list",
+  authMiddleware(["passenger"]),
+  getNearbyParkedDriversHandler
+);
 
 // ==================== Управление линией ====================
 
@@ -416,7 +475,7 @@ router.get('/parking/list', authMiddleware(['passenger']), getNearbyParkedDriver
  *       500:
  *         description: Внутренняя ошибка сервера
  */
-router.post('/line/activate', authMiddleware(['driver']), activateLineHandler);
+router.post("/line/activate", authMiddleware(["driver"]), activateLineHandler);
 
 /**
  * @swagger
@@ -430,9 +489,41 @@ router.post('/line/activate', authMiddleware(['driver']), activateLineHandler);
  *       500:
  *         description: Внутренняя ошибка сервера
  */
-router.post('/line/deactivate', authMiddleware(['driver']), deactivateLineHandler);
+router.post(
+  "/line/deactivate",
+  authMiddleware(["driver"]),
+  deactivateLineHandler
+);
 
 // ==================== Информация о поездках ====================
+
+/**
+ * @swagger
+ * /rides/cities:
+ *   get:
+ *     summary: Получение списка городов
+ *     tags: [Rides]
+ *     responses:
+ *       200:
+ *         description: Список городов получен
+ *       500:
+ *         description: Ошибка сервера
+ */
+router.get("/cities", getCitiesHandler);
+
+/**
+ * @swagger
+ * /rides/car-classes:
+ *   get:
+ *     summary: Получение списка классов автомобилей
+ *     tags: [Rides]
+ *     responses:
+ *       200:
+ *         description: Список классов автомобилей получен
+ *       500:
+ *         description: Ошибка сервера
+ */
+router.get("/car-classes", getCarClassesHandler);
 
 /**
  * @swagger
@@ -457,7 +548,7 @@ router.post('/line/deactivate', authMiddleware(['driver']), deactivateLineHandle
  *       500:
  *         description: Не удалось получить данные о поездке
  */
-router.get('/:rideId', getRideDetailsHandler);
+router.get("/:rideId", getRideDetailsHandler);
 
 /**
  * @swagger
@@ -484,7 +575,11 @@ router.get('/:rideId', getRideDetailsHandler);
  *       500:
  *         description: Внутренняя ошибка сервера
  */
-router.get('/driver/balance', authMiddleware(['driver']), getDriverBalanceHandler);
+router.get(
+  "/driver/balance",
+  authMiddleware(["driver"]),
+  getDriverBalanceHandler
+);
 
 /**
  * @swagger
@@ -509,7 +604,7 @@ router.get('/driver/balance', authMiddleware(['driver']), getDriverBalanceHandle
  *       500:
  *         description: Не удалось получить данные о водителе
  */
-router.get('/driver/:driverId', getDriverDetailsHandler);
+router.get("/driver/:driverId", getDriverDetailsHandler);
 
 /**
  * @swagger
@@ -534,7 +629,11 @@ router.get('/driver/:driverId', getDriverDetailsHandler);
  *       500:
  *         description: Не удалось получить данные о поездках
  */
-router.get('/driver/:driverId/rides', authMiddleware(['admin']), getDriverRidesHandler);
+router.get(
+  "/driver/:driverId/rides",
+  authMiddleware(["admin"]),
+  getDriverRidesHandler
+);
 
 /**
  * @swagger
@@ -559,7 +658,11 @@ router.get('/driver/:driverId/rides', authMiddleware(['admin']), getDriverRidesH
  *       500:
  *         description: Не удалось получить данные о поездках
  */
-router.get('/user/:userId/rides', authMiddleware(['admin']), getUserRidesHandler);
+router.get(
+  "/user/:userId/rides",
+  authMiddleware(["admin"]),
+  getUserRidesHandler
+);
 
 /**
  * @swagger
@@ -590,7 +693,7 @@ router.get('/user/:userId/rides', authMiddleware(['admin']), getUserRidesHandler
  *       500:
  *         description: Ошибка сервера
  */
-router.get('/time-range', getRidesByTimeRange);
+router.get("/time-range", getRidesByTimeRange);
 
 /**
  * @swagger
@@ -606,7 +709,11 @@ router.get('/time-range', getRidesByTimeRange);
  *       500:
  *         description: Ошибка сервера
  */
-router.get('/my-rides', authMiddleware(['driver', 'passenger']), getAllUserRidesHandler);
+router.get(
+  "/my-rides",
+  authMiddleware(["driver", "passenger"]),
+  getAllUserRidesHandler
+);
 
 /**
  * @swagger
@@ -622,7 +729,11 @@ router.get('/my-rides', authMiddleware(['driver', 'passenger']), getAllUserRides
  *       500:
  *         description: Ошибка сервера
  */
-router.get('/my', authMiddleware(['driver', 'passenger']), getAllUserRidesHandler);
+router.get(
+  "/my",
+  authMiddleware(["driver", "passenger"]),
+  getAllUserRidesHandler
+);
 
 /**
  * @swagger
@@ -651,7 +762,11 @@ router.get('/my', authMiddleware(['driver', 'passenger']), getAllUserRidesHandle
  *       500:
  *         description: Внутренняя ошибка сервера
  */
-router.post('/price', authMiddleware(['driver', 'passenger']), getRideInfoHandler);
+router.post(
+  "/price",
+  authMiddleware(["driver", "passenger"]),
+  getRideInfoHandler
+);
 
 // ==================== Управление тарифами ====================
 
@@ -699,7 +814,7 @@ router.post('/price', authMiddleware(['driver', 'passenger']), getRideInfoHandle
  *       500:
  *         description: Ошибка сервера
  */
-router.post('/tariffs', createTariffHandler);
+router.post("/tariffs", createTariffHandler);
 
 /**
  * @swagger
@@ -722,7 +837,7 @@ router.post('/tariffs', createTariffHandler);
  *       500:
  *         description: Ошибка сервера
  */
-router.get('/tariffs/:cityId', getTariffHandler);
+router.get("/tariffs/:cityId", getTariffHandler);
 
 /**
  * @swagger
@@ -761,7 +876,7 @@ router.get('/tariffs/:cityId', getTariffHandler);
  *       500:
  *         description: Ошибка сервера
  */
-router.put('/tariffs/base', updateBaseTariffHandler);
+router.put("/tariffs/base", updateBaseTariffHandler);
 
 /**
  * @swagger
@@ -799,7 +914,11 @@ router.put('/tariffs/base', updateBaseTariffHandler);
  *       500:
  *         description: Ошибка сервера
  */
-router.put('/tariffs/hour', updateHourAdjustmentHandler);
+router.put(
+  "/tariffs/hour",
+  authMiddleware(["superadmin", "admin"]),
+  updateHourAdjustmentHandler
+);
 
 /**
  * @swagger
@@ -834,7 +953,7 @@ router.put('/tariffs/hour', updateHourAdjustmentHandler);
  *       500:
  *         description: Ошибка сервера
  */
-router.delete('/tariffs/hour', deleteHourAdjustmentHandler);
+router.delete("/tariffs/hour", deleteHourAdjustmentHandler);
 
 /**
  * @swagger
@@ -872,7 +991,11 @@ router.delete('/tariffs/hour', deleteHourAdjustmentHandler);
  *       500:
  *         description: Ошибка сервера
  */
-router.put('/tariffs/month', updateMonthAdjustmentHandler);
+router.put(
+  "/tariffs/month",
+  authMiddleware(["superadmin", "admin"]),
+  updateMonthAdjustmentHandler
+);
 
 /**
  * @swagger
@@ -907,7 +1030,7 @@ router.put('/tariffs/month', updateMonthAdjustmentHandler);
  *       500:
  *         description: Ошибка сервера
  */
-router.delete('/tariffs/month', deleteMonthAdjustmentHandler);
+router.delete("/tariffs/month", deleteMonthAdjustmentHandler);
 
 /**
  * @swagger
@@ -952,7 +1075,7 @@ router.delete('/tariffs/month', deleteMonthAdjustmentHandler);
  *       500:
  *         description: Ошибка сервера
  */
-router.post('/tariffs/holiday', addHolidayHandler);
+router.post("/tariffs/holiday", addHolidayHandler);
 
 /**
  * @swagger
@@ -995,7 +1118,7 @@ router.post('/tariffs/holiday', addHolidayHandler);
  *       500:
  *         description: Ошибка сервера
  */
-router.put('/tariffs/holiday', updateHolidayHandler);
+router.put("/tariffs/holiday", updateHolidayHandler);
 
 /**
  * @swagger
@@ -1035,7 +1158,7 @@ router.put('/tariffs/holiday', updateHolidayHandler);
  *       500:
  *         description: Ошибка сервера
  */
-router.delete('/tariffs/holiday', deleteHolidayHandler);
+router.delete("/tariffs/holiday", deleteHolidayHandler);
 
 // ==================== Специальные операции ====================
 
@@ -1066,7 +1189,11 @@ router.delete('/tariffs/holiday', deleteHolidayHandler);
  *       500:
  *         description: Внутренняя ошибка сервера
  */
-router.post('/without-passenger', authMiddleware(['driver']), createRideWithoutPassengerHandler);
+router.post(
+  "/without-passenger",
+  authMiddleware(["driver"]),
+  createRideWithoutPassengerHandler
+);
 
 /**
  * @swagger
@@ -1097,7 +1224,11 @@ router.post('/without-passenger', authMiddleware(['driver']), createRideWithoutP
  *       500:
  *         description: Внутренняя ошибка сервера
  */
-router.post('/start-by-qr', authMiddleware(['passenger']), startRideByQRHandler);
+router.post(
+  "/start-by-qr",
+  authMiddleware(["passenger"]),
+  startRideByQRHandler
+);
 
 // Дополнительные маршруты для совместимости с клиентскими приложениями
 /**
@@ -1123,7 +1254,11 @@ router.post('/start-by-qr', authMiddleware(['passenger']), startRideByQRHandler)
  *       500:
  *         description: Внутренняя ошибка сервера
  */
-router.get('/driver/rides/my', authMiddleware(['driver']), getAllUserRidesHandler);
+router.get(
+  "/driver/rides/my",
+  authMiddleware(["driver"]),
+  getAllUserRidesHandler
+);
 
 /**
  * @swagger
@@ -1148,7 +1283,11 @@ router.get('/driver/rides/my', authMiddleware(['driver']), getAllUserRidesHandle
  *       500:
  *         description: Внутренняя ошибка сервера
  */
-router.get('/user/rides/my', authMiddleware(['passenger']), getAllUserRidesHandler);
+router.get(
+  "/user/rides/my",
+  authMiddleware(["passenger"]),
+  getAllUserRidesHandler
+);
 
 /**
  * @swagger
@@ -1180,6 +1319,6 @@ router.get('/user/rides/my', authMiddleware(['passenger']), getAllUserRidesHandl
  *       500:
  *         description: Внутренняя ошибка сервера
  */
-router.get('/driver/balance/:driverId', getDriverBalanceHandler);
+router.get("/driver/balance/:driverId", getDriverBalanceHandler);
 
 export default router;
