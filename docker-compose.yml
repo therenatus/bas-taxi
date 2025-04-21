@@ -279,12 +279,6 @@ services:
         condition: service_healthy
     networks:
       - taxi-net
-    healthcheck:
-      test:
-        ["CMD-SHELL", "curl -f http://localhost:3013/rides/health || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
 
   balance-service:
     build: ./balance-service
@@ -493,24 +487,13 @@ services:
       - BALANCE_SERVICE_URL=http://balance-service:3055
       - PORT=8000
     depends_on:
-      auth-service:
-        condition: service_healthy
-      ride-service:
-        condition: service_healthy
-      admin-service:
-        condition: service_healthy
-      payment-service:
-        condition: service_healthy
-      review-service:
-        condition: service_healthy
-      geo-service:
-        condition: service_healthy
-      balance-service:
-        condition: service_healthy
-      chat-service:
-        condition: service_healthy
-      sms-service:
-        condition: service_healthy
+      - auth-service
+      - ride-service
+      - admin-service
+      - payment-service
+      - review-service
+      - geo-service
+      - balance-service
     networks:
       - taxi-net
     healthcheck:
