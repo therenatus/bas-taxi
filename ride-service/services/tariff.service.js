@@ -655,7 +655,17 @@ export const getTariffs = async (cityId, carClassId) => {
   }
 };
 
-// Добавление/изменение месячной корректировки
+/**
+ * Обновляет или добавляет месячную корректировку для тарифа
+ * @param {number} cityId - ID города
+ * @param {number} carClassId - ID класса автомобиля
+ * @param {number} month - Месяц (1-12)
+ * @param {number} percent - Процент корректировки (-100 до 500)
+ * @param {number} adminId - ID администратора, выполняющего изменение
+ * @param {string} [reason] - Причина изменения
+ * @returns {Promise<Object>} - Обновленный тариф
+ * @throws {Error} Если тариф не найден или данные некорректны
+ */
 export const updateMonthAdjustment = async (
   cityId,
   carClassId,
@@ -665,6 +675,45 @@ export const updateMonthAdjustment = async (
   reason
 ) => {
   try {
+    // Валидация входных параметров
+    if (!cityId || isNaN(parseInt(cityId))) {
+      throw new Error("ID города должен быть числом");
+    }
+
+    if (!carClassId || isNaN(parseInt(carClassId))) {
+      throw new Error("ID класса автомобиля должен быть числом");
+    }
+
+    if (
+      month === undefined ||
+      isNaN(parseInt(month)) ||
+      month < 1 ||
+      month > 12
+    ) {
+      throw new Error("Месяц должен быть числом от 1 до 12");
+    }
+
+    if (
+      percent === undefined ||
+      isNaN(parseFloat(percent)) ||
+      percent < -100 ||
+      percent > 500
+    ) {
+      throw new Error(
+        "Процент корректировки должен быть числом от -100 до 500"
+      );
+    }
+
+    if (!adminId) {
+      throw new Error("ID администратора обязателен");
+    }
+
+    // Преобразуем входные данные в нужный формат
+    cityId = parseInt(cityId);
+    carClassId = parseInt(carClassId);
+    month = parseInt(month);
+    percent = parseFloat(percent);
+
     // Сначала находим тариф (без транзакции)
     const tariff = await Tariff.findOne({
       where: {
@@ -852,7 +901,17 @@ export const deleteMonthAdjustment = async (
   }
 };
 
-// Добавление/изменение часовой корректировки
+/**
+ * Обновляет или добавляет часовую корректировку для тарифа
+ * @param {number} cityId - ID города
+ * @param {number} carClassId - ID класса автомобиля
+ * @param {number} hour - Час (0-23)
+ * @param {number} percent - Процент корректировки (-100 до 500)
+ * @param {number} adminId - ID администратора, выполняющего изменение
+ * @param {string} [reason] - Причина изменения
+ * @returns {Promise<Object>} - Обновленный тариф
+ * @throws {Error} Если тариф не найден или данные некорректны
+ */
 export const updateHourAdjustment = async (
   cityId,
   carClassId,
@@ -862,6 +921,40 @@ export const updateHourAdjustment = async (
   reason
 ) => {
   try {
+    // Валидация входных параметров
+    if (!cityId || isNaN(parseInt(cityId))) {
+      throw new Error("ID города должен быть числом");
+    }
+
+    if (!carClassId || isNaN(parseInt(carClassId))) {
+      throw new Error("ID класса автомобиля должен быть числом");
+    }
+
+    if (hour === undefined || isNaN(parseInt(hour)) || hour < 0 || hour > 23) {
+      throw new Error("Час должен быть числом от 0 до 23");
+    }
+
+    if (
+      percent === undefined ||
+      isNaN(parseFloat(percent)) ||
+      percent < -100 ||
+      percent > 500
+    ) {
+      throw new Error(
+        "Процент корректировки должен быть числом от -100 до 500"
+      );
+    }
+
+    if (!adminId) {
+      throw new Error("ID администратора обязателен");
+    }
+
+    // Преобразуем входные данные в нужный формат
+    cityId = parseInt(cityId);
+    carClassId = parseInt(carClassId);
+    hour = parseInt(hour);
+    percent = parseFloat(percent);
+
     // Сначала находим тариф (без транзакции)
     const tariff = await Tariff.findOne({
       where: {
@@ -1049,7 +1142,18 @@ export const deleteHourAdjustment = async (
   }
 };
 
-// Добавление праздничного дня
+/**
+ * Добавляет праздничный день с корректировкой тарифа
+ * @param {number} cityId - ID города
+ * @param {number} carClassId - ID класса автомобиля
+ * @param {number} month - Месяц (1-12)
+ * @param {number} day - День месяца (1-31)
+ * @param {number} percent - Процент корректировки (-100 до 500)
+ * @param {number} adminId - ID администратора, выполняющего изменение
+ * @param {string} [reason] - Причина изменения
+ * @returns {Promise<Object>} - Обновленный тариф
+ * @throws {Error} Если тариф не найден, праздник уже существует или данные некорректны
+ */
 export const addHoliday = async (
   cityId,
   carClassId,
@@ -1059,15 +1163,73 @@ export const addHoliday = async (
   adminId,
   reason
 ) => {
-  const transaction = await Tariff.sequelize.transaction();
   try {
+    // Валидация входных параметров
+    if (!cityId || isNaN(parseInt(cityId))) {
+      throw new Error("ID города должен быть числом");
+    }
+
+    if (!carClassId || isNaN(parseInt(carClassId))) {
+      throw new Error("ID класса автомобиля должен быть числом");
+    }
+
+    if (
+      month === undefined ||
+      isNaN(parseInt(month)) ||
+      month < 1 ||
+      month > 12
+    ) {
+      throw new Error("Месяц должен быть числом от 1 до 12");
+    }
+
+    if (day === undefined || isNaN(parseInt(day)) || day < 1 || day > 31) {
+      throw new Error("День должен быть числом от 1 до 31");
+    }
+
+    // Проверка на корректные комбинации месяц/день
+    if (
+      (month === 4 || month === 6 || month === 9 || month === 11) &&
+      day > 30
+    ) {
+      throw new Error(`В месяце ${month} не может быть больше 30 дней`);
+    }
+
+    if (month === 2) {
+      const maxDay = 29; // Учитываем возможность високосного года
+      if (day > maxDay) {
+        throw new Error(`В феврале не может быть больше ${maxDay} дней`);
+      }
+    }
+
+    if (
+      percent === undefined ||
+      isNaN(parseFloat(percent)) ||
+      percent < -100 ||
+      percent > 500
+    ) {
+      throw new Error(
+        "Процент корректировки должен быть числом от -100 до 500"
+      );
+    }
+
+    if (!adminId) {
+      throw new Error("ID администратора обязателен");
+    }
+
+    // Преобразуем входные данные в нужный формат
+    cityId = parseInt(cityId);
+    carClassId = parseInt(carClassId);
+    month = parseInt(month);
+    day = parseInt(day);
+    percent = parseFloat(percent);
+
+    // Находим тариф без транзакции
     const tariff = await Tariff.findOne({
       where: {
         cityId,
         carClassId,
         isActive: true,
       },
-      transaction,
     });
 
     if (!tariff) {
@@ -1075,7 +1237,9 @@ export const addHoliday = async (
     }
 
     // Клонируем текущие праздничные дни
-    const holidayAdjustments = [...tariff.holidayAdjustments];
+    const holidayAdjustments = Array.isArray(tariff.holidayAdjustments)
+      ? [...tariff.holidayAdjustments]
+      : [];
 
     // Проверяем, существует ли уже этот праздник
     const existingHolidayIndex = holidayAdjustments.findIndex(
@@ -1089,34 +1253,33 @@ export const addHoliday = async (
     // Добавляем новый праздник
     holidayAdjustments.push({ month, day, percent });
 
-    await tariff.update(
+    // Используем прямое обновление через модель
+    await Tariff.update(
+      { holidayAdjustments },
       {
-        holidayAdjustments,
-      },
-      { transaction }
+        where: { id: tariff.id },
+      }
     );
+
+    // Создаем запись в истории вручную
+    await TariffHistory.create({
+      tariffId: tariff.id,
+      cityId,
+      carClassId,
+      oldValues: JSON.stringify(tariff.dataValues),
+      newValues: JSON.stringify({
+        ...tariff.dataValues,
+        holidayAdjustments,
+      }),
+      changedBy: adminId,
+      changeReason:
+        reason ||
+        `Добавлен праздничный день ${day}.${month} с корректировкой ${percent}%`,
+    });
 
     // Инвалидируем кеш
     const redisKey = getRedisKey(cityId, carClassId);
     await redis.del(redisKey);
-
-    // Создаем запись в истории
-    await TariffHistory.create(
-      {
-        tariffId: tariff.id,
-        cityId,
-        carClassId,
-        oldValues: JSON.stringify(tariff._previousDataValues),
-        newValues: JSON.stringify(tariff.dataValues),
-        changedBy: adminId,
-        changeReason:
-          reason ||
-          `Добавлен праздничный день ${day}.${month} с корректировкой ${percent}%`,
-      },
-      { transaction }
-    );
-
-    await transaction.commit();
 
     logger.info("Праздничный день добавлен", {
       cityId,
@@ -1127,9 +1290,11 @@ export const addHoliday = async (
       adminId,
     });
 
-    return tariff;
+    return {
+      ...tariff.dataValues,
+      holidayAdjustments,
+    };
   } catch (error) {
-    await transaction.rollback();
     logger.error("Ошибка при добавлении праздничного дня", {
       error: error.message,
       cityId,
@@ -1142,7 +1307,18 @@ export const addHoliday = async (
   }
 };
 
-// Обновление существующего праздничного дня
+/**
+ * Обновляет существующий праздничный день
+ * @param {number} cityId - ID города
+ * @param {number} carClassId - ID класса автомобиля
+ * @param {number} month - Месяц (1-12)
+ * @param {number} day - День месяца (1-31)
+ * @param {number} percent - Новый процент корректировки (-100 до 500)
+ * @param {number} adminId - ID администратора, выполняющего изменение
+ * @param {string} [reason] - Причина изменения
+ * @returns {Promise<Object>} - Обновленный тариф
+ * @throws {Error} Если тариф не найден, праздник не существует или данные некорректны
+ */
 export const updateHoliday = async (
   cityId,
   carClassId,
@@ -1152,15 +1328,58 @@ export const updateHoliday = async (
   adminId,
   reason
 ) => {
-  const transaction = await Tariff.sequelize.transaction();
   try {
+    // Валидация входных параметров
+    if (!cityId || isNaN(parseInt(cityId))) {
+      throw new Error("ID города должен быть числом");
+    }
+
+    if (!carClassId || isNaN(parseInt(carClassId))) {
+      throw new Error("ID класса автомобиля должен быть числом");
+    }
+
+    if (
+      month === undefined ||
+      isNaN(parseInt(month)) ||
+      month < 1 ||
+      month > 12
+    ) {
+      throw new Error("Месяц должен быть числом от 1 до 12");
+    }
+
+    if (day === undefined || isNaN(parseInt(day)) || day < 1 || day > 31) {
+      throw new Error("День должен быть числом от 1 до 31");
+    }
+
+    if (
+      percent === undefined ||
+      isNaN(parseFloat(percent)) ||
+      percent < -100 ||
+      percent > 500
+    ) {
+      throw new Error(
+        "Процент корректировки должен быть числом от -100 до 500"
+      );
+    }
+
+    if (!adminId) {
+      throw new Error("ID администратора обязателен");
+    }
+
+    // Преобразуем входные данные в нужный формат
+    cityId = parseInt(cityId);
+    carClassId = parseInt(carClassId);
+    month = parseInt(month);
+    day = parseInt(day);
+    percent = parseFloat(percent);
+
+    // Находим тариф без транзакции
     const tariff = await Tariff.findOne({
       where: {
         cityId,
         carClassId,
         isActive: true,
       },
-      transaction,
     });
 
     if (!tariff) {
@@ -1168,7 +1387,9 @@ export const updateHoliday = async (
     }
 
     // Клонируем текущие праздничные дни
-    const holidayAdjustments = [...tariff.holidayAdjustments];
+    const holidayAdjustments = Array.isArray(tariff.holidayAdjustments)
+      ? [...tariff.holidayAdjustments]
+      : [];
 
     // Находим праздник для обновления
     const existingHolidayIndex = holidayAdjustments.findIndex(
@@ -1182,34 +1403,33 @@ export const updateHoliday = async (
     // Обновляем процент
     holidayAdjustments[existingHolidayIndex].percent = percent;
 
-    await tariff.update(
+    // Используем прямое обновление через модель
+    await Tariff.update(
+      { holidayAdjustments },
       {
-        holidayAdjustments,
-      },
-      { transaction }
+        where: { id: tariff.id },
+      }
     );
+
+    // Создаем запись в истории вручную
+    await TariffHistory.create({
+      tariffId: tariff.id,
+      cityId,
+      carClassId,
+      oldValues: JSON.stringify(tariff.dataValues),
+      newValues: JSON.stringify({
+        ...tariff.dataValues,
+        holidayAdjustments,
+      }),
+      changedBy: adminId,
+      changeReason:
+        reason ||
+        `Обновлен праздничный день ${day}.${month} с корректировкой ${percent}%`,
+    });
 
     // Инвалидируем кеш
     const redisKey = getRedisKey(cityId, carClassId);
     await redis.del(redisKey);
-
-    // Создаем запись в истории
-    await TariffHistory.create(
-      {
-        tariffId: tariff.id,
-        cityId,
-        carClassId,
-        oldValues: JSON.stringify(tariff._previousDataValues),
-        newValues: JSON.stringify(tariff.dataValues),
-        changedBy: adminId,
-        changeReason:
-          reason ||
-          `Обновлен праздничный день ${day}.${month} с корректировкой ${percent}%`,
-      },
-      { transaction }
-    );
-
-    await transaction.commit();
 
     logger.info("Праздничный день обновлен", {
       cityId,
@@ -1220,9 +1440,11 @@ export const updateHoliday = async (
       adminId,
     });
 
-    return tariff;
+    return {
+      ...tariff.dataValues,
+      holidayAdjustments,
+    };
   } catch (error) {
-    await transaction.rollback();
     logger.error("Ошибка при обновлении праздничного дня", {
       error: error.message,
       cityId,
@@ -1235,7 +1457,17 @@ export const updateHoliday = async (
   }
 };
 
-// Удаление праздничного дня
+/**
+ * Удаляет праздничный день
+ * @param {number} cityId - ID города
+ * @param {number} carClassId - ID класса автомобиля
+ * @param {number} month - Месяц (1-12)
+ * @param {number} day - День месяца (1-31)
+ * @param {number} adminId - ID администратора, выполняющего изменение
+ * @param {string} [reason] - Причина изменения
+ * @returns {Promise<Object>} - Обновленный тариф
+ * @throws {Error} Если тариф не найден, праздник не существует или данные некорректны
+ */
 export const deleteHoliday = async (
   cityId,
   carClassId,
@@ -1244,15 +1476,46 @@ export const deleteHoliday = async (
   adminId,
   reason
 ) => {
-  const transaction = await Tariff.sequelize.transaction();
   try {
+    // Валидация входных параметров
+    if (!cityId || isNaN(parseInt(cityId))) {
+      throw new Error("ID города должен быть числом");
+    }
+
+    if (!carClassId || isNaN(parseInt(carClassId))) {
+      throw new Error("ID класса автомобиля должен быть числом");
+    }
+
+    if (
+      month === undefined ||
+      isNaN(parseInt(month)) ||
+      month < 1 ||
+      month > 12
+    ) {
+      throw new Error("Месяц должен быть числом от 1 до 12");
+    }
+
+    if (day === undefined || isNaN(parseInt(day)) || day < 1 || day > 31) {
+      throw new Error("День должен быть числом от 1 до 31");
+    }
+
+    if (!adminId) {
+      throw new Error("ID администратора обязателен");
+    }
+
+    // Преобразуем входные данные в нужный формат
+    cityId = parseInt(cityId);
+    carClassId = parseInt(carClassId);
+    month = parseInt(month);
+    day = parseInt(day);
+
+    // Находим тариф без транзакции
     const tariff = await Tariff.findOne({
       where: {
         cityId,
         carClassId,
         isActive: true,
       },
-      transaction,
     });
 
     if (!tariff) {
@@ -1260,7 +1523,9 @@ export const deleteHoliday = async (
     }
 
     // Клонируем текущие праздничные дни
-    const holidayAdjustments = [...tariff.holidayAdjustments];
+    const holidayAdjustments = Array.isArray(tariff.holidayAdjustments)
+      ? [...tariff.holidayAdjustments]
+      : [];
 
     // Находим праздник для удаления
     const existingHolidayIndex = holidayAdjustments.findIndex(
@@ -1274,32 +1539,31 @@ export const deleteHoliday = async (
     // Удаляем праздник
     holidayAdjustments.splice(existingHolidayIndex, 1);
 
-    await tariff.update(
+    // Используем прямое обновление через модель
+    await Tariff.update(
+      { holidayAdjustments },
       {
-        holidayAdjustments,
-      },
-      { transaction }
+        where: { id: tariff.id },
+      }
     );
+
+    // Создаем запись в истории вручную
+    await TariffHistory.create({
+      tariffId: tariff.id,
+      cityId,
+      carClassId,
+      oldValues: JSON.stringify(tariff.dataValues),
+      newValues: JSON.stringify({
+        ...tariff.dataValues,
+        holidayAdjustments,
+      }),
+      changedBy: adminId,
+      changeReason: reason || `Удален праздничный день ${day}.${month}`,
+    });
 
     // Инвалидируем кеш
     const redisKey = getRedisKey(cityId, carClassId);
     await redis.del(redisKey);
-
-    // Создаем запись в истории
-    await TariffHistory.create(
-      {
-        tariffId: tariff.id,
-        cityId,
-        carClassId,
-        oldValues: JSON.stringify(tariff._previousDataValues),
-        newValues: JSON.stringify(tariff.dataValues),
-        changedBy: adminId,
-        changeReason: reason || `Удален праздничный день ${day}.${month}`,
-      },
-      { transaction }
-    );
-
-    await transaction.commit();
 
     logger.info("Праздничный день удален", {
       cityId,
@@ -1309,9 +1573,11 @@ export const deleteHoliday = async (
       adminId,
     });
 
-    return tariff;
+    return {
+      ...tariff.dataValues,
+      holidayAdjustments,
+    };
   } catch (error) {
-    await transaction.rollback();
     logger.error("Ошибка при удалении праздничного дня", {
       error: error.message,
       cityId,

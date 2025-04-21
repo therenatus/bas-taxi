@@ -164,7 +164,7 @@ router.delete(
  *               - cityId
  *               - carClassId
  *               - hour
- *               - multiplier
+ *               - percent
  *             properties:
  *               cityId:
  *                 type: integer
@@ -217,7 +217,7 @@ router.put(
  *               - cityId
  *               - carClassId
  *               - hour
- *               - multiplier
+ *               - percent
  *             properties:
  *               cityId:
  *                 type: integer
