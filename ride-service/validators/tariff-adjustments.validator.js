@@ -216,7 +216,6 @@ export const holidayAdjustmentSchema = z
   .strict()
   .refine(
     (data) => {
-      // Дополнительная валидация дат
       if (data.month === 2 && data.day > 29) {
         return false;
       }

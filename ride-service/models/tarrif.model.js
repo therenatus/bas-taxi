@@ -20,12 +20,12 @@ const Tariff = sequelize.define(
       type: DataTypes.JSON,
       allowNull: false,
       defaultValue: [
-        { month: 1, percent: 15 }, // Январь: +15% к costPerKm (зимний сезон)
-        { month: 2, percent: 10 }, // Февраль: +10% к costPerKm
-        { month: 6, percent: 5 }, // Июнь: +5% к costPerKm (летний сезон)
-        { month: 7, percent: 5 }, // Июль: +5% к costPerKm
-        { month: 8, percent: 5 }, // Август: +5% к costPerKm
-        { month: 12, percent: 15 }, // Декабрь: +15% к costPerKm (новогодний сезон)
+        { month: 1, percent: 15 },
+        { month: 2, percent: 10 },
+        { month: 6, percent: 5 },
+        { month: 7, percent: 5 },
+        { month: 8, percent: 5 },
+        { month: 12, percent: 15 },
       ],
       comment:
         "Корректировки costPerKm по месяцам в процентах (положительные - наценка, отрицательные - скидка)",
@@ -34,11 +34,11 @@ const Tariff = sequelize.define(
       type: DataTypes.JSON,
       allowNull: false,
       defaultValue: [
-        { hour: 8, percent: 20 }, // 8:00-8:59: +20% к costPerKm
-        { hour: 9, percent: 20 }, // 9:00-9:59: +20% к costPerKm
-        { hour: 10, percent: -10 }, // 10:00-10:59: -10% к costPerKm
-        { hour: 17, percent: 20 }, // 17:00-17:59: +20% к costPerKm
-        { hour: 18, percent: 20 }, // 18:00-18:59: +20% к costPerKm
+        { hour: 8, percent: 20 },
+        { hour: 9, percent: 20 },
+        { hour: 10, percent: -10 },
+        { hour: 17, percent: 20 },
+        { hour: 18, percent: 20 },
       ],
       comment:
         "Корректировки costPerKm по часам в процентах (положительные - наценка, отрицательные - скидка)",
@@ -47,10 +47,10 @@ const Tariff = sequelize.define(
       type: DataTypes.JSON,
       allowNull: false,
       defaultValue: [
-        { month: 3, day: 8, percent: 30 }, // 8 марта: +30% к costPerKm
-        { month: 1, day: 1, percent: 30 }, // Новый год: +30% к costPerKm
-        { month: 5, day: 1, percent: 30 }, // Первомай: +30% к costPerKm
-        { month: 5, day: 9, percent: 30 }, // День Победы: +30% к costPerKm
+        { month: 3, day: 8, percent: 30 },
+        { month: 1, day: 1, percent: 30 },
+        { month: 5, day: 1, percent: 30 },
+        { month: 5, day: 9, percent: 30 },
       ],
       comment: "Праздничные дни с процентом наценки к costPerKm",
     },

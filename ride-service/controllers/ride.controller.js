@@ -455,7 +455,6 @@ export const getRideDetailsHandler = async (req, res) => {
       });
     }
 
-    // Получаем детали поездки
     const rideDetails = await getRideDetails(rideId, correlationId);
 
     if (!rideDetails) {
@@ -465,7 +464,6 @@ export const getRideDetailsHandler = async (req, res) => {
       });
     }
 
-    // Форматируем цену как строку, если она существует
     if (rideDetails.price) {
       rideDetails.price = rideDetails.price.toString();
     }
@@ -477,7 +475,6 @@ export const getRideDetailsHandler = async (req, res) => {
       correlationId: req.correlationId,
     });
 
-    // Возвращаем более информативное сообщение об ошибке
     res.status(500).json({
       error: "Не удалось получить данные о поездке",
       details: error.message,
@@ -541,7 +538,6 @@ export const getTariffHandler = async (req, res) => {
     const { cityId } = req.params;
     const correlationId = req.correlationId;
 
-    // Find the city name first
     const city = await City.findByPk(parseInt(cityId));
 
     if (!city) {
@@ -553,12 +549,11 @@ export const getTariffHandler = async (req, res) => {
 
     const tariffs = await getTariff(parseInt(cityId));
 
-    // Transform the tariffs list into a flattened structure
     const transformedTariffs = tariffs.map((tariff) => ({
       ...tariff,
       carClassName: tariff.car_class?.name || "Неизвестный",
       effectivePrice: parseFloat(tariff.effectivePrice || 0).toFixed(2),
-      car_class: undefined, // Remove car_class object
+      car_class: undefined,
     }));
 
     res.status(200).json({
@@ -637,7 +632,6 @@ export const updateHourAdjustmentHandler = async (req, res) => {
     const adminId = req.user.adminId || req.user.userId;
     const correlationId = req.correlationId;
 
-    // Проверки входных данных
     if (hour < 0 || hour > 23) {
       return res.status(400).json({
         error: "Некорректное значение часа (должно быть от 0 до 23)",
@@ -685,7 +679,6 @@ export const deleteHourAdjustmentHandler = async (req, res) => {
     const adminId = req.user.adminId || req.user.userId;
     const correlationId = req.correlationId;
 
-    // Проверки входных данных
     if (hour < 0 || hour > 23) {
       return res.status(400).json({
         error: "Некорректное значение часа (должно быть от 0 до 23)",
@@ -731,7 +724,6 @@ export const updateMonthAdjustmentHandler = async (req, res) => {
     const adminId = req.user.adminId || req.user.userId;
     const correlationId = req.correlationId;
 
-    // Проверки входных данных
     if (month < 1 || month > 12) {
       return res.status(400).json({
         error: "Некорректное значение месяца (должно быть от 1 до 12)",
@@ -778,7 +770,6 @@ export const deleteMonthAdjustmentHandler = async (req, res) => {
     const adminId = req.user.adminId || req.user.userId;
     const correlationId = req.correlationId;
 
-    // Проверки входных данных
     if (month < 1 || month > 12) {
       return res.status(400).json({
         error: "Некорректное значение месяца (должно быть от 1 до 12)",
@@ -824,7 +815,6 @@ export const addHolidayHandler = async (req, res) => {
     const adminId = req.user.adminId || req.user.userId;
     const correlationId = req.correlationId;
 
-    // Проверки входных данных
     if (month < 1 || month > 12) {
       return res.status(400).json({
         error: "Некорректное значение месяца (должно быть от 1 до 12)",
@@ -886,7 +876,6 @@ export const updateHolidayHandler = async (req, res) => {
     const adminId = req.user.adminId || req.user.userId;
     const correlationId = req.correlationId;
 
-    // Проверки входных данных
     if (month < 1 || month > 12) {
       return res.status(400).json({
         error: "Некорректное значение месяца (должно быть от 1 до 12)",
@@ -941,7 +930,6 @@ export const deleteHolidayHandler = async (req, res) => {
     const adminId = req.user.adminId || req.user.userId;
     const correlationId = req.correlationId;
 
-    // Проверки входных данных
     if (month < 1 || month > 12) {
       return res.status(400).json({
         error: "Некорректное значение месяца (должно быть от 1 до 12)",
@@ -1048,7 +1036,6 @@ export const getAllUserRidesHandler = async (req, res) => {
       return res.status(200).json([]);
     }
 
-    // Преобразуем числовые значения в строки для совместимости с клиентом
     const formattedRides = rides.map((ride) => {
       return {
         ...ride.toJSON(),
@@ -1104,17 +1091,11 @@ export const cancelRideIfPassengerNotArrivedHandler = async (req, res) => {
   }
 };
 
-/**
- * Создание нового тарифа
- * @param {Object} req - Express request object
- * @param {Object} res - Express response object
- */
 export const createTariffHandler = async (req, res) => {
   const correlationId = req.headers["x-correlation-id"] || "none";
   const adminId = req.headers["x-admin-id"];
   console.log("createTariffHandler", req.body);
   try {
-    // Валидация обязательных полей
     const requiredFields = [
       "cityId",
       "carClassId",
@@ -1129,13 +1110,11 @@ export const createTariffHandler = async (req, res) => {
       }
     }
 
-    // Подготовка данных для нового тарифа
     let tariffData = {
       ...req.body,
       isActive: true,
     };
 
-    // Обработка hourlyAdjustments: преобразование в массив объектов, если получен объект
     if (req.body.hourlyAdjustments) {
       if (!Array.isArray(req.body.hourlyAdjustments)) {
         tariffData.hourlyAdjustments = Object.entries(
@@ -1146,7 +1125,6 @@ export const createTariffHandler = async (req, res) => {
       tariffData.hourlyAdjustments = [];
     }
 
-    // Обработка monthlyAdjustments: преобразование в массив объектов, если получен объект
     if (req.body.monthlyAdjustments) {
       if (!Array.isArray(req.body.monthlyAdjustments)) {
         tariffData.monthlyAdjustments = Object.entries(
@@ -1157,7 +1135,6 @@ export const createTariffHandler = async (req, res) => {
       tariffData.monthlyAdjustments = [];
     }
 
-    // Инициализация holidayAdjustments как пустого массива, если не указано
     if (!req.body.holidayAdjustments) {
       tariffData.holidayAdjustments = [];
     }
@@ -1205,14 +1182,8 @@ export const createTariffHandler = async (req, res) => {
   }
 };
 
-/**
- * Обработчик для получения баланса водителя
- * Если запрос от авторизованного водителя - возвращает его баланс
- * Если запрос с параметром driverId - возвращает баланс указанного водителя
- */
 export const getDriverBalanceHandler = async (req, res) => {
   try {
-    // Определяем ID водителя: либо из параметров URL, либо из токена авторизации
     const driverId = req.params.driverId || req.user?.driverId;
     const correlationId = req.correlationId;
 
@@ -1223,7 +1194,6 @@ export const getDriverBalanceHandler = async (req, res) => {
       });
     }
 
-    // Получаем баланс водителя через сервисную функцию
     const balanceData = await getDriverBalance(driverId, correlationId);
 
     res.status(200).json(balanceData);

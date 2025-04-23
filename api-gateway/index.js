@@ -30,6 +30,8 @@ app.use(cors(corsOptions));
 
 app.options("*", cors(corsOptions));
 
+app.use("/", routes);
+
 app.use(express.json());
 
 const morganStream = {
@@ -48,8 +50,6 @@ app.use((req, res, next) => {
   res.setHeader("x-correlation-id", correlationId);
   next();
 });
-
-app.use("/", routes);
 
 app.use((err, req, res, next) => {
   logger.error(`Ошибка: ${err.message}`, {

@@ -1,12 +1,12 @@
-import express from 'express';
-import dotenv from 'dotenv';
-import cors from 'cors';
-import adminRoutes from './routes/admin.route.js';
-import logger from './utils/logger.js';
-import { connectRabbitMQ } from './utils/rabbitmq.js';
+import cors from "cors";
+import dotenv from "dotenv";
+import express from "express";
 import morgan from "morgan";
+import adminRoutes from "./routes/admin.route.js";
+import setupSwagger from "./swaggger.js";
 import sequelize from "./utils/database.js";
-import setupSwagger from './swaggger.js';
+import logger from "./utils/logger.js";
+import { connectRabbitMQ } from "./utils/rabbitmq.js";
 
 dotenv.config();
 
@@ -14,75 +14,72 @@ const app = express();
 const PORT = process.env.PORT || 3008;
 
 const corsOptions = {
-  origin: '*',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Correlation-ID', 'x-correlation-id', 'x-admin-id'],
+  origin: "*",
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "X-Correlation-ID",
+    "x-correlation-id",
+    "x-admin-id",
+  ],
   credentials: true,
   preflightContinue: false,
-  optionsSuccessStatus: 204
+  optionsSuccessStatus: 204,
 };
 
 app.use(cors(corsOptions));
 
-app.options('*', cors(corsOptions));
+app.options("*", cors(corsOptions));
 
 app.use(express.json());
 
 const morganStream = {
-    write: (message) => {
-        console.log(message.trim());
-        logger.info(message.trim());
-    },
+  write: (message) => {
+    console.log(message.trim());
+    logger.info(message.trim());
+  },
 };
 
-app.use(morgan('combined', { stream: morganStream }));
+app.use(morgan("combined", { stream: morganStream }));
 
 app.use((req, res, next) => {
-    logger.info(`Admin Service: Получен запрос ${req.method} ${req.url} CorrelationID: ${req.headers['x-correlation-id'] || 'none'}`);
-    next();
+  logger.info(
+    `Admin Service: Получен запрос ${req.method} ${req.url} CorrelationID: ${
+      req.headers["x-correlation-id"] || "none"
+    }`
+  );
+  next();
 });
 
-// Сначала настраиваем Swagger, чтобы его маршруты были доступны без авторизации
 setupSwagger(app);
-app.use('/', adminRoutes);
-// Middleware для проверки авторизации для маршрутов API (кроме Swagger)
-// app.use((req, res, next) => {
-//     // Пропускаем запросы к Swagger
-//     if (req.path.startsWith('/api-docs')) {
-//         return next();
-//     }
-//
-//     // Для остальных маршрутов применяется авторизация через соответствующие middleware
-//     next();
-// });
+app.use("/", adminRoutes);
 
-// Подключаем маршруты API после настройки Swagger и авторизации
+sequelize
+  .authenticate()
+  .then(() => {
+    logger.info("Успешное подключение к базе данных");
+    return sequelize.sync();
+  })
+  .then(() => {
+    logger.info("Модели синхронизированы");
+  })
+  .catch((err) => {
+    logger.error("Ошибка подключения к базе данных", { error: err.message });
+  });
 
-sequelize.authenticate()
-    .then(() => {
-        logger.info('Успешное подключение к базе данных');
-        return sequelize.sync(); // Синхронизация моделей
-    })
-    .then(() => {
-        logger.info('Модели синхронизированы');
-    })
-    .catch((err) => {
-        logger.error('Ошибка подключения к базе данных', { error: err.message });
-    });
-
-connectRabbitMQ()
-    .catch(err => {
-        logger.error('Ошибка при подключении к RabbitMQ', { error: err.message });
-    });
+connectRabbitMQ().catch((err) => {
+  logger.error("Ошибка при подключении к RabbitMQ", { error: err.message });
+});
 
 app.use((err, req, res, next) => {
-    logger.error('Необработанная ошибка', {
-        message: err.message,
-        stack: err.stack,
-    });
-    res.status(500).json({ error: 'Внутренняя ошибка сервера' });
+  logger.error("Необработанная ошибка", {
+    message: err.message,
+    stack: err.stack,
+  });
+  res.status(500).json({ error: "Внутренняя ошибка сервера" });
 });
 
 app.listen(PORT, () => {
-    logger.info(`Admin Service запущен на порту ${PORT}`);
+  logger.info(`Admin Service запущен на порту ${PORT}`);
 });

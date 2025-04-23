@@ -8,35 +8,28 @@ import redis from "../utils/redis.js";
 
 const getRedisKey = (cityId, carClassId) => `tariff:${cityId}:${carClassId}`;
 
-// Получает процент изменения costPerKm для текущего часа
 const getHourAdjustmentPercent = (hour, hourlyAdjustments) => {
-  // Проверяем, что hourlyAdjustments это массив
   if (Array.isArray(hourlyAdjustments)) {
     const adjustment = hourlyAdjustments.find((adj) => adj.hour === hour);
     return adjustment ? adjustment.percent : 0;
   } else {
-    // Для обратной совместимости со старым форматом
     const hourKey = hour.toString();
     return hourlyAdjustments[hourKey] || 0;
   }
 };
 
-// Получает процент изменения costPerKm для текущего месяца
 const getMonthAdjustmentPercent = (month, monthlyAdjustments) => {
-  // Проверяем, что monthlyAdjustments это массив
   if (Array.isArray(monthlyAdjustments)) {
     const adjustment = monthlyAdjustments.find((adj) => adj.month === month);
     return adjustment ? adjustment.percent : 0;
   } else {
-    // Для обратной совместимости со старым форматом
     const monthKey = month.toString();
     return monthlyAdjustments[monthKey] || 0;
   }
 };
 
-// Проверяет, является ли текущая дата праздником и возвращает процент корректировки
 const getHolidayAdjustmentPercent = (date, holidayAdjustments) => {
-  const month = date.getMonth() + 1; // JavaScript months are 0-based
+  const month = date.getMonth() + 1;
   const day = date.getDate();
 
   const holiday = holidayAdjustments.find(
@@ -69,7 +62,6 @@ export const getTariff = async (cityId) => {
       throw new Error("Тарифы не найдены");
     }
 
-    // Кешируем каждый тариф отдельно
     for (const tariff of tariffs) {
       const redisKey = getRedisKey(cityId, tariff.carClassId);
       await redis.set(redisKey, JSON.stringify(tariff), { EX: 3600 });
@@ -77,9 +69,7 @@ export const getTariff = async (cityId) => {
 
     logger.info("Тарифы загружены из БД и закешированы", { cityId });
 
-    // Преобразуем тарифы, добавляя effectivePrice
     const formattedTariffs = tariffs.map((tariff) => {
-      // Используем функцию calculateEffectivePrice или просто базовый тариф, если seasonalMultiplier не определен
       const effectivePrice = calculateEffectivePrice(tariff);
       return {
         ...tariff.get({ plain: true }),
@@ -135,7 +125,6 @@ export const getCityTariff = async (city) => {
 
 const getTariffFromDB = async (city) => {
   try {
-    // Сначала находим город по названию
     const cityRecord = await City.findOne({ where: { name: city } });
 
     if (!cityRecord) {
@@ -143,11 +132,10 @@ const getTariffFromDB = async (city) => {
       return null;
     }
 
-    // Используем cityId для поиска тарифа
     const tariffRecord = await Tariff.findOne({
       where: {
         cityId: cityRecord.id,
-        carClassId: 1, // Используем базовый класс автомобиля по умолчанию
+        carClassId: 1,
         isActive: true,
       },
     });
@@ -195,10 +183,8 @@ export const updateTariff = async (
 
     if (!tariff) throw new Error("Тариф не найден");
 
-    // Обработка hourlyAdjustments и monthlyAdjustments, если они указаны в новых данных
     let processedTariffData = { ...newTariffData };
 
-    // Обработка hourlyAdjustments
     if (
       processedTariffData.hourlyAdjustments &&
       !Array.isArray(processedTariffData.hourlyAdjustments)
@@ -208,7 +194,6 @@ export const updateTariff = async (
       ).map(([hour, percent]) => ({ hour: parseInt(hour), percent }));
     }
 
-    // Обработка monthlyAdjustments
     if (
       processedTariffData.monthlyAdjustments &&
       !Array.isArray(processedTariffData.monthlyAdjustments)
@@ -229,7 +214,6 @@ export const updateTariff = async (
     const redisKey = getRedisKey(cityId, carClassId);
     await redis.del(redisKey);
 
-    // Создаем запись в истории с указанием админа и причины
     await TariffHistory.create(
       {
         tariffId: tariff.id,
@@ -268,7 +252,6 @@ export const addTariff = async (tariffData, adminId) => {
   try {
     const { cityId, carClassId } = tariffData;
 
-    // Проверяем, нет ли уже активного тарифа
     const existingTariff = await Tariff.findOne({
       where: {
         cityId,
@@ -281,10 +264,8 @@ export const addTariff = async (tariffData, adminId) => {
       throw new Error("Активный тариф для этих параметров уже существует");
     }
 
-    // Преобразуем hourlyAdjustments и monthlyAdjustments из старого формата в новый, если они переданы в старом формате
     let processedTariffData = { ...tariffData };
 
-    // Обработка hourlyAdjustments
     if (
       processedTariffData.hourlyAdjustments &&
       !Array.isArray(processedTariffData.hourlyAdjustments)
@@ -294,7 +275,6 @@ export const addTariff = async (tariffData, adminId) => {
       ).map(([hour, percent]) => ({ hour: parseInt(hour), percent }));
     }
 
-    // Обработка monthlyAdjustments
     if (
       processedTariffData.monthlyAdjustments &&
       !Array.isArray(processedTariffData.monthlyAdjustments)
@@ -336,10 +316,8 @@ export const addTariff = async (tariffData, adminId) => {
 export const updateTariffForCity = async (tariffData) => {
   const { cityId, carClassId } = tariffData;
   try {
-    // Преобразуем hourlyAdjustments и monthlyAdjustments из старого формата в новый, если они переданы в старом формате
     let processedTariffData = { ...tariffData };
 
-    // Обработка hourlyAdjustments
     if (
       processedTariffData.hourlyAdjustments &&
       !Array.isArray(processedTariffData.hourlyAdjustments)
@@ -349,7 +327,6 @@ export const updateTariffForCity = async (tariffData) => {
       ).map(([hour, percent]) => ({ hour: parseInt(hour), percent }));
     }
 
-    // Обработка monthlyAdjustments
     if (
       processedTariffData.monthlyAdjustments &&
       !Array.isArray(processedTariffData.monthlyAdjustments)
@@ -436,10 +413,9 @@ export const calculatePrice = async ({
 }) => {
   const now = new Date();
   const hour = now.getHours();
-  const month = now.getMonth() + 1; // JavaScript months are 0-based
+  const month = now.getMonth() + 1;
   const tariff = await getTariff(cityId);
 
-  // Определяем применяемые проценты изменения для costPerKm
   const holidayPercent = getHolidayAdjustmentPercent(
     now,
     tariff.holidayAdjustments
@@ -450,8 +426,6 @@ export const calculatePrice = async ({
     tariff.monthlyAdjustments
   );
 
-  // Приоритеты: 1) Праздник, 2) Час пик / непиковый час, 3) Месяц
-  // Берем только одну корректировку с наивысшим приоритетом
   let appliedPercent = 0;
   let appliedType = "none";
 
@@ -466,12 +440,10 @@ export const calculatePrice = async ({
     appliedType = "month";
   }
 
-  // Вычисляем скорректированную стоимость за километр
   const adjustedCostPerKm = tariff.costPerKm * (1 + appliedPercent / 100);
 
   const { baseFare, costPerMinute, serviceFeePercent = 0 } = tariff;
 
-  // Применяем корректировку только к стоимости за километр, базовая стоимость не меняется
   const price =
     baseFare + adjustedCostPerKm * distance + costPerMinute * duration;
   const serviceFee = (price * serviceFeePercent) / 100;
@@ -515,14 +487,13 @@ export const calculatePriceForCity = async (city, distance, duration) => {
   try {
     const now = new Date();
     const hour = now.getHours();
-    const month = now.getMonth() + 1; // JavaScript months are 0-based
+    const month = now.getMonth() + 1;
     const tariff = await getCityTariff(city);
 
     if (!tariff) {
       throw new Error(`Тариф для города "${city}" не найден`);
     }
 
-    // Определяем применяемые проценты изменения для costPerKm
     const holidayPercent = getHolidayAdjustmentPercent(
       now,
       tariff.holidayAdjustments || []
@@ -536,7 +507,6 @@ export const calculatePriceForCity = async (city, distance, duration) => {
       tariff.monthlyAdjustments || {}
     );
 
-    // Приоритеты: 1) Праздник, 2) Час пик / непиковый час, 3) Месяц
     let appliedPercent = 0;
     let appliedType = "none";
 
@@ -551,10 +521,8 @@ export const calculatePriceForCity = async (city, distance, duration) => {
       appliedType = "month";
     }
 
-    // Вычисляем скорректированную стоимость за километр
     const adjustedCostPerKm = tariff.costPerKm * (1 + appliedPercent / 100);
 
-    // Применяем корректировку только к стоимости за километр, базовая стоимость не меняется
     const price =
       tariff.baseFare +
       adjustedCostPerKm * distance +
@@ -626,7 +594,6 @@ export const subscribeToTariffUpdates = async () => {
   );
 };
 
-// Получение всех тарифов для города и класса автомобиля
 export const getTariffs = async (cityId, carClassId) => {
   try {
     const tariffs = await Tariff.findAll({
@@ -675,7 +642,6 @@ export const updateMonthAdjustment = async (
   reason
 ) => {
   try {
-    // Валидация входных параметров
     if (!cityId || isNaN(parseInt(cityId))) {
       throw new Error("ID города должен быть числом");
     }
@@ -708,13 +674,11 @@ export const updateMonthAdjustment = async (
       throw new Error("ID администратора обязателен");
     }
 
-    // Преобразуем входные данные в нужный формат
     cityId = parseInt(cityId);
     carClassId = parseInt(carClassId);
     month = parseInt(month);
     percent = parseFloat(percent);
 
-    // Сначала находим тариф (без транзакции)
     const tariff = await Tariff.findOne({
       where: {
         cityId,
@@ -729,7 +693,6 @@ export const updateMonthAdjustment = async (
 
     console.log("tariff", tariff);
 
-    // Получаем текущие месячные корректировки
     let monthlyAdjustments = Array.isArray(tariff.monthlyAdjustments)
       ? [...tariff.monthlyAdjustments]
       : Object.entries(tariff.monthlyAdjustments || {}).map(
@@ -741,22 +704,17 @@ export const updateMonthAdjustment = async (
 
     console.log("monthlyAdjustments", monthlyAdjustments);
 
-    // Проверяем, существует ли уже корректировка для этого месяца
     const existingIndex = monthlyAdjustments.findIndex(
       (adj) => adj.month === month
     );
     console.log("existingIndex", existingIndex);
 
     if (existingIndex !== -1) {
-      // Обновляем существующую корректировку
       monthlyAdjustments[existingIndex].percent = percent;
     } else {
-      // Добавляем новую корректировку
       monthlyAdjustments.push({ month, percent });
     }
 
-    // Используем прямое обновление через модель, а не через экземпляр
-    // Это позволяет избежать вызова хука afterUpdate
     await Tariff.update(
       { monthlyAdjustments },
       {
@@ -764,7 +722,6 @@ export const updateMonthAdjustment = async (
       }
     );
 
-    // Создаем запись в истории вручную
     await TariffHistory.create({
       tariffId: tariff.id,
       cityId,
@@ -780,7 +737,6 @@ export const updateMonthAdjustment = async (
         `Изменена месячная корректировка для месяца ${month}: ${percent}%`,
     });
 
-    // Инвалидируем кеш
     const redisKey = getRedisKey(cityId, carClassId);
     await redis.del(redisKey);
 
@@ -808,7 +764,6 @@ export const updateMonthAdjustment = async (
   }
 };
 
-// Удаление месячной корректировки
 export const deleteMonthAdjustment = async (
   cityId,
   carClassId,
@@ -831,7 +786,6 @@ export const deleteMonthAdjustment = async (
       throw new Error("Тариф не найден");
     }
 
-    // Получаем текущие месячные корректировки
     let monthlyAdjustments = [
       ...(Array.isArray(tariff.monthlyAdjustments)
         ? tariff.monthlyAdjustments
@@ -841,13 +795,11 @@ export const deleteMonthAdjustment = async (
           }))),
     ];
 
-    // Ищем индекс корректировки для удаления
     const existingIndex = monthlyAdjustments.findIndex(
       (adj) => adj.month === month
     );
 
     if (existingIndex !== -1) {
-      // Удаляем корректировку
       monthlyAdjustments.splice(existingIndex, 1);
     } else {
       throw new Error(`Корректировка для месяца ${month} не найдена`);
@@ -860,11 +812,9 @@ export const deleteMonthAdjustment = async (
       { transaction }
     );
 
-    // Инвалидируем кеш
     const redisKey = getRedisKey(cityId, carClassId);
     await redis.del(redisKey);
 
-    // Создаем запись в истории
     await TariffHistory.create(
       {
         tariffId: tariff.id,
@@ -901,17 +851,6 @@ export const deleteMonthAdjustment = async (
   }
 };
 
-/**
- * Обновляет или добавляет часовую корректировку для тарифа
- * @param {number} cityId - ID города
- * @param {number} carClassId - ID класса автомобиля
- * @param {number} hour - Час (0-23)
- * @param {number} percent - Процент корректировки (-100 до 500)
- * @param {number} adminId - ID администратора, выполняющего изменение
- * @param {string} [reason] - Причина изменения
- * @returns {Promise<Object>} - Обновленный тариф
- * @throws {Error} Если тариф не найден или данные некорректны
- */
 export const updateHourAdjustment = async (
   cityId,
   carClassId,
@@ -921,7 +860,6 @@ export const updateHourAdjustment = async (
   reason
 ) => {
   try {
-    // Валидация входных параметров
     if (!cityId || isNaN(parseInt(cityId))) {
       throw new Error("ID города должен быть числом");
     }
@@ -949,13 +887,11 @@ export const updateHourAdjustment = async (
       throw new Error("ID администратора обязателен");
     }
 
-    // Преобразуем входные данные в нужный формат
     cityId = parseInt(cityId);
     carClassId = parseInt(carClassId);
     hour = parseInt(hour);
     percent = parseFloat(percent);
 
-    // Сначала находим тариф (без транзакции)
     const tariff = await Tariff.findOne({
       where: {
         cityId,
@@ -970,7 +906,6 @@ export const updateHourAdjustment = async (
 
     console.log("tariff", tariff);
 
-    // Получаем текущие часовые корректировки
     let hourlyAdjustments = Array.isArray(tariff.hourlyAdjustments)
       ? [...tariff.hourlyAdjustments]
       : Object.entries(tariff.hourlyAdjustments || {}).map(
@@ -982,22 +917,17 @@ export const updateHourAdjustment = async (
 
     console.log("hourlyAdjustments", hourlyAdjustments);
 
-    // Проверяем, существует ли уже корректировка для этого часа
     const existingIndex = hourlyAdjustments.findIndex(
       (adj) => adj.hour === hour
     );
     console.log("existingIndex", existingIndex);
 
     if (existingIndex !== -1) {
-      // Обновляем существующую корректировку
       hourlyAdjustments[existingIndex].percent = percent;
     } else {
-      // Добавляем новую корректировку
       hourlyAdjustments.push({ hour, percent });
     }
 
-    // Используем прямое обновление через модель, а не через экземпляр
-    // Это позволяет избежать вызова хука afterUpdate
     await Tariff.update(
       { hourlyAdjustments },
       {
@@ -1005,7 +935,6 @@ export const updateHourAdjustment = async (
       }
     );
 
-    // Создаем запись в истории вручную
     await TariffHistory.create({
       tariffId: tariff.id,
       cityId,
@@ -1021,7 +950,6 @@ export const updateHourAdjustment = async (
         `Изменена часовая корректировка для часа ${hour}: ${percent}%`,
     });
 
-    // Инвалидируем кеш
     const redisKey = getRedisKey(cityId, carClassId);
     await redis.del(redisKey);
 
@@ -1049,7 +977,6 @@ export const updateHourAdjustment = async (
   }
 };
 
-// Удаление часовой корректировки
 export const deleteHourAdjustment = async (
   cityId,
   carClassId,
@@ -1072,7 +999,6 @@ export const deleteHourAdjustment = async (
       throw new Error("Тариф не найден");
     }
 
-    // Получаем текущие часовые корректировки
     let hourlyAdjustments = [
       ...(Array.isArray(tariff.hourlyAdjustments)
         ? tariff.hourlyAdjustments
@@ -1082,13 +1008,11 @@ export const deleteHourAdjustment = async (
           }))),
     ];
 
-    // Ищем индекс корректировки для удаления
     const existingIndex = hourlyAdjustments.findIndex(
       (adj) => adj.hour === hour
     );
 
     if (existingIndex !== -1) {
-      // Удаляем корректировку
       hourlyAdjustments.splice(existingIndex, 1);
     } else {
       throw new Error(`Корректировка для часа ${hour} не найдена`);
@@ -1101,11 +1025,9 @@ export const deleteHourAdjustment = async (
       { transaction }
     );
 
-    // Инвалидируем кеш
     const redisKey = getRedisKey(cityId, carClassId);
     await redis.del(redisKey);
 
-    // Создаем запись в истории
     await TariffHistory.create(
       {
         tariffId: tariff.id,
@@ -1142,18 +1064,6 @@ export const deleteHourAdjustment = async (
   }
 };
 
-/**
- * Добавляет праздничный день с корректировкой тарифа
- * @param {number} cityId - ID города
- * @param {number} carClassId - ID класса автомобиля
- * @param {number} month - Месяц (1-12)
- * @param {number} day - День месяца (1-31)
- * @param {number} percent - Процент корректировки (-100 до 500)
- * @param {number} adminId - ID администратора, выполняющего изменение
- * @param {string} [reason] - Причина изменения
- * @returns {Promise<Object>} - Обновленный тариф
- * @throws {Error} Если тариф не найден, праздник уже существует или данные некорректны
- */
 export const addHoliday = async (
   cityId,
   carClassId,
@@ -1164,7 +1074,6 @@ export const addHoliday = async (
   reason
 ) => {
   try {
-    // Валидация входных параметров
     if (!cityId || isNaN(parseInt(cityId))) {
       throw new Error("ID города должен быть числом");
     }
@@ -1186,7 +1095,6 @@ export const addHoliday = async (
       throw new Error("День должен быть числом от 1 до 31");
     }
 
-    // Проверка на корректные комбинации месяц/день
     if (
       (month === 4 || month === 6 || month === 9 || month === 11) &&
       day > 30
@@ -1195,7 +1103,7 @@ export const addHoliday = async (
     }
 
     if (month === 2) {
-      const maxDay = 29; // Учитываем возможность високосного года
+      const maxDay = 29;
       if (day > maxDay) {
         throw new Error(`В феврале не может быть больше ${maxDay} дней`);
       }
@@ -1216,14 +1124,12 @@ export const addHoliday = async (
       throw new Error("ID администратора обязателен");
     }
 
-    // Преобразуем входные данные в нужный формат
     cityId = parseInt(cityId);
     carClassId = parseInt(carClassId);
     month = parseInt(month);
     day = parseInt(day);
     percent = parseFloat(percent);
 
-    // Находим тариф без транзакции
     const tariff = await Tariff.findOne({
       where: {
         cityId,
@@ -1236,12 +1142,10 @@ export const addHoliday = async (
       throw new Error("Тариф не найден");
     }
 
-    // Клонируем текущие праздничные дни
     const holidayAdjustments = Array.isArray(tariff.holidayAdjustments)
       ? [...tariff.holidayAdjustments]
       : [];
 
-    // Проверяем, существует ли уже этот праздник
     const existingHolidayIndex = holidayAdjustments.findIndex(
       (h) => h.month === month && h.day === day
     );
@@ -1250,10 +1154,8 @@ export const addHoliday = async (
       throw new Error(`Праздничный день ${day}.${month} уже существует`);
     }
 
-    // Добавляем новый праздник
     holidayAdjustments.push({ month, day, percent });
 
-    // Используем прямое обновление через модель
     await Tariff.update(
       { holidayAdjustments },
       {
@@ -1261,7 +1163,6 @@ export const addHoliday = async (
       }
     );
 
-    // Создаем запись в истории вручную
     await TariffHistory.create({
       tariffId: tariff.id,
       cityId,
@@ -1277,7 +1178,6 @@ export const addHoliday = async (
         `Добавлен праздничный день ${day}.${month} с корректировкой ${percent}%`,
     });
 
-    // Инвалидируем кеш
     const redisKey = getRedisKey(cityId, carClassId);
     await redis.del(redisKey);
 
@@ -1307,18 +1207,6 @@ export const addHoliday = async (
   }
 };
 
-/**
- * Обновляет существующий праздничный день
- * @param {number} cityId - ID города
- * @param {number} carClassId - ID класса автомобиля
- * @param {number} month - Месяц (1-12)
- * @param {number} day - День месяца (1-31)
- * @param {number} percent - Новый процент корректировки (-100 до 500)
- * @param {number} adminId - ID администратора, выполняющего изменение
- * @param {string} [reason] - Причина изменения
- * @returns {Promise<Object>} - Обновленный тариф
- * @throws {Error} Если тариф не найден, праздник не существует или данные некорректны
- */
 export const updateHoliday = async (
   cityId,
   carClassId,
@@ -1329,7 +1217,6 @@ export const updateHoliday = async (
   reason
 ) => {
   try {
-    // Валидация входных параметров
     if (!cityId || isNaN(parseInt(cityId))) {
       throw new Error("ID города должен быть числом");
     }
@@ -1366,14 +1253,12 @@ export const updateHoliday = async (
       throw new Error("ID администратора обязателен");
     }
 
-    // Преобразуем входные данные в нужный формат
     cityId = parseInt(cityId);
     carClassId = parseInt(carClassId);
     month = parseInt(month);
     day = parseInt(day);
     percent = parseFloat(percent);
 
-    // Находим тариф без транзакции
     const tariff = await Tariff.findOne({
       where: {
         cityId,
@@ -1386,12 +1271,10 @@ export const updateHoliday = async (
       throw new Error("Тариф не найден");
     }
 
-    // Клонируем текущие праздничные дни
     const holidayAdjustments = Array.isArray(tariff.holidayAdjustments)
       ? [...tariff.holidayAdjustments]
       : [];
 
-    // Находим праздник для обновления
     const existingHolidayIndex = holidayAdjustments.findIndex(
       (h) => h.month === month && h.day === day
     );
@@ -1400,10 +1283,8 @@ export const updateHoliday = async (
       throw new Error(`Праздничный день ${day}.${month} не найден`);
     }
 
-    // Обновляем процент
     holidayAdjustments[existingHolidayIndex].percent = percent;
 
-    // Используем прямое обновление через модель
     await Tariff.update(
       { holidayAdjustments },
       {
@@ -1411,7 +1292,6 @@ export const updateHoliday = async (
       }
     );
 
-    // Создаем запись в истории вручную
     await TariffHistory.create({
       tariffId: tariff.id,
       cityId,
@@ -1427,7 +1307,6 @@ export const updateHoliday = async (
         `Обновлен праздничный день ${day}.${month} с корректировкой ${percent}%`,
     });
 
-    // Инвалидируем кеш
     const redisKey = getRedisKey(cityId, carClassId);
     await redis.del(redisKey);
 
@@ -1457,17 +1336,6 @@ export const updateHoliday = async (
   }
 };
 
-/**
- * Удаляет праздничный день
- * @param {number} cityId - ID города
- * @param {number} carClassId - ID класса автомобиля
- * @param {number} month - Месяц (1-12)
- * @param {number} day - День месяца (1-31)
- * @param {number} adminId - ID администратора, выполняющего изменение
- * @param {string} [reason] - Причина изменения
- * @returns {Promise<Object>} - Обновленный тариф
- * @throws {Error} Если тариф не найден, праздник не существует или данные некорректны
- */
 export const deleteHoliday = async (
   cityId,
   carClassId,
@@ -1477,7 +1345,6 @@ export const deleteHoliday = async (
   reason
 ) => {
   try {
-    // Валидация входных параметров
     if (!cityId || isNaN(parseInt(cityId))) {
       throw new Error("ID города должен быть числом");
     }
@@ -1503,13 +1370,11 @@ export const deleteHoliday = async (
       throw new Error("ID администратора обязателен");
     }
 
-    // Преобразуем входные данные в нужный формат
     cityId = parseInt(cityId);
     carClassId = parseInt(carClassId);
     month = parseInt(month);
     day = parseInt(day);
 
-    // Находим тариф без транзакции
     const tariff = await Tariff.findOne({
       where: {
         cityId,
@@ -1522,12 +1387,10 @@ export const deleteHoliday = async (
       throw new Error("Тариф не найден");
     }
 
-    // Клонируем текущие праздничные дни
     const holidayAdjustments = Array.isArray(tariff.holidayAdjustments)
       ? [...tariff.holidayAdjustments]
       : [];
 
-    // Находим праздник для удаления
     const existingHolidayIndex = holidayAdjustments.findIndex(
       (h) => h.month === month && h.day === day
     );
@@ -1536,10 +1399,8 @@ export const deleteHoliday = async (
       throw new Error(`Праздничный день ${day}.${month} не найден`);
     }
 
-    // Удаляем праздник
     holidayAdjustments.splice(existingHolidayIndex, 1);
 
-    // Используем прямое обновление через модель
     await Tariff.update(
       { holidayAdjustments },
       {
@@ -1547,7 +1408,6 @@ export const deleteHoliday = async (
       }
     );
 
-    // Создаем запись в истории вручную
     await TariffHistory.create({
       tariffId: tariff.id,
       cityId,
@@ -1561,7 +1421,6 @@ export const deleteHoliday = async (
       changeReason: reason || `Удален праздничный день ${day}.${month}`,
     });
 
-    // Инвалидируем кеш
     const redisKey = getRedisKey(cityId, carClassId);
     await redis.del(redisKey);
 
@@ -1589,7 +1448,6 @@ export const deleteHoliday = async (
   }
 };
 
-// Обновление базового тарифа для города и класса автомобиля
 export const updateBaseTariff = async (
   cityId,
   carClassId,
@@ -1623,11 +1481,9 @@ export const updateBaseTariff = async (
       { transaction }
     );
 
-    // Инвалидируем кеш
     const redisKey = getRedisKey(cityId, carClassId);
     await redis.del(redisKey);
 
-    // Создаем запись в истории
     await TariffHistory.create(
       {
         tariffId: tariff.id,
@@ -1678,7 +1534,6 @@ export const createTariffInService = async (
   try {
     const { cityId, carClassId } = tariffData;
 
-    // Проверяем существующий тариф
     const existingTariff = await Tariff.findOne({
       where: {
         cityId,
@@ -1692,10 +1547,8 @@ export const createTariffInService = async (
       throw new Error("Активный тариф для этих параметров уже существует");
     }
 
-    // Преобразуем hourlyAdjustments и monthlyAdjustments из старого формата в новый, если они переданы в старом формате
     let processedTariffData = { ...tariffData };
 
-    // Обработка hourlyAdjustments
     if (
       processedTariffData.hourlyAdjustments &&
       !Array.isArray(processedTariffData.hourlyAdjustments)
@@ -1705,7 +1558,6 @@ export const createTariffInService = async (
       ).map(([hour, percent]) => ({ hour: parseInt(hour), percent }));
     }
 
-    // Обработка monthlyAdjustments
     if (
       processedTariffData.monthlyAdjustments &&
       !Array.isArray(processedTariffData.monthlyAdjustments)
@@ -1715,7 +1567,6 @@ export const createTariffInService = async (
       ).map(([month, percent]) => ({ month: parseInt(month), percent }));
     }
 
-    // Создаем новый тариф
     const tariff = await Tariff.create(
       {
         ...processedTariffData,
@@ -1724,7 +1575,6 @@ export const createTariffInService = async (
       { transaction }
     );
 
-    // Создаем запись в истории
     await TariffHistory.create(
       {
         tariffId: tariff.id,
@@ -1737,7 +1587,6 @@ export const createTariffInService = async (
       { transaction }
     );
 
-    // Инвалидируем кеш
     const redisKey = getRedisKey(cityId, carClassId);
     await redis.del(redisKey);
 
@@ -1768,14 +1617,12 @@ export const getTariffsFromService = async (cityId, carClassId) => {
   try {
     const redisKey = getRedisKey(cityId, carClassId);
 
-    // Пробуем получить из кеша
     let tariffs = await redis.get(redisKey);
     if (tariffs) {
       logger.info("Тарифы загружены из Redis", { cityId, carClassId });
       return JSON.parse(tariffs);
     }
 
-    // Получаем из БД
     tariffs = await Tariff.findAll({
       where: {
         cityId,
@@ -1792,13 +1639,11 @@ export const getTariffsFromService = async (cityId, carClassId) => {
       throw new Error("Тарифы не найдены");
     }
 
-    // Преобразуем и добавляем effectivePrice
     const processedTariffs = tariffs.map((tariff) => ({
       ...tariff.dataValues,
       effectivePrice: calculateEffectivePrice(tariff),
     }));
 
-    // Кешируем результат
     await redis.set(redisKey, JSON.stringify(processedTariffs), { EX: 3600 });
 
     return processedTariffs;
@@ -1812,7 +1657,6 @@ export const getTariffsFromService = async (cityId, carClassId) => {
   }
 };
 
-// Вспомогательная функция для расчета эффективной цены
 const calculateEffectivePrice = (tariff) => {
   const basePrice = tariff.baseFare;
   const seasonalMultiplier = tariff.seasonalMultiplier || 1.0;
@@ -1828,38 +1672,32 @@ export const calculateRideCost = async (
   try {
     const now = new Date();
     const hour = now.getHours();
-    const month = now.getMonth() + 1; // JavaScript months are 0-based
+    const month = now.getMonth() + 1;
     const tariffs = await getTariff(cityId);
 
-    // Находим нужный тариф по carClassId
     const tariff = tariffs.find((t) => t.carClassId === carClassId);
     if (!tariff) {
       throw new Error(`Тариф не найден для класса автомобиля ${carClassId}`);
     }
 
-    // Определяем применяемые проценты изменения для costPerKm
     let costPerKm = tariff.costPerKm;
     let costPerMinute = tariff.costPerMinute;
 
-    // Применяем ночной коэффициент
     if (hour >= 22 || hour < 6) {
       costPerKm *= 1 + tariff.nightCoefficient / 100;
       costPerMinute *= 1 + tariff.nightCoefficient / 100;
     }
 
-    // Применяем месячный коэффициент
     if (month >= 11 || month <= 2) {
       costPerKm *= 1 + tariff.monthlyCoefficient / 100;
       costPerMinute *= 1 + tariff.monthlyCoefficient / 100;
     }
 
-    // Проверяем праздничные дни
     if (isHoliday(now)) {
       costPerKm *= 1 + tariff.holidayCoefficient / 100;
       costPerMinute *= 1 + tariff.holidayCoefficient / 100;
     }
 
-    // Рассчитываем стоимость
     const distanceCost = distance * costPerKm;
     const timeCost = duration * costPerMinute;
     const totalCost = distanceCost + timeCost;

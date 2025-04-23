@@ -122,8 +122,6 @@ router.get("/health", (req, res) => {
   res.status(200).json({ status: "ok", service: "ride-service" });
 });
 
-// ==================== Основные операции с поездками ====================
-
 /**
  * @swagger
  * /rides/request:
@@ -349,8 +347,6 @@ router.put(
   updateRideStatusHandler
 );
 
-// ==================== Управление парковкой ====================
-
 /**
  * @swagger
  * /rides/parking/activate:
@@ -446,8 +442,6 @@ router.get(
   getNearbyParkedDriversHandler
 );
 
-// ==================== Управление линией ====================
-
 /**
  * @swagger
  * /rides/line/activate:
@@ -494,8 +488,6 @@ router.post(
   authMiddleware(["driver"]),
   deactivateLineHandler
 );
-
-// ==================== Информация о поездках ====================
 
 /**
  * @swagger
@@ -767,8 +759,6 @@ router.post(
   authMiddleware(["driver", "passenger"]),
   getRideInfoHandler
 );
-
-// ==================== Управление тарифами ====================
 
 /**
  * @swagger
@@ -1160,8 +1150,6 @@ router.put("/tariffs/holiday", updateHolidayHandler);
  */
 router.delete("/tariffs/holiday", deleteHolidayHandler);
 
-// ==================== Специальные операции ====================
-
 /**
  * @swagger
  * /rides/without-passenger:
@@ -1230,7 +1218,6 @@ router.post(
   startRideByQRHandler
 );
 
-// Дополнительные маршруты для совместимости с клиентскими приложениями
 /**
  * @swagger
  * /driver/rides/my:

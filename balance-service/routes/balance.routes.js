@@ -1,14 +1,14 @@
-import express from 'express';
+import express from "express";
 import {
-    deductBalance,
-    getBalance,
-    getBalanceHistory,
-    getDriverBalanceById,
-    getStatistics,
-    initiatePayment,
-    topUpBalance
-} from '../controllers/balance.controller.js';
-import authMiddleware from '../middlewares/auth.middleware.js';
+  deductBalance,
+  getBalance,
+  getBalanceHistory,
+  getDriverBalanceById,
+  getStatistics,
+  initiatePayment,
+  topUpBalance,
+} from "../controllers/balance.controller.js";
+import authMiddleware from "../middlewares/auth.middleware.js";
 
 const router = express.Router();
 
@@ -23,8 +23,8 @@ const router = express.Router();
  *       200:
  *         description: Сервис доступен
  */
-router.get('/health', (req, res) => {
-    res.status(200).json({ status: 'ok', service: 'balance-service' });
+router.get("/health", (req, res) => {
+  res.status(200).json({ status: "ok", service: "balance-service" });
 });
 
 /**
@@ -68,7 +68,7 @@ router.get('/health', (req, res) => {
  *       500:
  *         description: Ошибка сервера
  */
-router.post('/payment', authMiddleware(['passenger']), initiatePayment);
+router.post("/payment", authMiddleware(["passenger"]), initiatePayment);
 
 /**
  * @swagger
@@ -106,7 +106,7 @@ router.post('/payment', authMiddleware(['passenger']), initiatePayment);
  *       500:
  *         description: Ошибка сервера
  */
-router.post('/top-up', authMiddleware(['driver']), topUpBalance);
+router.post("/top-up", authMiddleware(["driver"]), topUpBalance);
 
 /**
  * @swagger
@@ -146,8 +146,8 @@ router.post('/top-up', authMiddleware(['driver']), topUpBalance);
  *       500:
  *         description: Ошибка сервера
  */
-// Маршрут для авторизованных водителей, выполняющих списание средств со своего баланса
-router.post('/deduct', authMiddleware(['driver']), deductBalance);
+
+router.post("/deduct", authMiddleware(["driver"]), deductBalance);
 
 /**
  * @swagger
@@ -180,8 +180,8 @@ router.post('/deduct', authMiddleware(['driver']), deductBalance);
  *       500:
  *         description: Ошибка сервера
  */
-// Маршрут для внутренних запросов от других сервисов (без требования авторизации)
-router.post('/internal/deduct', deductBalance);
+
+router.post("/internal/deduct", deductBalance);
 
 /**
  * @swagger
@@ -220,7 +220,7 @@ router.post('/internal/deduct', deductBalance);
  *       500:
  *         description: Ошибка сервера
  */
-router.get('/history', authMiddleware(['driver']), getBalanceHistory);
+router.get("/history", authMiddleware(["driver"]), getBalanceHistory);
 
 /**
  * @swagger
@@ -244,7 +244,7 @@ router.get('/history', authMiddleware(['driver']), getBalanceHistory);
  *       500:
  *         description: Ошибка сервера
  */
-router.get('/', authMiddleware(['driver']), getBalance);
+router.get("/", authMiddleware(["driver"]), getBalance);
 
 /**
  * @swagger
@@ -275,7 +275,7 @@ router.get('/', authMiddleware(['driver']), getBalance);
  *       500:
  *         description: Ошибка сервера
  */
-router.get('/statistics', authMiddleware(['driver']), getStatistics);
+router.get("/statistics", authMiddleware(["driver"]), getStatistics);
 
 /**
  * @swagger
@@ -299,6 +299,6 @@ router.get('/statistics', authMiddleware(['driver']), getStatistics);
  *       500:
  *         description: Ошибка сервера
  */
-router.get('/:driverId', getDriverBalanceById);
+router.get("/:driverId", getDriverBalanceById);
 
-export default router; 
+export default router;

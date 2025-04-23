@@ -972,7 +972,6 @@ router.post(
   unblockDriverViaGateway
 );
 
-// Подключаем роутер для тарифов
 router.use("/tariff", tariffRouter);
 
 /**

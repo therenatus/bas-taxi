@@ -7,7 +7,6 @@ dotenv.config();
 const router = Router();
 console.log(process.env.AUTH_SERVICE_URL);
 
-// Health check endpoint for the API Gateway
 router.get("/health", (req, res) => {
   res.status(200).json({ status: "ok", service: "api-gateway" });
 });

@@ -10,7 +10,6 @@ export const createTariff = async (req, res) => {
   const adminId = req.user.adminId;
 
   try {
-    // Валидация обязательных полей
     const requiredFields = [
       "cityId",
       "carClassId",
@@ -24,7 +23,6 @@ export const createTariff = async (req, res) => {
       }
     }
 
-    // Добавляем дополнительные поля по умолчанию
     const enrichedTariffData = {
       ...tariffData,
       hourlyAdjustments: tariffData.hourlyAdjustments || {},
@@ -34,7 +32,6 @@ export const createTariff = async (req, res) => {
       createdBy: adminId,
     };
 
-    // Используем правильный путь, соответствующий существующему API
     const response = await axios.post(
       `${API_GATEWAY_URL}/rides/tariffs`,
       enrichedTariffData,
@@ -68,9 +65,7 @@ export const createTariff = async (req, res) => {
       responseData: error.response?.data,
     });
 
-    // Более детальная обработка ошибок
     if (error.response) {
-      // Ошибка от API
       const status = error.response.status;
       const message = error.response.data?.error || error.message;
 
@@ -98,7 +93,6 @@ export const createTariff = async (req, res) => {
       }
     }
 
-    // Ошибка сети или другая ошибка
     res.status(500).json({
       error: "Внутренняя ошибка сервера",
       details: error.message,
@@ -121,7 +115,6 @@ export const getTariffs = async (req, res) => {
       }
     );
 
-    // Get tariffs from the response
     const tariffs = response.data.tariffs;
 
     logger.info("Получены тарифы", {
@@ -428,7 +421,6 @@ export const deleteHoliday = async (req, res) => {
   }
 };
 
-// Улучшенная функция обработки ошибок
 const handleError = (error, res, defaultMessage) => {
   const errorDetails = {
     message: error.message,
@@ -567,7 +559,6 @@ export const createHourlyAdjustment = async (req, res) => {
   const adminId = req.user.adminId;
 
   try {
-    // Валидация входных данных
     if (
       !cityId ||
       !carClassId ||
@@ -580,7 +571,6 @@ export const createHourlyAdjustment = async (req, res) => {
       });
     }
 
-    // Проверка диапазона часа
     if (hour < 0 || hour > 23) {
       return res.status(400).json({
         error: "Значение hour должно быть в диапазоне от 0 до 23",

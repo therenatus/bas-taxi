@@ -1,0 +1,660 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2023-11-14T12:00:00.000Z",
+  "__export_source": "insomnia.desktop.app:v2023.5.8",
+  "resources": [
+    {
+      "_id": "req_root",
+      "parentId": "wrk_chat_service",
+      "modified": 1700000000000,
+      "created": 1700000000000,
+      "url": "{{ _.baseUrl }}",
+      "name": "Root",
+      "description": "",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": -1700000000000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "wrk_chat_service",
+      "parentId": null,
+      "modified": 1700000000000,
+      "created": 1700000000000,
+      "name": "Чат-сервис API",
+      "description": "Коллекция запросов для тестирования API чат-сервиса",
+      "scope": "collection",
+      "_type": "workspace"
+    },
+    {
+      "_id": "req_auth_login",
+      "parentId": "fld_auth",
+      "modified": 1700000000000,
+      "created": 1700000000000,
+      "url": "{{ _.baseUrl }}/auth/login",
+      "name": "Вход в систему",
+      "description": "Аутентификация пользователя и получение JWT токена",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n\t\"username\": \"{{ _.username }}\",\n\t\"password\": \"{{ _.password }}\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1700000000000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "fld_auth",
+      "parentId": "wrk_chat_service",
+      "modified": 1700000000000,
+      "created": 1700000000000,
+      "name": "Аутентификация",
+      "description": "",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": -1700000000000,
+      "_type": "request_group"
+    },
+    {
+      "_id": "req_create_chat",
+      "parentId": "fld_chats",
+      "modified": 1700000000000,
+      "created": 1700000000000,
+      "url": "{{ _.baseUrl }}/chats",
+      "name": "Создание чата",
+      "description": "Создание нового чата",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n\t\"type\": \"ride\",\n\t\"participantIds\": [\"driver:123\", \"passenger:456\"],\n\t\"rideId\": \"ride789\",\n\t\"metadata\": {\n\t\t\"title\": \"Поездка №789\"\n\t},\n\t\"systemMessage\": true\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.token }}"
+      },
+      "metaSortKey": -1700000000000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "fld_chats",
+      "parentId": "wrk_chat_service",
+      "modified": 1700000000000,
+      "created": 1700000000000,
+      "name": "Чаты",
+      "description": "",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": -1600000000000,
+      "_type": "request_group"
+    },
+    {
+      "_id": "req_get_chat_history",
+      "parentId": "fld_chats",
+      "modified": 1700000000000,
+      "created": 1700000000000,
+      "url": "{{ _.baseUrl }}/chats/history",
+      "name": "История чата",
+      "description": "Получение истории сообщений чата",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "chatId",
+          "value": "chat123",
+          "description": "ID чата"
+        },
+        {
+          "name": "limit",
+          "value": "50"
+        },
+        {
+          "name": "offset",
+          "value": "0"
+        }
+      ],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.token }}"
+      },
+      "metaSortKey": -1690000000000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_get_ride_chat",
+      "parentId": "fld_chats",
+      "modified": 1700000000000,
+      "created": 1700000000000,
+      "url": "{{ _.baseUrl }}/chats/ride/{{ _.rideId }}",
+      "name": "Чат поездки",
+      "description": "Получение чата по ID поездки",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.token }}"
+      },
+      "metaSortKey": -1680000000000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_get_my_chats",
+      "parentId": "fld_chats",
+      "modified": 1700000000000,
+      "created": 1700000000000,
+      "url": "{{ _.baseUrl }}/chats/my",
+      "name": "Мои чаты",
+      "description": "Получение списка чатов текущего пользователя",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.token }}"
+      },
+      "metaSortKey": -1670000000000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_create_support_chat",
+      "parentId": "fld_chats",
+      "modified": 1700000000000,
+      "created": 1700000000000,
+      "url": "{{ _.baseUrl }}/chats/support",
+      "name": "Создание чата поддержки",
+      "description": "Создание чата поддержки с администратором",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n\t\"adminId\": \"admin123\",\n\t\"rideId\": \"ride456\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.token }}"
+      },
+      "metaSortKey": -1660000000000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_create_driver_admin_chat",
+      "parentId": "fld_chats",
+      "modified": 1700000000000,
+      "created": 1700000000000,
+      "url": "{{ _.baseUrl }}/chats/driver-admin",
+      "name": "Создание чата водитель-администратор",
+      "description": "Создание чата между водителем и администратором",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n\t\"driverId\": \"driver123\",\n\t\"adminId\": \"admin456\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.token }}"
+      },
+      "metaSortKey": -1650000000000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_archive_chat",
+      "parentId": "fld_chats",
+      "modified": 1700000000000,
+      "created": 1700000000000,
+      "url": "{{ _.baseUrl }}/chats/{{ _.chatId }}/archive",
+      "name": "Архивация чата",
+      "description": "Архивация чата",
+      "method": "PUT",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.token }}"
+      },
+      "metaSortKey": -1640000000000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_get_chats_by_type",
+      "parentId": "fld_chats",
+      "modified": 1700000000000,
+      "created": 1700000000000,
+      "url": "{{ _.baseUrl }}/chats/type/{{ _.type }}",
+      "name": "Чаты по типу",
+      "description": "Получение списка чатов по типу",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.token }}"
+      },
+      "metaSortKey": -1630000000000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_send_message",
+      "parentId": "fld_messages",
+      "modified": 1700000000000,
+      "created": 1700000000000,
+      "url": "{{ _.baseUrl }}/messages",
+      "name": "Отправка сообщения",
+      "description": "Отправка нового сообщения",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n\t\"content\": \"Привет! Я буду через 5 минут.\",\n\t\"chatId\": \"chat123\",\n\t\"receiverId\": \"passenger:456\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.token }}"
+      },
+      "metaSortKey": -1700000000000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "fld_messages",
+      "parentId": "wrk_chat_service",
+      "modified": 1700000000000,
+      "created": 1700000000000,
+      "name": "Сообщения",
+      "description": "",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": -1500000000000,
+      "_type": "request_group"
+    },
+    {
+      "_id": "req_delete_message",
+      "parentId": "fld_messages",
+      "modified": 1700000000000,
+      "created": 1700000000000,
+      "url": "{{ _.baseUrl }}/messages/{{ _.messageId }}",
+      "name": "Удаление сообщения",
+      "description": "Удаление сообщения",
+      "method": "DELETE",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n\t\"forEveryone\": true\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.token }}"
+      },
+      "metaSortKey": -1690000000000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_mark_as_read",
+      "parentId": "fld_messages",
+      "modified": 1700000000000,
+      "created": 1700000000000,
+      "url": "{{ _.baseUrl }}/messages/{{ _.messageId }}/read",
+      "name": "Отметить как прочитанное",
+      "description": "Отметка сообщения как прочитанного",
+      "method": "PUT",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.token }}"
+      },
+      "metaSortKey": -1680000000000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_mark_all_as_read",
+      "parentId": "fld_messages",
+      "modified": 1700000000000,
+      "created": 1700000000000,
+      "url": "{{ _.baseUrl }}/messages/chat/{{ _.chatId }}/read-all",
+      "name": "Отметить все как прочитанные",
+      "description": "Отметка всех сообщений в чате как прочитанных",
+      "method": "PUT",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.token }}"
+      },
+      "metaSortKey": -1670000000000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_search_messages",
+      "parentId": "fld_messages",
+      "modified": 1700000000000,
+      "created": 1700000000000,
+      "url": "{{ _.baseUrl }}/messages/search",
+      "name": "Поиск сообщений",
+      "description": "Поиск сообщений по тексту",
+      "method": "GET",
+      "body": {},
+      "parameters": [
+        {
+          "name": "query",
+          "value": "привет"
+        },
+        {
+          "name": "chatId",
+          "value": "chat123"
+        },
+        {
+          "name": "limit",
+          "value": "20"
+        },
+        {
+          "name": "offset",
+          "value": "0"
+        }
+      ],
+      "headers": [],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.token }}"
+      },
+      "metaSortKey": -1660000000000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_send_message_with_attachment",
+      "parentId": "fld_messages",
+      "modified": 1700000000000,
+      "created": 1700000000000,
+      "url": "{{ _.baseUrl }}/messages/attachment",
+      "name": "Отправка сообщения с вложением",
+      "description": "Отправка сообщения с файловым вложением",
+      "method": "POST",
+      "body": {
+        "mimeType": "multipart/form-data",
+        "params": [
+          {
+            "name": "content",
+            "value": "Вот фотография места ожидания"
+          },
+          {
+            "name": "chatId",
+            "value": "chat123"
+          },
+          {
+            "name": "receiverId",
+            "value": "passenger:456"
+          },
+          {
+            "name": "file",
+            "value": "",
+            "type": "file",
+            "fileName": "/Users/username/Desktop/photo.jpg"
+          }
+        ]
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "multipart/form-data"
+        }
+      ],
+      "authentication": {
+        "type": "bearer",
+        "token": "{{ _.token }}"
+      },
+      "metaSortKey": -1650000000000,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "env_base",
+      "parentId": "wrk_chat_service",
+      "modified": 1700000000000,
+      "created": 1700000000000,
+      "name": "Base Environment",
+      "data": {
+        "baseUrl": "http://localhost:3014"
+      },
+      "dataPropertyOrder": {
+        "&": ["baseUrl"]
+      },
+      "color": null,
+      "isPrivate": false,
+      "metaSortKey": 1700000000000,
+      "_type": "environment"
+    },
+    {
+      "_id": "env_development",
+      "parentId": "env_base",
+      "modified": 1700000000000,
+      "created": 1700000000000,
+      "name": "Разработка",
+      "data": {
+        "baseUrl": "http://localhost:3014",
+        "username": "testuser",
+        "password": "password123",
+        "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+        "rideId": "ride123",
+        "chatId": "chat456",
+        "messageId": "msg789",
+        "type": "ride"
+      },
+      "dataPropertyOrder": {
+        "&": [
+          "baseUrl",
+          "username",
+          "password",
+          "token",
+          "rideId",
+          "chatId",
+          "messageId",
+          "type"
+        ]
+      },
+      "color": "#7d69cb",
+      "isPrivate": false,
+      "metaSortKey": 1700000000000,
+      "_type": "environment"
+    },
+    {
+      "_id": "env_staging",
+      "parentId": "env_base",
+      "modified": 1700000000000,
+      "created": 1700000000000,
+      "name": "Тестовая среда",
+      "data": {
+        "baseUrl": "https://api-test.example.com/chat-service",
+        "username": "staging_user",
+        "password": "staging_password",
+        "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+      },
+      "dataPropertyOrder": {
+        "&": ["baseUrl", "username", "password", "token"]
+      },
+      "color": "#00c49a",
+      "isPrivate": false,
+      "metaSortKey": 1700000000100,
+      "_type": "environment"
+    },
+    {
+      "_id": "env_production",
+      "parentId": "env_base",
+      "modified": 1700000000000,
+      "created": 1700000000000,
+      "name": "Продакшн",
+      "data": {
+        "baseUrl": "https://api.example.com/chat-service",
+        "username": "",
+        "password": "",
+        "token": ""
+      },
+      "dataPropertyOrder": {
+        "&": ["baseUrl", "username", "password", "token"]
+      },
+      "color": "#ff6464",
+      "isPrivate": false,
+      "metaSortKey": 1700000000200,
+      "_type": "environment"
+    }
+  ]
+}

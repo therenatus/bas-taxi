@@ -15,12 +15,14 @@
 ## Общие сведения
 
 Сервис чата позволяет создавать различные типы чатов между участниками системы:
+
 - Водитель-пассажир (в рамках поездки)
 - Водитель-администратор
 - Пассажир-администратор
 - Групповые чаты
 
 Система поддерживает:
+
 - Обмен текстовыми сообщениями
 - Статусы сообщений (отправлено, доставлено, прочитано)
 - Вложения файлов
@@ -30,18 +32,19 @@
 
 ## Типы чатов
 
-| Тип чата | Описание | Особенности |
-|----------|----------|-------------|
-| `ride` | Чат между водителем и пассажиром | Привязан к конкретной поездке (обязателен `rideId`) |
-| `driver_admin` | Чат между водителем и администратором | Не привязан к поездке, для общих вопросов |
-| `passenger_admin` | Чат между пассажиром и администратором | Для поддержки пассажиров |
-| `group` | Групповой чат с несколькими участниками | Требует хотя бы одного администратора |
+| Тип чата          | Описание                                | Особенности                                         |
+| ----------------- | --------------------------------------- | --------------------------------------------------- |
+| `ride`            | Чат между водителем и пассажиром        | Привязан к конкретной поездке (обязателен `rideId`) |
+| `driver_admin`    | Чат между водителем и администратором   | Не привязан к поездке, для общих вопросов           |
+| `passenger_admin` | Чат между пассажиром и администратором  | Для поддержки пассажиров                            |
+| `group`           | Групповой чат с несколькими участниками | Требует хотя бы одного администратора               |
 
 ## REST API
 
 ### Аутентификация
 
 Все запросы должны содержать токен JWT в заголовке:
+
 ```
 Authorization: Bearer {token}
 ```
@@ -53,15 +56,17 @@ POST /chats
 ```
 
 **Тело запроса**:
+
 ```json
 {
-  "receiverId": "passenger:123",  // ID получателя (формат: {тип}:{id})
+  "receiverId": "passenger:123",
   "text": "Сообщение",
-  "rideId": "456"  // Обязателен для чата поездки
+  "rideId": "456"
 }
 ```
 
 **Ответ**:
+
 ```json
 {
   "success": true,
@@ -90,6 +95,7 @@ GET /chats?chatId={chatId}
 ```
 
 **Ответ**:
+
 ```json
 {
   "success": true,
@@ -121,6 +127,7 @@ POST /chats/driver-admin
 ```
 
 **Тело запроса**:
+
 ```json
 {
   "driverId": "123",
@@ -129,6 +136,7 @@ POST /chats/driver-admin
 ```
 
 **Ответ**:
+
 ```json
 {
   "success": true,
@@ -148,6 +156,7 @@ GET /chats/driver-admin
 ```
 
 **Ответ**:
+
 ```json
 {
   "success": true,
@@ -168,6 +177,7 @@ POST /chats/passenger-admin
 ```
 
 **Тело запроса**:
+
 ```json
 {
   "passengerId": "123",
@@ -176,6 +186,7 @@ POST /chats/passenger-admin
 ```
 
 **Ответ**:
+
 ```json
 {
   "success": true,
@@ -195,6 +206,7 @@ GET /chats/passenger-admin
 ```
 
 **Ответ**:
+
 ```json
 {
   "success": true,
@@ -215,6 +227,7 @@ POST /chats/group
 ```
 
 **Тело запроса**:
+
 ```json
 {
   "name": "Поддержка поездки #123",
@@ -223,6 +236,7 @@ POST /chats/group
 ```
 
 **Ответ**:
+
 ```json
 {
   "success": true,
@@ -243,6 +257,7 @@ GET /chats/search?query={текст}&chatId={chatId}
 ```
 
 **Параметры запроса**:
+
 - `query` - текст для поиска
 - `chatId` - (опционально) ID чата для поиска
 - `dateFrom` - (опционально) начальная дата в ISO формате
@@ -251,6 +266,7 @@ GET /chats/search?query={текст}&chatId={chatId}
 - `offset` - (опционально) смещение для пагинации, по умолчанию 0
 
 **Ответ**:
+
 ```json
 {
   "success": true,
@@ -281,10 +297,10 @@ GET /chats/search?query={текст}&chatId={chatId}
 ### Подключение
 
 ```javascript
-const socket = io('http://localhost:3014', {
+const socket = io("http://localhost:3014", {
   auth: {
-    token: 'jwt_token_here'
-  }
+    token: "jwt_token_here",
+  },
 });
 ```
 
@@ -293,13 +309,15 @@ const socket = io('http://localhost:3014', {
 #### Присоединение к чату поездки
 
 **Отправка**:
+
 ```javascript
-socket.emit('join_ride', rideId);
+socket.emit("join_ride", rideId);
 ```
 
 **Получение истории**:
+
 ```javascript
-socket.on('chat_history', (messages) => {
+socket.on("chat_history", (messages) => {
   // Обработка истории сообщений
 });
 ```
@@ -307,39 +325,44 @@ socket.on('chat_history', (messages) => {
 #### Присоединение к чату водитель-администратор
 
 **Отправка**:
+
 ```javascript
-socket.emit('join_driver_admin_chat', chatId);
+socket.emit("join_driver_admin_chat", chatId);
 ```
 
 #### Присоединение к чату пассажир-администратор
 
 **Отправка**:
+
 ```javascript
-socket.emit('join_passenger_admin_chat', chatId);
+socket.emit("join_passenger_admin_chat", chatId);
 ```
 
 #### Присоединение к групповому чату
 
 **Отправка**:
+
 ```javascript
-socket.emit('join_group_chat', chatId);
+socket.emit("join_group_chat", chatId);
 ```
 
 #### Отправка сообщения
 
 **Отправка**:
+
 ```javascript
-socket.emit('send_message', {
-  receiverId: 'passenger:123',
-  rideId: '456',  // Если это чат поездки
-  text: 'Привет!',
-  chatId: 'chat789'  // Для групповых чатов
+socket.emit("send_message", {
+  receiverId: "passenger:123",
+  rideId: "456", // Если это чат поездки
+  text: "Привет!",
+  chatId: "chat789", // Для групповых чатов
 });
 ```
 
 **Получение нового сообщения**:
+
 ```javascript
-socket.on('new_message', (message) => {
+socket.on("new_message", (message) => {
   // Обработка нового сообщения
 });
 ```
@@ -347,22 +370,24 @@ socket.on('new_message', (message) => {
 #### Отметка о прочтении
 
 **Отправка**:
+
 ```javascript
 // Отметить одно сообщение
-socket.emit('mark_as_read', { messageId: 'msg123' });
+socket.emit("mark_as_read", { messageId: "msg123" });
 
 // Отметить все сообщения в чате
-socket.emit('mark_as_read', { chatId: 'chat123' });
+socket.emit("mark_as_read", { chatId: "chat123" });
 ```
 
 **Получение события о прочтении**:
+
 ```javascript
-socket.on('message_read', (data) => {
+socket.on("message_read", (data) => {
   // Обработка события прочтения сообщения
   // data содержит messageId, senderId, receiverId, chatId, timestamp
 });
 
-socket.on('all_messages_read', (data) => {
+socket.on("all_messages_read", (data) => {
   // Обработка события прочтения всех сообщений
   // data содержит chatId, userId, timestamp
 });
@@ -371,13 +396,15 @@ socket.on('all_messages_read', (data) => {
 #### Индикатор печати
 
 **Отправка**:
+
 ```javascript
-socket.emit('typing', { chatId: 'chat123', isTyping: true });
+socket.emit("typing", { chatId: "chat123", isTyping: true });
 ```
 
 **Получение**:
+
 ```javascript
-socket.on('user_typing', (data) => {
+socket.on("user_typing", (data) => {
   // data содержит userId, chatId, isTyping, timestamp
 });
 ```
@@ -385,7 +412,7 @@ socket.on('user_typing', (data) => {
 #### Обработка ошибок
 
 ```javascript
-socket.on('error', (error) => {
+socket.on("error", (error) => {
   console.error(error.code, error.message);
 });
 ```
@@ -409,11 +436,11 @@ socket.on('error', (error) => {
 
 ## Статусы сообщений
 
-| Статус | Описание |
-|--------|----------|
-| `sent` | Сообщение отправлено, но еще не доставлено получателю |
-| `delivered` | Сообщение доставлено получателю, но еще не прочитано |
-| `read` | Сообщение прочитано получателем |
+| Статус      | Описание                                              |
+| ----------- | ----------------------------------------------------- |
+| `sent`      | Сообщение отправлено, но еще не доставлено получателю |
+| `delivered` | Сообщение доставлено получателю, но еще не прочитано  |
+| `read`      | Сообщение прочитано получателем                       |
 
 ## Вложения
 
@@ -421,4 +448,4 @@ socket.on('error', (error) => {
 
 - Максимальный размер файла: 10 МБ
 - Поддерживаемые форматы: изображения (JPEG, PNG, GIF), документы (PDF, DOC, DOCX, XLS, XLSX), архивы (ZIP, RAR)
-- Возможность получить все вложения чата отдельным запросом 
+- Возможность получить все вложения чата отдельным запросом

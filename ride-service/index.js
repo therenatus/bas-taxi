@@ -41,7 +41,7 @@ const startServer = async () => {
       "Ошибка подключения к RabbitMQ. Завершаем процесс...",
       error.message
     );
-    process.exit(1); // Завершаем процесс, если RabbitMQ недоступен
+    process.exit(1);
   }
 
   const server = http.createServer(app);
@@ -88,7 +88,6 @@ const startServer = async () => {
     }
   });
 
-  // Метрики Prometheus
   const collectDefaultMetrics = client.collectDefaultMetrics;
   collectDefaultMetrics({ timeout: 5000 });
 
