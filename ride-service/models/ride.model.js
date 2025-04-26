@@ -43,6 +43,10 @@ const Ride = sequelize.define('Ride', {
         type: DataTypes.FLOAT,
         allowNull: true,
     },
+    duration: {
+        type: DataTypes.FLOAT,
+        allowNull: true,
+    },
     paymentType: {
         type: DataTypes.ENUM('cash', 'card'),
         allowNull: false,
